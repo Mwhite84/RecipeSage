@@ -15,7 +15,8 @@
         "tsConfig": "packages/util/server/tsconfig.lib.json",
         "declaration": true,
         "assets": [],
-        "platform": "node"
+        "platform": "node",
+        "external": ["@julianpoy/recipe-clipper", "jsdom", "pdfmake"]
       },
       "configurations": {
         "development": {
