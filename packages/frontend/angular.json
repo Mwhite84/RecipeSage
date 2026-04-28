@@ -14,7 +14,7 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "outputPath": "www",
-            "baseHref": "/app/",
+            "baseHref": "/",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -58,7 +58,7 @@
               "buildOptimizer": true
             },
             "production": {
-              "deployUrl": "/app/",
+              "deployUrl": "/",
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",
@@ -100,7 +100,8 @@
               ]
             },
             "selfhost": {
-              "deployUrl": "/app/",
+              "baseHref": "/",
+              "deployUrl": "/",
               "index": {
                 "input": "src/index.selfhost.html",
                 "output": "index.html"

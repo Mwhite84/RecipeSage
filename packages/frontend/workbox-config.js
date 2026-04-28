@@ -9,7 +9,7 @@ module.exports = {
     // "index.html" intentionally omitted so the shell stays NetworkFirst
   ],
   modifyURLPrefix: {
-    "": "/app/",
+    "": "/",
   },
   dontCacheBustURLsMatching: new RegExp(".+.[a-f0-9]{20}..+"),
   maximumFileSizeToCacheInBytes: 5000000,

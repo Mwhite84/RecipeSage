@@ -1,11 +1,14 @@
 import { Injectable, inject, NgZone, OnDestroy } from "@angular/core";
 import { Router } from "@angular/router";
-import { Platform } from "@ionic/angular";
+import {
+  Platform,
+  ToastController,
+  ModalController,
+} from "@ionic/angular/standalone";
 import { Capacitor } from "@capacitor/core";
 import { Subscription } from "rxjs";
 import { RecipeService } from "./recipe.service";
 import { LoadingService } from "./loading.service";
-import { ToastController, ModalController } from "@ionic/angular";
 import { EditRecipePage } from "~/pages/recipe-components/edit-recipe/edit-recipe.page";
 import {
   RecipeSageShare,
