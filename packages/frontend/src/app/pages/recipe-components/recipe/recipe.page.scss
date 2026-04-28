@@ -236,3 +236,16 @@ h2.recipeTitle {
     max-width: 840px;
   }
 }
+
+// Separator lines between ingredients (custom feature)
+.ingredients .ingredient.ingredientContent {
+  border-bottom: 1px dotted rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.2);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+
+  &::last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+}
