@@ -16,6 +16,43 @@
 
 <ion-content class="ion-padding">
   @if (recipe) {
+    <!-- Font Size FAB -->
+    <ion-fab
+      slot="fixed"
+      vertical="bottom"
+      horizontal="end"
+      class="font-size-fab"
+    >
+      <ion-fab-button size="small">
+        <ion-icon name="text"></ion-icon>
+      </ion-fab-button>
+      <ion-fab-list side="top">
+        <ion-fab-button
+          (click)="increaseFontSize()"
+          [disabled]="isMaxFontSize()"
+          size="small"
+          aria-label="Increase font size"
+        >
+          <ion-icon name="add-circle"></ion-icon>
+        </ion-fab-button>
+        <ion-fab-button
+          (click)="resetFontSize()"
+          color="medium"
+          size="small"
+          aria-label="Reset font size"
+        >
+          <ion-icon name="refresh"></ion-icon>
+        </ion-fab-button>
+        <ion-fab-button
+          (click)="decreaseFontSize()"
+          [disabled]="isMinFontSize()"
+          size="small"
+          aria-label="Decrease font size"
+        >
+          <ion-icon name="remove-circle"></ion-icon>
+        </ion-fab-button>
+      </ion-fab-list>
+    </ion-fab>
     <div class="ion-no-margin">
       <ion-item lines="none">
         @if (recipe.recipeImages.length) {
