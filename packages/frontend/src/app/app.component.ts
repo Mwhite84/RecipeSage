@@ -39,6 +39,7 @@ import { SHARED_UI_IMPORTS } from "./providers/shared-ui.provider";
 import { CookingToolbarComponent } from "./components/cooking-toolbar/cooking-toolbar.component";
 import { VersionCheckService } from "./services/versioncheck.service";
 import { DebugStoreService } from "./services/debugStore.service";
+import { ShareHandlerService } from "~/services/share-handler.service";
 import {
   IonApp,
   IonSplitPane,
@@ -131,6 +132,7 @@ export class AppComponent {
   cookingToolbarService = inject(CookingToolbarService);
   private versionCheckService = inject(VersionCheckService);
   debugStoreService = inject(DebugStoreService);
+  private shareHandlerService = inject(ShareHandlerService);
 
   isSelfHost = IS_SELFHOST;
   isLoggedIn?: boolean;
