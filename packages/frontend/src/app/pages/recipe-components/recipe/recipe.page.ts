@@ -23,7 +23,11 @@ import { LoadingService } from "~/services/loading.service";
 import { UtilService, RouteMap } from "~/services/util.service";
 import { WakeLockService } from "~/services/wakelock.service";
 import { PreferencesService } from "~/services/preferences.service";
-import { RecipeDetailsPreferenceKey } from "@recipesage/util/shared";
+import {
+  RecipeDetailsPreferenceKey,
+  GlobalPreferenceKey,
+  SupportedFontSize,
+} from "@recipesage/util/shared";
 import { RecipeCompletionTrackerService } from "~/services/recipe-completion-tracker.service";
 
 import { AddRecipeToShoppingListModalPage } from "../add-recipe-to-shopping-list-modal/add-recipe-to-shopping-list-modal.page";
@@ -67,6 +71,9 @@ import {
   IonCol,
   IonAvatar,
   IonChip,
+  IonFab,
+  IonFabButton,
+  IonFabList,
 } from "@ionic/angular/standalone";
 import {
   book,
@@ -85,6 +92,10 @@ import {
   print,
   share,
   trash,
+  text,
+  addCircle,
+  removeCircle,
+  refresh,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -113,6 +124,9 @@ import { addIcons } from "ionicons";
     IonCol,
     IonAvatar,
     IonChip,
+    IonFab,
+    IonFabButton,
+    IonFabList,
   ],
 })
 export class RecipePage {
@@ -208,6 +222,10 @@ export class RecipePage {
       print,
       share,
       trash,
+      text,
+      addCircle,
+      removeCircle,
+      refresh,
     });
     this.updateIsLoggedIn();
 
@@ -807,5 +825,59 @@ export class RecipePage {
 
   recipeLabelTrackBy(_: number, recipeLabel: { id: string }) {
     return recipeLabel.id;
+  }
+
+  // Font size adjustment
+  fontSizeOptions = [
+    SupportedFontSize.X1_0,
+    SupportedFontSize.PX14,
+    SupportedFontSize.PX16,
+    SupportedFontSize.PX18,
+    SupportedFontSize.PX20,
+    SupportedFontSize.PX22,
+    SupportedFontSize.PX24,
+  ];
+
+  increaseFontSize() {
+    const currentSize =
+      this.preferencesService.preferences[GlobalPreferenceKey.FontSize];
+    const currentIndex = this.fontSizeOptions.indexOf(currentSize);
+    if (currentIndex < this.fontSizeOptions.length - 1) {
+      this.setFontSize(this.fontSizeOptions[currentIndex + 1]);
+    }
+  }
+
+  decreaseFontSize() {
+    const currentSize =
+      this.preferencesService.preferences[GlobalPreferenceKey.FontSize];
+    const currentIndex = this.fontSizeOptions.indexOf(currentSize);
+    if (currentIndex > 0) {
+      this.setFontSize(this.fontSizeOptions[currentIndex - 1]);
+    }
+  }
+
+  resetFontSize() {
+    this.setFontSize(SupportedFontSize.X1_0);
+  }
+
+  private setFontSize(fontSize: SupportedFontSize) {
+    this.preferencesService.preferences[GlobalPreferenceKey.FontSize] =
+      fontSize;
+    this.preferencesService.save();
+    this.utilService.setFontSize(fontSize);
+  }
+
+  isMaxFontSize(): boolean {
+    const currentSize =
+      this.preferencesService.preferences[GlobalPreferenceKey.FontSize];
+    return (
+      currentSize === this.fontSizeOptions[this.fontSizeOptions.length - 1]
+    );
+  }
+
+  isMinFontSize(): boolean {
+    const currentSize =
+      this.preferencesService.preferences[GlobalPreferenceKey.FontSize];
+    return currentSize === this.fontSizeOptions[0];
   }
 }
