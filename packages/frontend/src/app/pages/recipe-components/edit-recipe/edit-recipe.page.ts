@@ -29,6 +29,10 @@ import { CapabilitiesService } from "~/services/capabilities.service";
 import { ImageService } from "~/services/image.service";
 import { PreferencesService } from "~/services/preferences.service";
 import { RecipeDetailsPreferenceKey } from "@recipesage/util/shared";
+import {
+  RecipeDraftService,
+  type RecipeDraft,
+} from "~/services/recipe-draft.service";
 import { getQueryParam } from "~/utils/queryParams";
 
 import { EditRecipePopoverPage } from "../edit-recipe-popover/edit-recipe-popover.page";
@@ -133,6 +137,7 @@ export class EditRecipePage {
   private capabilitiesService = inject(CapabilitiesService);
   private events = inject(EventService);
   private preferencesService = inject(PreferencesService);
+  private recipeDraftService = inject(RecipeDraftService);
 
   saving = false;
   defaultBackHref: string;
@@ -173,6 +178,9 @@ export class EditRecipePage {
   }[] = [];
 
   isAutoclipPopoverOpen = false;
+  draftRestored = false;
+  draftAge: string | null = null;
+  private draftAgeInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     addIcons({ camera, close, cutOutline, documentTextOutline, link, options });
@@ -190,7 +198,128 @@ export class EditRecipePage {
       : RouteMap.HomePage.getPath("main");
   }
 
-  ionViewWillEnter() {}
+  ionViewWillEnter() {
+    // Check for draft restoration when entering the view
+    this.checkForDraft();
+
+    // Start interval to update draftAge display every second
+    this.draftAgeInterval = setInterval(() => {
+      this.draftAge = this.recipeDraftService.formatDraftAge(this.recipeId);
+    }, 1000);
+  }
+
+  private async checkForDraft() {
+    if (this.draftRestored) return;
+
+    const draft = this.recipeDraftService.getDraft(this.recipeId);
+    if (!draft) return;
+
+    const hasContent = this.recipeDraftService.draftHasContent(draft);
+
+    if (!hasContent) {
+      this.recipeDraftService.clearDraft(this.recipeId);
+      return;
+    }
+
+    if (this.recipeId) {
+      this.restoreDraft(draft);
+    } else {
+      const ageText =
+        this.recipeDraftService.formatDraftAge(this.recipeId) || "previously";
+      const alert = await this.alertCtrl.create({
+        header: "Unsaved Draft",
+        message: `You have an unsaved draft from ${ageText}. Would you like to restore it?`,
+        buttons: [
+          {
+            text: "Discard",
+            role: "cancel",
+            handler: () => {
+              this.recipeDraftService.clearDraft(this.recipeId);
+            },
+          },
+          {
+            text: "Restore",
+            handler: () => {
+              this.restoreDraft(draft);
+            },
+          },
+        ],
+      });
+      await alert.present();
+    }
+  }
+
+  private restoreDraft(draft: RecipeDraft) {
+    this.recipe.title = draft.title || "";
+    this.recipe.description = draft.description || "";
+    this.recipe.yield = draft.yield || "";
+    this.recipe.activeTime = draft.activeTime || "";
+    this.recipe.totalTime = draft.totalTime || "";
+    this.recipe.source = draft.source || "";
+    this.recipe.url = draft.url || "";
+    this.recipe.notes = draft.notes || "";
+    this.recipe.ingredients = draft.ingredients || "";
+    this.recipe.instructions = draft.instructions || "";
+    this.recipe.rating = draft.rating;
+
+    if (draft.labelIds?.length && this.labels.length > 0) {
+      this.selectedLabels = this.labels.filter((label) =>
+        draft.labelIds!.includes(label.id),
+      );
+    }
+
+    this.draftRestored = true;
+    this.draftAge = this.recipeDraftService.formatDraftAge(this.recipeId);
+    this.markAsDirty();
+  }
+
+  triggerAutosave() {
+    this.markAsDirty();
+
+    const draft: Omit<RecipeDraft, "savedAt"> = {
+      title: this.recipe.title || "",
+      description: this.recipe.description || "",
+      yield: this.recipe.yield || "",
+      activeTime: this.recipe.activeTime || "",
+      totalTime: this.recipe.totalTime || "",
+      source: this.recipe.source || "",
+      url: this.recipe.url || "",
+      notes: this.recipe.notes || "",
+      ingredients: this.recipe.ingredients || "",
+      instructions: this.recipe.instructions || "",
+      rating: this.recipe.rating ?? null,
+      lastMadeAt: this.recipe.lastMadeAt || "",
+      imageIds: this.images.map((img) => img.id),
+      labelIds: this.selectedLabels.map((label) => label.id),
+      linkedRecipeIds: this.selectedLinkedRecipes.map((lr) => lr.id),
+    };
+
+    this.recipeDraftService.debouncedSave(draft, this.recipeId, () => {
+      this.draftAge = this.recipeDraftService.formatDraftAge(this.recipeId);
+    });
+  }
+
+  private immediateSaveDraft() {
+    const draft: Omit<RecipeDraft, "savedAt"> = {
+      title: this.recipe.title || "",
+      description: this.recipe.description || "",
+      yield: this.recipe.yield || "",
+      activeTime: this.recipe.activeTime || "",
+      totalTime: this.recipe.totalTime || "",
+      source: this.recipe.source || "",
+      url: this.recipe.url || "",
+      notes: this.recipe.notes || "",
+      ingredients: this.recipe.ingredients || "",
+      instructions: this.recipe.instructions || "",
+      rating: this.recipe.rating ?? null,
+      lastMadeAt: this.recipe.lastMadeAt || "",
+      imageIds: this.images.map((img) => img.id),
+      labelIds: this.selectedLabels.map((label) => label.id),
+      linkedRecipeIds: this.selectedLinkedRecipes.map((lr) => lr.id),
+    };
+
+    this.recipeDraftService.immediateSave(draft, this.recipeId);
+  }
 
   async load() {
     const loading = this.loadingService.start();
@@ -319,7 +448,7 @@ export class EditRecipePage {
   lastMadeAtDateChange(event: any) {
     const value = event.target.value;
     this.recipe.lastMadeAt = value || "";
-    this.markAsDirty();
+    this.triggerAutosave();
   }
 
   private isValidNutritionValue(value: unknown): boolean {
@@ -414,7 +543,7 @@ export class EditRecipePage {
     this.recipe.nutritionCalcium = response.calcium;
     this.recipe.nutritionIron = response.iron;
     this.recipe.nutritionPotassium = response.potassium;
-    this.markAsDirty();
+    this.triggerAutosave();
   }
 
   async confirmClearNutrition() {
@@ -470,7 +599,7 @@ export class EditRecipePage {
     this.recipe.nutritionIron = undefined;
     this.recipe.nutritionPotassium = undefined;
     this.recipe.nutritionOtherDetails = undefined;
-    this.markAsDirty();
+    this.triggerAutosave();
   }
 
   async autofillNutritionFromText() {
@@ -580,7 +709,7 @@ export class EditRecipePage {
       this.recipe.nutritionCalcium = response.calcium;
       this.recipe.nutritionIron = response.iron;
       this.recipe.nutritionPotassium = response.potassium;
-      this.markAsDirty();
+      this.triggerAutosave();
     }
 
     loading.dismiss();
@@ -727,6 +856,9 @@ export class EditRecipePage {
     if (!response) return;
 
     this.markAsClean();
+    this.recipeDraftService.clearDraft(this.recipeId);
+    this.draftRestored = false;
+    this.draftAge = null;
 
     this.navCtrl.navigateForward(RouteMap.RecipePage.getPath(response.id), {
       replaceUrl: true,
@@ -1575,13 +1707,24 @@ export class EditRecipePage {
     }
 
     this.selectedLinkedRecipes.push(recipe);
-    this.markAsDirty();
+    this.triggerAutosave();
   }
 
   removeLinkedRecipe(recipeId: string) {
     this.selectedLinkedRecipes = this.selectedLinkedRecipes.filter(
       (r) => r.id !== recipeId,
     );
-    this.markAsDirty();
+    this.triggerAutosave();
+  }
+
+  ionViewWillLeave() {
+    if (this.unsavedChangesService.hasPendingChanges()) {
+      this.immediateSaveDraft();
+    }
+
+    if (this.draftAgeInterval) {
+      clearInterval(this.draftAgeInterval);
+      this.draftAgeInterval = null;
+    }
   }
 }
