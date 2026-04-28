@@ -243,7 +243,7 @@ h2.recipeTitle {
   padding-bottom: 6px;
   margin-bottom: 6px;
 
-  &::last-child {
+  &:last-child {
     border-bottom: none;
     padding-bottom: 0;
     margin-bottom: 0;
