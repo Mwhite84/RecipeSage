@@ -1,0 +1,300 @@
+// =============================================================================
+// RecipeSage Design System — RS Tokens
+// =============================================================================
+// Namespace: --rs-*
+// All components should reference these tokens, not raw Ionic vars.
+// Ionic vars are mapped from RS tokens inside each theme mixin.
+//
+// Typography:  DM Serif Display (display) + Plus Jakarta Sans (body)
+// Color strat: Restrained — tinted neutrals + one refined accent (h:232)
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// TYPOGRAPHY
+// Fixed rem scale (app UI — not fluid/clamp). Line-length capped at 65ch.
+// -----------------------------------------------------------------------------
+@mixin rsTypographyTokens() {
+  --rs-font-display:
+    "DM Serif Display", Georgia, serif; // weight: 400 only (no bold cut)
+  --rs-font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --rs-font-mono: ui-monospace, "Cascadia Code", "Menlo", monospace;
+
+  // Scale — ≥1.25× ratio at the meaningful steps
+  --rs-text-xs: 0.75rem; // 12px — tags, metadata
+  --rs-text-sm: 0.875rem; // 14px — secondary text, labels
+  --rs-text-base: 1rem; // 16px — body copy
+  --rs-text-md: 1.125rem; // 18px — recipe steps (arm's-length legible)
+  --rs-text-lg: 1.375rem; // 22px — card titles, section headings
+  --rs-text-xl: 1.75rem; // 28px — page headings
+  --rs-text-2xl: 2.25rem; // 36px — hero recipe names
+
+  // Line heights
+  --rs-leading-tight: 1.2; // headings
+  --rs-leading-normal: 1.5; // body
+  --rs-leading-relaxed: 1.75; // recipe steps — extra room for glancing
+
+  // Weights
+  --rs-weight-regular: 400;
+  --rs-weight-medium: 500;
+  --rs-weight-semibold: 600;
+  --rs-weight-bold: 700;
+}
+
+// -----------------------------------------------------------------------------
+// SPACING — 4pt scale with semantic aliases
+// -----------------------------------------------------------------------------
+@mixin rsSpacingTokens() {
+  --rs-space-1: 4px;
+  --rs-space-2: 8px;
+  --rs-space-3: 12px;
+  --rs-space-4: 16px;
+  --rs-space-5: 24px;
+  --rs-space-6: 32px;
+  --rs-space-7: 48px;
+  --rs-space-8: 64px;
+  --rs-space-9: 96px;
+
+  // Semantic — use these in components, not raw numbers
+  --rs-inset-page: var(--rs-space-4); // 16px — edge inset on mobile
+  --rs-inset-component: var(--rs-space-4); // 16px — card/item inner padding
+  --rs-gap-section: var(--rs-space-6); // 32px — between major sections
+  --rs-gap-items: var(--rs-space-3); // 12px — between list items
+
+  --rs-touch-min: 44px; // Apple HIG minimum touch target
+}
+
+// -----------------------------------------------------------------------------
+// SHAPE
+// -----------------------------------------------------------------------------
+@mixin rsShapeTokens() {
+  --rs-radius-sm: 8px;
+  --rs-radius-md: 12px;
+  --rs-radius-lg: 16px;
+  --rs-radius-xl: 24px;
+  --rs-radius-full: 9999px;
+}
+
+// -----------------------------------------------------------------------------
+// MOTION — expo-out easing, no bounce
+// -----------------------------------------------------------------------------
+@mixin rsMotionTokens() {
+  --rs-ease-out: cubic-bezier(0.16, 1, 0.3, 1); // expo-out: natural decel
+  --rs-ease-in: cubic-bezier(0.7, 0, 0.84, 0); // expo-in
+  --rs-ease-inout: cubic-bezier(0.83, 0, 0.17, 1); // expo-inout
+
+  --rs-duration-fast: 120ms; // micro-interactions, icon swaps
+  --rs-duration-base: 200ms; // standard transitions
+  --rs-duration-slow: 350ms; // page entrances, sheet slides
+}
+
+// -----------------------------------------------------------------------------
+// COLORS — Light (default)
+// H:232 blue tinted throughout all neutrals for subconscious cohesion.
+// Accent: oklch(64% 0.18 232) — warmer than current #00a8ff (H:236, cold cyan)
+// -----------------------------------------------------------------------------
+@mixin rsLightTokens() {
+  // Surfaces
+  --rs-surface-base: oklch(98.5% 0.004 232); // page background
+  --rs-surface-elevated: oklch(100% 0.002 232); // cards, content wells
+  --rs-surface-sunken: oklch(95% 0.007 232); // inputs, code, depressed areas
+  --rs-surface-overlay: oklch(92% 0.009 232); // popovers, action sheets
+
+  // Text
+  --rs-text-primary: oklch(
+    18% 0.008 232
+  ); // headings, body — near-black, tinted
+  --rs-text-secondary: oklch(42% 0.01 232); // descriptions, secondary info
+  --rs-text-tertiary: oklch(60% 0.008 232); // timestamps, metadata
+  --rs-text-on-accent: oklch(
+    100% 0.002 232
+  ); // text on primary button/accent bg
+
+  // Accent
+  --rs-accent: oklch(64% 0.18 232); // primary actions, links, focus rings
+  --rs-accent-subtle: oklch(94% 0.022 232); // chip backgrounds, hover states
+  --rs-accent-muted: oklch(78% 0.12 232); // disabled accent states
+  --rs-accent-text: oklch(36% 0.13 232); // accent-colored text on light surface
+  --rs-accent-rgb: 0, 148, 232; // for Ionic's opacity-based effects
+
+  // Borders & dividers
+  --rs-border: oklch(88% 0.008 232); // standard borders
+  --rs-border-strong: oklch(78% 0.01 232); // emphasized/focus borders
+  --rs-divider: oklch(93% 0.006 232); // list dividers, hairlines
+
+  // Semantic states
+  --rs-success: oklch(62% 0.16 145);
+  --rs-success-subtle: oklch(95% 0.04 145);
+  --rs-warning: oklch(72% 0.15 75);
+  --rs-warning-subtle: oklch(96% 0.04 75);
+  --rs-danger: oklch(59% 0.2 20);
+  --rs-danger-subtle: oklch(95% 0.05 20);
+
+  // Shadows — tinted toward H:232 for cohesion
+  --rs-shadow-sm:
+    0 1px 2px oklch(15% 0.007 232 / 0.07), 0 1px 4px oklch(15% 0.007 232 / 0.05);
+  --rs-shadow-md:
+    0 2px 8px oklch(15% 0.007 232 / 0.08),
+    0 8px 24px oklch(15% 0.007 232 / 0.06);
+  --rs-shadow-lg: 0 16px 48px oklch(15% 0.007 232 / 0.12);
+
+  // Ionic overrides — Ionic components read these
+  --ion-background-color: var(--rs-surface-base);
+  --ion-background-color-rgb: 247, 248, 250;
+  --ion-text-color: var(--rs-text-primary);
+  --ion-text-color-rgb: 28, 28, 32;
+  --ion-border-color: var(--rs-border);
+  --ion-card-background: var(--rs-surface-elevated);
+  --ion-card-background-hover: oklch(97% 0.006 232);
+  --ion-item-background: var(--rs-surface-elevated);
+  --ion-toolbar-background: var(--rs-surface-elevated);
+  --ion-tab-bar-background: var(--rs-surface-elevated);
+  --ion-color-primary: var(--rs-accent);
+  --ion-color-primary-rgb: var(--rs-accent-rgb);
+  --ion-color-primary-contrast: var(--rs-text-on-accent);
+  --ion-color-primary-shade: oklch(57% 0.18 232);
+  --ion-color-primary-tint: oklch(70% 0.17 232);
+
+  // Step scale — regenerated from the new surface
+  --ion-color-step-50: oklch(97% 0.005 232);
+  --ion-color-step-100: oklch(94% 0.007 232);
+  --ion-color-step-150: oklch(91% 0.008 232);
+  --ion-color-step-200: oklch(88% 0.009 232);
+  --ion-color-step-250: oklch(84% 0.009 232);
+  --ion-color-step-300: oklch(80% 0.01 232);
+  --ion-color-step-350: oklch(73% 0.009 232);
+  --ion-color-step-400: oklch(65% 0.008 232);
+  --ion-color-step-450: oklch(58% 0.008 232);
+  --ion-color-step-500: oklch(52% 0.008 232);
+  --ion-color-step-550: oklch(46% 0.008 232);
+  --ion-color-step-600: oklch(40% 0.008 232);
+  --ion-color-step-650: oklch(35% 0.008 232);
+  --ion-color-step-700: oklch(30% 0.008 232);
+  --ion-color-step-750: oklch(26% 0.007 232);
+  --ion-color-step-800: oklch(22% 0.007 232);
+  --ion-color-step-850: oklch(20% 0.007 232);
+  --ion-color-step-900: oklch(18% 0.007 232);
+  --ion-color-step-950: oklch(15% 0.006 232);
+}
+
+// -----------------------------------------------------------------------------
+// COLORS — Dark
+// Same H:232 tint throughout. Accent brighter for contrast on dark surfaces.
+// -----------------------------------------------------------------------------
+@mixin rsDarkTokens() {
+  // Surfaces
+  --rs-surface-base: oklch(15% 0.008 232);
+  --rs-surface-elevated: oklch(19% 0.009 232);
+  --rs-surface-sunken: oklch(12% 0.006 232);
+  --rs-surface-overlay: oklch(22% 0.01 232);
+
+  // Text
+  --rs-text-primary: oklch(95% 0.005 232);
+  --rs-text-secondary: oklch(68% 0.008 232);
+  --rs-text-tertiary: oklch(48% 0.006 232);
+  --rs-text-on-accent: oklch(100% 0.002 232);
+
+  // Accent — brighter for dark surface contrast
+  --rs-accent: oklch(70% 0.19 232);
+  --rs-accent-subtle: oklch(22% 0.04 232);
+  --rs-accent-muted: oklch(50% 0.1 232);
+  --rs-accent-text: oklch(75% 0.15 232);
+  --rs-accent-rgb: 0, 168, 255;
+
+  // Borders
+  --rs-border: oklch(26% 0.008 232);
+  --rs-border-strong: oklch(34% 0.01 232);
+  --rs-divider: oklch(22% 0.006 232);
+
+  // Semantic
+  --rs-success: oklch(68% 0.16 145);
+  --rs-success-subtle: oklch(20% 0.06 145);
+  --rs-warning: oklch(76% 0.15 75);
+  --rs-warning-subtle: oklch(20% 0.05 75);
+  --rs-danger: oklch(64% 0.2 20);
+  --rs-danger-subtle: oklch(22% 0.07 20);
+
+  // Shadows — more visible against dark surfaces
+  --rs-shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.3), 0 1px 4px oklch(0% 0 0 / 0.2);
+  --rs-shadow-md:
+    0 2px 8px oklch(0% 0 0 / 0.35), 0 8px 24px oklch(0% 0 0 / 0.25);
+  --rs-shadow-lg: 0 16px 48px oklch(0% 0 0 / 0.45);
+
+  // Ionic overrides
+  --ion-background-color: var(--rs-surface-base);
+  --ion-background-color-rgb: 22, 23, 28;
+  --ion-text-color: var(--rs-text-primary);
+  --ion-text-color-rgb: 242, 242, 248;
+  --ion-border-color: var(--rs-border);
+  --ion-card-background: var(--rs-surface-elevated);
+  --ion-card-background-hover: oklch(23% 0.011 232);
+  --ion-item-background: var(--rs-surface-base);
+  --ion-toolbar-background: var(--rs-surface-elevated);
+  --ion-tab-bar-background: var(--rs-surface-elevated);
+  --ion-color-primary: var(--rs-accent);
+  --ion-color-primary-rgb: var(--rs-accent-rgb);
+  --ion-color-primary-contrast: var(--rs-text-on-accent);
+  --ion-color-primary-shade: oklch(63% 0.19 232);
+  --ion-color-primary-tint: oklch(76% 0.18 232);
+
+  --ion-color-step-50: oklch(18% 0.009 232);
+  --ion-color-step-100: oklch(22% 0.01 232);
+  --ion-color-step-150: oklch(27% 0.01 232);
+  --ion-color-step-200: oklch(32% 0.01 232);
+  --ion-color-step-250: oklch(37% 0.01 232);
+  --ion-color-step-300: oklch(42% 0.009 232);
+  --ion-color-step-350: oklch(48% 0.009 232);
+  --ion-color-step-400: oklch(54% 0.008 232);
+  --ion-color-step-450: oklch(60% 0.008 232);
+  --ion-color-step-500: oklch(65% 0.008 232);
+  --ion-color-step-550: oklch(70% 0.007 232);
+  --ion-color-step-600: oklch(75% 0.007 232);
+  --ion-color-step-650: oklch(79% 0.006 232);
+  --ion-color-step-700: oklch(83% 0.006 232);
+  --ion-color-step-750: oklch(87% 0.005 232);
+  --ion-color-step-800: oklch(90% 0.005 232);
+  --ion-color-step-850: oklch(92% 0.004 232);
+  --ion-color-step-900: oklch(95% 0.004 232);
+  --ion-color-step-950: oklch(97% 0.003 232);
+}
+
+// -----------------------------------------------------------------------------
+// BLACK — OLED / true black variant
+// Extends dark tokens, collapses surfaces to black for power saving
+// -----------------------------------------------------------------------------
+@mixin rsBlackTokens() {
+  @include rsDarkTokens();
+
+  --rs-surface-base: oklch(0% 0 0); // true black
+  --rs-surface-elevated: oklch(8% 0.006 232);
+  --rs-surface-sunken: oklch(0% 0 0);
+  --rs-surface-overlay: oklch(10% 0.007 232);
+  --rs-border: oklch(20% 0.007 232);
+  --rs-divider: oklch(14% 0.005 232);
+
+  --ion-background-color: var(--rs-surface-base);
+  --ion-item-background: var(--rs-surface-base);
+  --ion-toolbar-background: var(--rs-surface-base);
+  --ion-tab-bar-background: var(--rs-surface-base);
+  --ion-card-background: var(--rs-surface-elevated);
+}
+
+// -----------------------------------------------------------------------------
+// MIDNIGHT — deep slate-blue dark
+// More chromatic than dark, leaning into the navy personality of the nav bar
+// -----------------------------------------------------------------------------
+@mixin rsMidnightTokens() {
+  @include rsDarkTokens();
+
+  --rs-surface-base: oklch(17% 0.018 245); // slate-blue tint
+  --rs-surface-elevated: oklch(21% 0.02 245);
+  --rs-surface-sunken: oklch(14% 0.014 245);
+  --rs-surface-overlay: oklch(24% 0.022 245);
+  --rs-border: oklch(30% 0.016 245);
+  --rs-divider: oklch(24% 0.014 245);
+
+  --ion-background-color: var(--rs-surface-base);
+  --ion-item-background: var(--rs-surface-base);
+  --ion-toolbar-background: var(--rs-surface-elevated);
+  --ion-tab-bar-background: var(--rs-surface-elevated);
+  --ion-card-background: var(--rs-surface-elevated);
+}

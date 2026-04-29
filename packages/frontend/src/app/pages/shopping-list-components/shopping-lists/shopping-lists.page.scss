@@ -1,0 +1,57 @@
+// =============================================================================
+// Shopping Lists Index Page
+// =============================================================================
+
+ion-content {
+  --background: var(--rs-surface-base);
+}
+
+ion-list {
+  background: transparent;
+  padding: var(--rs-space-4) var(--rs-inset-page);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+ion-item {
+  --background: var(--rs-surface-elevated);
+  --border-color: var(--rs-divider);
+  --padding-start: var(--rs-space-4);
+  --inner-padding-end: var(--rs-space-3);
+  --min-height: 64px;
+  --color: var(--rs-text-primary);
+
+  ion-icon[slot="start"] {
+    color: var(--rs-accent-text);
+    font-size: 20px;
+    margin-right: var(--rs-space-3);
+  }
+
+  ion-label {
+    h2 {
+      font-family: var(--rs-font-body);
+      font-size: var(--rs-text-base);
+      font-weight: var(--rs-weight-medium);
+      color: var(--rs-text-primary);
+      margin: 0 0 2px;
+    }
+
+    p {
+      font-family: var(--rs-font-body);
+      font-size: var(--rs-text-xs);
+      color: var(--rs-text-tertiary);
+      margin: 0;
+      line-height: 1.5;
+    }
+  }
+
+  ion-badge[slot="end"] {
+    background: var(--rs-accent-subtle);
+    color: var(--rs-accent-text);
+    border-radius: var(--rs-radius-full);
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-xs);
+    font-weight: var(--rs-weight-semibold);
+    padding: 3px 10px;
+  }
+}

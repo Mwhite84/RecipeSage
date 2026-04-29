@@ -14,18 +14,18 @@
         cookingToolbarOpen: cookingToolbarService.pinnedRecipes.length > 0,
       }"
     >
-      <ion-header>
-        <ion-toolbar color="nav">
-          <ion-title>
+      <ion-header class="ion-no-border">
+        <ion-toolbar class="rs-menu-toolbar">
+          <ion-title class="rs-menu-title">
             @if (isSelfHost) {
-              <span>RecipeSage Self Hosted</span>
+              <span>RecipeSage</span>
             }
             @if (!isSelfHost) {
               <img
                 src="assets/recipesage-white-trimmed.png"
                 alt="RecipeSage Logo"
                 style="display: inline-block"
-                height="40px"
+                height="36px"
               />
             }
           </ion-title>
@@ -35,7 +35,11 @@
         <ion-list>
           @for (p of navList; track p) {
             <ion-menu-toggle auto-hide="false">
-              <ion-item [routerDirection]="'root'" [routerLink]="[p.url]">
+              <ion-item
+                [routerDirection]="'root'"
+                [routerLink]="[p.url]"
+                routerLinkActive="active-nav-item"
+              >
                 <ion-icon slot="start" [name]="p.icon"></ion-icon>
                 <ion-label class="ion-text-wrap">
                   {{ p.title }}

@@ -1,29 +1,124 @@
-.category-container {
-  margin-bottom: 8px;
+// =============================================================================
+// Shopping List Page
+// =============================================================================
+
+ion-content {
+  --padding-bottom: 80px;
 }
 
-ion-list-header {
-  cursor: pointer;
+// Main item list — max-width wrapper
+ion-list:first-of-type {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: var(--rs-space-4) var(--rs-inset-page, 16px) var(--rs-space-3);
+  background: transparent;
+}
 
-  ion-icon {
-    vertical-align: middle;
-    margin-left: 8px;
+// -----------------------------------------------------------------------------
+// Category card containers
+// -----------------------------------------------------------------------------
+.category-container {
+  background: var(--rs-surface-elevated);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--rs-space-3);
+
+  // Category header
+  ion-list-header {
+    --background: var(--rs-surface-sunken);
+    --color: var(--rs-text-secondary);
+    --min-height: 44px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--rs-border);
+    padding: 0 var(--rs-space-3);
+
+    ion-title {
+      font-family: var(--rs-font-body);
+      font-size: var(--rs-text-sm);
+      font-weight: 600;
+      color: var(--rs-text-secondary);
+      padding: 0;
+      letter-spacing: 0.01em;
+
+      ion-icon {
+        font-size: 12px;
+        margin-left: var(--rs-space-2);
+        color: var(--rs-text-tertiary);
+        vertical-align: middle;
+        position: relative;
+        top: -1px;
+      }
+    }
   }
 }
 
-.shopping-list-item:nth-child(odd) {
-  background: var(--ion-background-shade-color);
+// -----------------------------------------------------------------------------
+// Shopping list items (wrapper divs)
+// -----------------------------------------------------------------------------
+.shopping-list-item {
+  // Remove zebra striping — items style themselves
+  background: transparent;
 
   shopping-list-item,
   ion-item.groupedItem {
-    --background: var(--ion-background-shade-color);
+    --background: var(--rs-surface-elevated);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Recipes section (source recipes for list items)
+// -----------------------------------------------------------------------------
+ion-list + ion-list {
+  max-width: 700px;
+  margin: 0 auto var(--rs-space-3);
+  padding: 0 var(--rs-inset-page, 16px);
+  background: transparent;
+
+  ion-item:first-child ion-label {
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-xs);
+    font-weight: 600;
+    color: var(--rs-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 }
 
 .delete-recipe {
-  transition: 0.1s;
+  transition: color 150ms ease-out;
+  color: var(--rs-text-tertiary);
+
+  &:hover {
+    color: var(--ion-color-danger, #eb445a);
+  }
 }
 
-.delete-recipe:hover {
-  color: var(--ion-color-danger);
+// -----------------------------------------------------------------------------
+// Completed items section
+// -----------------------------------------------------------------------------
+ion-list:last-of-type {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 var(--rs-inset-page, 16px) var(--rs-space-4);
+  background: transparent;
+
+  > ion-item:first-child {
+    --background: transparent;
+    --padding-start: 0;
+    --inner-padding-end: 0;
+
+    ion-label {
+      font-family: var(--rs-font-body);
+      font-size: var(--rs-text-xs);
+      font-weight: 600;
+      color: var(--rs-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+  }
+
+  shopping-list-item {
+    opacity: 0.6;
+  }
 }

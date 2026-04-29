@@ -18,17 +18,16 @@
   }
 
   .chat {
-    box-shadow: 1px 1px 7px rgba(0, 0, 0, 0.3);
-    background-color: rgb(0, 104, 166);
+    box-shadow: var(--rs-shadow-sm);
+    background-color: var(--rs-accent);
     display: inline-block;
     padding: 10px;
-    // border-radius: 20px;
-    border-radius: 6px;
+    border-radius: var(--rs-radius-md);
     text-align: left;
     width: 90%;
     max-width: 600px;
 
-    color: var(--ion-color-primary-contrast);
+    color: var(--rs-text-on-accent);
 
     // ng-deep for the innerHTML (since ng scopes css)
     ::ng-deep h1 {
@@ -56,29 +55,28 @@
       margin-bottom: 3px;
     }
     ::ng-deep a {
-      color: var(--ion-color-primary-contrast);
+      color: var(--rs-text-on-accent);
       opacity: 1;
     }
   }
 
   .recipe {
-    box-shadow: 1px 1px 7px rgba(0, 0, 0, 0.3);
-    background-color: rgb(0, 104, 166);
+    box-shadow: var(--rs-shadow-sm);
+    background-color: var(--rs-accent);
     width: 60%;
     max-width: 400px;
-    // border-radius: 20px;
-    border-radius: 6px;
+    border-radius: var(--rs-radius-md);
 
     ion-item {
       --background: transparent;
 
       h2 {
         margin-top: 0;
-        color: var(--ion-color-primary-contrast);
+        color: var(--rs-text-on-accent);
       }
 
       .description {
-        color: var(--ion-color-primary-contrast);
+        color: var(--rs-text-on-accent);
       }
     }
   }
@@ -121,11 +119,11 @@
   animation: spin 1s linear infinite normal none;
 }
 
-@-webkit-keyframes spin {
-  0% {
+@keyframes spin {
+  from {
     transform: rotate(0deg);
   }
-  100% {
+  to {
     transform: rotate(360deg);
   }
 }

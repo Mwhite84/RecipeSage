@@ -1,67 +1,116 @@
+// =============================================================================
+// Cooking Toolbar — pinned recipes strip at bottom of screen
+// =============================================================================
+
 .container {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
-
-  padding: 0 10px;
-
+  height: 64px;
+  padding: 0 var(--rs-space-3);
   display: flex;
   align-items: center;
-
-  background: var(--ion-background-color);
-  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+  gap: var(--rs-space-2);
+  background: var(--rs-surface-elevated);
+  border-top: 1px solid var(--rs-border);
+  box-shadow: var(--rs-shadow-md);
 }
 
-ion-icon {
-  width: 50px;
-  color: var(--ion-text-color);
+.pin {
+  font-size: 18px;
+  color: var(--rs-text-tertiary);
+  flex-shrink: 0;
+}
+
+.close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--rs-text-tertiary);
+  margin-left: auto;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: var(--rs-space-2);
+  border-radius: var(--rs-radius-sm);
+  transition:
+    color var(--rs-duration-fast) var(--rs-ease-out),
+    background var(--rs-duration-fast) var(--rs-ease-out);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--rs-text-primary);
+      background: var(--rs-surface-sunken);
+    }
+  }
+}
+
+.item {
+  background: none;
+  border: none;
 }
 
 .item-container {
   display: flex;
+  gap: var(--rs-space-2);
   overflow-x: auto;
+  flex: 1;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .item {
   position: relative;
-  user-select: none;
   cursor: pointer;
-  margin: 0 10px;
   flex-shrink: 0;
+  border-radius: var(--rs-radius-sm);
+  overflow: hidden;
+  transition: transform var(--rs-duration-fast) var(--rs-ease-out);
+
+  @media (hover: hover) {
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+img {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--rs-radius-sm);
+  object-fit: cover;
+  display: block;
+  border: 1px solid var(--rs-border);
+}
+
+img.placeholder {
+  opacity: 0.5;
 }
 
 .letter {
   position: absolute;
-  bottom: 3px;
+  bottom: 2px;
   right: -2px;
-
-  width: 20px;
-  height: 20px;
-
-  background: var(--ion-text-color);
-  border-radius: 50%;
-
-  text-align: center;
-  color: var(--ion-background-color);
-}
-
-img {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
-}
-
-img.placeholder {
-}
-
-.close {
-  margin-left: auto;
-  cursor: pointer;
-}
-
-.pin {
-  font-size: 25px;
+  width: 18px;
+  height: 18px;
+  background: var(--rs-accent);
+  border-radius: var(--rs-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rs-font-body);
+  font-size: 10px;
+  font-weight: var(--rs-weight-semibold);
+  color: var(--rs-text-on-accent);
+  line-height: 1;
 }

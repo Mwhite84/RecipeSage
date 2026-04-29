@@ -1,7 +1,10 @@
 // Ionic Variables and Theming. For more info, please see:
 // http://ionicframework.com/docs/theming/
 
+@import "design-system";
+
 @mixin blackModeVars() {
+  @include rsBlackTokens();
   --ion-border-color: var(--ion-color-dark-shade);
   --ion-background-color: #000000;
   --ion-background-color-rgb: rgb(0, 0, 0);
@@ -45,7 +48,8 @@
 }
 
 @mixin darkModeVars() {
-  --ion-border-color: #2c2c2c;
+  @include rsDarkTokens();
+  --ion-border-color: var(--rs-border);
   --ion-background-color: #121212;
   --ion-background-color-rgb: 18, 18, 18;
   --ion-background-shade-color: #101010;
@@ -87,7 +91,8 @@
 }
 
 @mixin midnightModeVars() {
-  --ion-border-color: var(--ion-color-dark-shade);
+  @include rsMidnightTokens();
+  --ion-border-color: var(--rs-border);
   --ion-background-color: var(--ion-color-dark);
   --ion-background-color-rgb: var(--ion-color-dark-rgb);
   --ion-background-shade-color: var(--ion-color-dark-shade);
@@ -121,7 +126,8 @@
 }
 
 @mixin lightModeVars() {
-  --ion-border-color: rgba(0, 0, 0, 0.13);
+  @include rsLightTokens();
+  --ion-border-color: var(--rs-border);
   --ion-background-color: #ffffff;
   --ion-background-color-rgb: rgb(255, 255, 255);
   --ion-background-shade-color: var(--ion-color-light-shade);
@@ -157,6 +163,15 @@
 
 /** Ionic CSS Variables **/
 :root {
+  // RS design system — shared tokens (all themes)
+  @include rsTypographyTokens();
+  @include rsSpacingTokens();
+  @include rsShapeTokens();
+  @include rsMotionTokens();
+
+  // RS light tokens as root default (theme classes override below)
+  @include rsLightTokens();
+
   /** primary **/
   --ion-color-primary: #00a8ff;
   --ion-color-primary-rgb: 0, 168, 255;

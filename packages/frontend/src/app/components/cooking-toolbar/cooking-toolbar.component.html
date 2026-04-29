@@ -5,24 +5,39 @@
       pinnedRecipe of cookingToolbarService.pinnedRecipes;
       track pinnedRecipe
     ) {
-      <div class="item ion-activatable" (click)="openRecipe(pinnedRecipe.id)">
+      <button
+        class="item ion-activatable"
+        (click)="openRecipe(pinnedRecipe.id)"
+        [attr.aria-label]="'Open ' + pinnedRecipe.title"
+        type="button"
+      >
         @if (pinnedRecipe.imageUrl) {
-          <img [src]="pinnedRecipe.imageUrl" />
+          <img
+            [src]="pinnedRecipe.imageUrl"
+            [alt]="pinnedRecipe.title"
+            loading="lazy"
+          />
         }
         @if (!pinnedRecipe.imageUrl) {
-          <img src="assets/imgs/logo_green.png" class="placeholder" />
+          <img
+            src="assets/imgs/logo_green.png"
+            [alt]="pinnedRecipe.title"
+            class="placeholder"
+          />
         }
         <div class="letter">
           {{ pinnedRecipe.title.substring(0, 1).toUpperCase() }}
         </div>
         <ion-ripple-effect></ion-ripple-effect>
-      </div>
+      </button>
     }
   </div>
-  <ion-icon
+  <button
     (click)="clearPins()"
-    name="close"
-    size="large"
     class="close"
-  ></ion-icon>
+    type="button"
+    aria-label="Clear pinned recipes"
+  >
+    <ion-icon name="close" size="large" aria-hidden="true"></ion-icon>
+  </button>
 </div>

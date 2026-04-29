@@ -59,17 +59,9 @@ import {
   IonToolbar,
   IonButtons,
   IonBackButton,
-  IonTitle,
   IonButton,
   IonIcon,
   IonContent,
-  IonItem,
-  IonThumbnail,
-  IonLabel,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonAvatar,
   IonChip,
   IonFab,
   IonFabButton,
@@ -96,6 +88,24 @@ import {
   addCircle,
   removeCircle,
   refresh,
+  // Outline variants for action bar + meta row
+  calendarOutline,
+  cloudDownloadOutline,
+  copyOutline,
+  createOutline,
+  chevronForwardOutline,
+  ellipsisHorizontal,
+  hourglassOutline,
+  linkOutline,
+  listOutline,
+  peopleOutline,
+  pinOutline,
+  printOutline,
+  shareOutline,
+  timeOutline,
+  trashOutline,
+  checkmarkCircleOutline,
+  todayOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -112,17 +122,9 @@ import { addIcons } from "ionicons";
     IonToolbar,
     IonButtons,
     IonBackButton,
-    IonTitle,
     IonButton,
     IonIcon,
     IonContent,
-    IonItem,
-    IonThumbnail,
-    IonLabel,
-    IonGrid,
-    IonRow,
-    IonCol,
-    IonAvatar,
     IonChip,
     IonFab,
     IonFabButton,
@@ -226,6 +228,23 @@ export class RecipePage {
       addCircle,
       removeCircle,
       refresh,
+      calendarOutline,
+      cloudDownloadOutline,
+      copyOutline,
+      createOutline,
+      chevronForwardOutline,
+      ellipsisHorizontal,
+      hourglassOutline,
+      linkOutline,
+      listOutline,
+      peopleOutline,
+      pinOutline,
+      printOutline,
+      shareOutline,
+      timeOutline,
+      trashOutline,
+      checkmarkCircleOutline,
+      todayOutline,
     });
     this.updateIsLoggedIn();
 
@@ -823,6 +842,12 @@ export class RecipePage {
     this.wakeLockRequest = null;
   }
 
+  scrollToInstructions() {
+    document
+      .getElementById("instructions-section")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   recipeLabelTrackBy(_: number, recipeLabel: { id: string }) {
     return recipeLabel.id;
   }
@@ -879,5 +904,41 @@ export class RecipePage {
     const currentSize =
       this.preferencesService.preferences[GlobalPreferenceKey.FontSize];
     return currentSize === this.fontSizeOptions[0];
+  }
+
+  get ingredientProgress(): { done: number; total: number } {
+    const list = this.ingredients ?? [];
+    let total = 0;
+    let done = 0;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].isHeader) continue;
+      total++;
+      if (
+        this.recipeCompletionTrackerService.getIngredientComplete(
+          this.recipeId,
+          i,
+        )
+      )
+        done++;
+    }
+    return { done, total };
+  }
+
+  get instructionProgress(): { done: number; total: number } {
+    const list = this.instructions ?? [];
+    let total = 0;
+    let done = 0;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].isHeader) continue;
+      total++;
+      if (
+        this.recipeCompletionTrackerService.getInstructionComplete(
+          this.recipeId,
+          i,
+        )
+      )
+        done++;
+    }
+    return { done, total };
   }
 }

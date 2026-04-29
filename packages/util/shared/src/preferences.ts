@@ -59,6 +59,7 @@ export enum MyRecipesViewTypeOptions {
   Tiles = "tiles",
   List = "list",
   Compact = "compact",
+  Reel = "reel",
 }
 
 export enum MyRecipesSortOptions {

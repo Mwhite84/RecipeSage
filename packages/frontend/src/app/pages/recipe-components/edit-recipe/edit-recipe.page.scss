@@ -1,88 +1,503 @@
-.edit-contents-container {
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+// =============================================================================
+// Edit / Create Recipe Page
+// =============================================================================
+
+// Page wrapper — max-width container, RS surface background
+.edit-page {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: var(--rs-space-4) var(--rs-inset-page) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-4);
 }
 
-.miniflex {
+// -----------------------------------------------------------------------------
+// Base card
+// -----------------------------------------------------------------------------
+.edit-card {
+  background: var(--rs-surface-elevated);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-lg);
+  overflow: hidden;
+
+  &__divider {
+    height: 1px;
+    background: var(--rs-divider, var(--rs-border));
+    margin: 0;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--rs-space-3);
+    padding: var(--rs-space-4) var(--rs-space-4) 0;
+  }
+
+  &__title {
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-sm);
+    font-weight: 600;
+    color: var(--rs-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 var(--rs-space-3);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Media section (photo upload — no card chrome, full bleed at top)
+// -----------------------------------------------------------------------------
+.edit-section--media {
+  border-radius: var(--rs-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--rs-border);
+}
+
+// -----------------------------------------------------------------------------
+// Import trigger (new recipes)
+// -----------------------------------------------------------------------------
+.edit-card--import {
+  padding: var(--rs-space-3) var(--rs-space-4);
+}
+
+.import-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-sm);
+  color: var(--rs-accent-text);
+  cursor: pointer;
+  min-height: var(--rs-touch-min, 44px);
+
+  ion-icon {
+    font-size: 16px;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--rs-accent);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Core info inputs (title + description)
+// -----------------------------------------------------------------------------
+.rs-input {
+  --padding-top: var(--rs-space-3);
+  --padding-bottom: var(--rs-space-3);
+  --padding-start: var(--rs-space-4);
+  --padding-end: var(--rs-space-4);
+  --background: transparent;
+  --border-width: 0;
+  --highlight-height: 0;
+  --color: var(--rs-text-primary);
+  --placeholder-color: var(--rs-text-tertiary);
+  width: 100%;
+
+  &--title {
+    --font-size: var(--rs-text-lg);
+    font-weight: 600;
+  }
+
+  &--notes {
+    min-height: 120px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Metadata card
+// -----------------------------------------------------------------------------
+.edit-card--meta {
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr));
+    gap: 0;
+
+    ion-input {
+      border-bottom: 1px solid var(--rs-border);
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+
+  .meta-row-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+
+    > * {
+      flex: 1 1 50%;
+      min-width: 140px;
+    }
+  }
+
+  .meta-rating,
+  .meta-lastmade {
+    display: flex;
+    flex-direction: column;
+    gap: var(--rs-space-1);
+    padding: var(--rs-space-3) var(--rs-space-4);
+  }
+
+  .meta-label {
+    font-size: var(--rs-text-xs);
+    color: var(--rs-text-tertiary);
+    font-family: var(--rs-font-body);
+  }
+
+  .meta-never-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-sm);
+    color: var(--rs-accent-text);
+    cursor: pointer;
+    text-align: left;
+
+    @media (hover: hover) {
+      &:hover {
+        color: var(--rs-accent);
+      }
+    }
+  }
+
+  .rs-date {
+    --padding-start: 0;
+    --padding-top: var(--rs-space-1);
+    --padding-bottom: 0;
+    font-size: var(--rs-text-sm);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// List / Text mode toggle
+// -----------------------------------------------------------------------------
+.section-mode-toggle {
   display: flex;
-  flex-wrap: wrap;
-  align-items: top;
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-full);
+  overflow: hidden;
+  flex-shrink: 0;
 
-  margin-left: -10px;
-  margin-right: -10px;
+  button {
+    padding: var(--rs-space-1) var(--rs-space-3);
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-xs);
+    font-weight: 500;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--rs-text-tertiary);
+    transition:
+      background 150ms ease-out,
+      color 150ms ease-out;
+    min-height: 28px;
+    line-height: 1;
 
-  > * {
-    flex: 1 1 30%;
-    margin-left: 10px;
-    margin-right: 10px;
-    min-width: 260px;
+    &.active {
+      background: var(--rs-accent);
+      color: var(--rs-text-on-accent);
+    }
+
+    @media (hover: hover) {
+      &:not(.active):hover {
+        background: var(--rs-surface-sunken);
+        color: var(--rs-text-secondary);
+      }
+    }
+  }
+}
+
+// Free-text textarea (text mode)
+.rs-input--freetext {
+  min-height: 120px;
+  padding: var(--rs-space-1) var(--rs-space-2) var(--rs-space-4);
+}
+
+// -----------------------------------------------------------------------------
+// Line list editor (ingredients + instructions)
+// -----------------------------------------------------------------------------
+.edit-card--lines {
+  .edit-card__header {
+    padding-bottom: var(--rs-space-2);
+  }
+}
+
+.lines-list {
+  padding: 0 var(--rs-space-2);
+}
+
+.lines-empty {
+  padding: var(--rs-space-3) var(--rs-space-2);
+  font-size: var(--rs-text-sm);
+  color: var(--rs-text-tertiary);
+  font-family: var(--rs-font-body);
+  margin: 0;
+  font-style: italic;
+}
+
+.line-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 1px solid var(--rs-divider, var(--rs-border));
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  // header rows get the section icon in column 0 — shift to 3-col
+  &--header {
+    grid-template-columns: auto 1fr auto;
+    background: var(--rs-surface-sunken);
+    border-radius: var(--rs-radius-sm);
+    margin: var(--rs-space-1) 0;
+    border: 1px solid var(--rs-border);
+  }
+}
+
+.line-section-icon {
+  font-size: 14px;
+  color: var(--rs-accent-text);
+  padding-left: var(--rs-space-3);
+  flex-shrink: 0;
+}
+
+.line-step-number {
+  font-size: var(--rs-text-xs);
+  font-weight: 600;
+  color: var(--rs-text-tertiary);
+  padding-left: var(--rs-space-3);
+  min-width: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.line-input {
+  --padding-top: var(--rs-space-2);
+  --padding-bottom: var(--rs-space-2);
+  --padding-start: var(--rs-space-3);
+  --padding-end: var(--rs-space-1);
+  --background: transparent;
+  --border-width: 0;
+  --highlight-height: 0;
+  --color: var(--rs-text-primary);
+  --placeholder-color: var(--rs-text-tertiary);
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-sm);
+
+  &--header {
+    --color: var(--rs-text-secondary);
+    font-weight: 600;
+    font-size: var(--rs-text-sm);
+    letter-spacing: 0.02em;
+  }
+}
+
+.line-remove {
+  background: none;
+  border: none;
+  padding: var(--rs-space-2);
+  cursor: pointer;
+  color: var(--rs-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: var(--rs-radius-sm);
+  transition:
+    color 150ms ease-out,
+    background 150ms ease-out;
+
+  ion-icon {
+    font-size: 18px;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--ion-color-danger, #eb445a);
+      background: oklch(96% 0.015 15);
+    }
+  }
+}
+
+.lines-actions {
+  display: flex;
+  gap: var(--rs-space-2);
+  padding: var(--rs-space-3) var(--rs-space-4);
+  border-top: 1px solid var(--rs-border);
+}
+
+.lines-add-item,
+.lines-add-section {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rs-space-1);
+  background: none;
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-full);
+  padding: var(--rs-space-1) var(--rs-space-3);
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 150ms ease-out,
+    border-color 150ms ease-out,
+    color 150ms ease-out;
+  min-height: 32px;
+
+  ion-icon {
+    font-size: 14px;
+  }
+}
+
+.lines-add-item {
+  color: var(--rs-accent-text);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--rs-accent-subtle);
+      border-color: var(--rs-accent-muted);
+    }
+  }
+}
+
+.lines-add-section {
+  color: var(--rs-text-secondary);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--rs-surface-sunken);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Notes card
+// -----------------------------------------------------------------------------
+.edit-card--notes {
+  ion-textarea {
+    padding: 0 var(--rs-space-1) var(--rs-space-3);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Nutrition accordion
+// -----------------------------------------------------------------------------
+.edit-card--accordion {
+  ion-accordion-group {
+    border-radius: 0;
+  }
+
+  .accordion-header {
+    --background: transparent;
+    --padding-start: var(--rs-space-4);
+    --padding-end: var(--rs-space-4);
+    --min-height: 52px;
+  }
+
+  .accordion-content {
+    padding-bottom: var(--rs-space-3);
   }
 }
 
 .miniflex-nutrition {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  column-gap: 20px;
+  column-gap: 0;
 
   > .full-width {
     grid-column: 1 / -1;
   }
 }
 
-.rating-lastMadeAt {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.rating,
-.lastMadeAt {
-  height: 56px;
-  padding-top: 9px;
-  padding-bottom: 11px;
-  padding-left: 16px;
-  font-size: 0.75rem;
-  background: var(--ion-item-background);
-
-  .rating-title,
-  .lastMadeAt-title {
-    margin-bottom: 3px;
-  }
-
-  rating {
-    font-size: 1.375rem;
-  }
-}
-
-.label-input-group-container {
-  padding: 16px;
-  padding-top: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(350px, 100%), auto));
-  background: var(--ion-item-background);
-  margin-bottom: 100px;
-}
-
-ion-accordion [slot="content"] {
-  overflow: hidden;
-}
-
 .nutrition-badge {
-  margin-right: 8px;
+  margin-right: var(--rs-space-2);
 }
 
 .nutrition-actions {
   display: flex;
-  gap: 4px;
+  gap: var(--rs-space-1);
   justify-content: flex-end;
-  padding: 0 16px;
+  padding: 0 var(--rs-space-3) var(--rs-space-2);
 }
 
 .recipe-input {
-  margin-bottom: 16px;
+  --background: transparent;
+  margin-bottom: 0;
 }
 
+// -----------------------------------------------------------------------------
+// Linked recipes
+// -----------------------------------------------------------------------------
 .recipelinks-container {
-  padding-left: 16px;
-  padding-right: 16px;
+  padding: 0 var(--rs-space-3) var(--rs-space-3);
+}
+
+.links-empty {
+  font-size: var(--rs-text-sm);
+  color: var(--rs-text-tertiary);
+  font-family: var(--rs-font-body);
+  margin: var(--rs-space-2) 0 var(--rs-space-3);
+  padding: 0 var(--rs-space-1);
+}
+
+// -----------------------------------------------------------------------------
+// Labels
+// -----------------------------------------------------------------------------
+.label-input-group-container {
+  padding: 0 var(--rs-space-3) var(--rs-space-3);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: var(--rs-space-4);
+}
+
+.label-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-2);
+}
+
+.label-group-name {
+  font-size: var(--rs-text-xs);
+  font-weight: 600;
+  color: var(--rs-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--rs-font-body);
+  margin: var(--rs-space-3) 0 0;
+}
+
+// -----------------------------------------------------------------------------
+// Footer save bar
+// -----------------------------------------------------------------------------
+ion-footer {
+  ion-toolbar.save-footer {
+    --background: var(--rs-surface-elevated);
+    --border-color: var(--rs-border);
+    padding: var(--rs-space-2) var(--rs-space-4);
+  }
+
+  .save-btn {
+    --border-radius: var(--rs-radius-md);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+}
+
+.save-spacer {
+  height: var(--rs-space-4);
 }

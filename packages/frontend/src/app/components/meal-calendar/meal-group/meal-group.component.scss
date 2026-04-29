@@ -1,28 +1,35 @@
 .group {
-  margin-bottom: 10px;
+  margin-bottom: var(--rs-space-2, 8px);
 }
 
 .meal-title {
-  font-weight: bold;
+  font-family: var(--rs-font-body, system-ui, sans-serif);
+  font-size: var(--rs-text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--rs-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: var(--rs-space-1, 4px);
 }
 
 calendar-item {
   display: block;
-  margin-top: 6px;
-  margin-bottom: 6px;
+  margin-top: var(--rs-space-1, 4px);
+  margin-bottom: var(--rs-space-1, 4px);
+  background: var(--rs-accent-subtle);
+  border-radius: var(--rs-radius-sm, 8px);
+  padding: 3px var(--rs-space-2, 8px);
+  cursor: pointer;
+  transition: background 120ms ease-out;
 
-  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.3);
-
-  background-color: var(--ion-background-tint-color);
-  border-radius: 4px;
-  padding: 8px;
-  border-left: 4px solid var(--ion-text-color);
-
-  &:hover {
-    background-color: var(--ion-background-tint-active-color);
+  @media (hover: hover) {
+    &:hover {
+      background: var(--rs-surface-sunken);
+    }
   }
 
   &.dragging {
-    opacity: 50%;
+    opacity: 0.4;
   }
 }

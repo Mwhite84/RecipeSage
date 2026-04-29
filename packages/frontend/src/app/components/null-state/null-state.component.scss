@@ -1,0 +1,19 @@
+// Empty state wrapper — center-aligned icon + message
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--rs-space-8) var(--rs-space-5);
+  text-align: center;
+}
+
+.null-state-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--rs-space-4);
+}
+
+.null-state-body {
+  width: 100%;
+  max-width: 400px;
+}

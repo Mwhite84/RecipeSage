@@ -4,7 +4,9 @@ $descriptionHeight: 20px;
 $height: 800px;
 
 .template {
-  background: white;
+  // Print previews are intrinsically light-on-white — wrap in a frame so dark
+  // mode users see a "print sheet" context rather than a blinding white rect.
+  background: oklch(99% 0.003 232);
   width: $width * $scale;
   height: ($height * $scale) + $descriptionHeight;
 
@@ -22,13 +24,18 @@ $height: 800px;
   margin-right: 10px;
   margin-left: 10px;
   margin-bottom: 20px;
-  box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.7);
+  box-shadow: var(--rs-shadow-md);
+  border-radius: var(--rs-radius-sm);
   position: relative;
-  border: 2px solid transparent;
+  border: 2px solid var(--rs-border);
   cursor: pointer;
+  transition:
+    border-color var(--rs-duration-fast) var(--rs-ease-out),
+    box-shadow var(--rs-duration-fast) var(--rs-ease-out);
 
   &.selected {
-    border: 2px solid var(--ion-color-primary);
+    border: 2px solid var(--rs-accent);
+    box-shadow: var(--rs-shadow-lg);
   }
 
   .description {
@@ -37,9 +44,12 @@ $height: 800px;
     bottom: 0;
     left: 0;
     right: 0;
-    font-size: 12px;
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-xs);
     line-height: $descriptionHeight;
     text-align: center;
+    color: var(--rs-text-secondary);
+    background: oklch(96% 0.005 232 / 0.9);
   }
 
   iframe {
@@ -47,17 +57,11 @@ $height: 800px;
     height: $height;
     overflow: hidden;
     border: none;
-
     user-select: none;
-
-    -ms-zoom: $scale;
-    -ms-transform-origin: 0 0;
-    -moz-transform: scale($scale);
-    -moz-transform-origin: 0px 50px;
-    -o-transform: scale($scale);
-    -o-transform-origin: 0px 50px;
     -webkit-transform: scale($scale);
     -webkit-transform-origin: 0 0;
+    transform: scale($scale);
+    transform-origin: 0 0;
   }
 
   .overlay {

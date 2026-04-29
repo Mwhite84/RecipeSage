@@ -1,3 +1,51 @@
-ion-item {
-  --background: var(--background);
+// =============================================================================
+// Shopping List Item Component
+// =============================================================================
+
+ion-item.shopping-list-item {
+  --background: var(--rs-surface-elevated);
+  --border-color: transparent;
+  --padding-start: var(--rs-space-3);
+  --inner-padding-end: var(--rs-space-2);
+  --min-height: 52px;
+}
+
+// Checkbox label area
+.ion-checkbox-label {
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-base);
+  color: var(--rs-text-primary);
+  line-height: 1.4;
+  padding: var(--rs-space-2) 0;
+
+  // Sub-text lines (recipe, added-on, added-by)
+  p {
+    font-size: var(--rs-text-xs);
+    color: var(--rs-text-tertiary);
+    margin: 2px 0 0;
+    line-height: 1.3;
+
+    span {
+      color: var(--rs-text-secondary);
+    }
+  }
+}
+
+// Action buttons (delete, recategorize)
+ion-button[slot="end"] {
+  --color: var(--rs-text-tertiary);
+  --padding-start: var(--rs-space-1);
+  --padding-end: var(--rs-space-1);
+  margin: 0;
+  height: 36px;
+
+  @media (hover: hover) {
+    &:hover {
+      --color: var(--rs-text-secondary);
+    }
+
+    &[color="danger"]:hover {
+      --color: var(--ion-color-danger, #eb445a);
+    }
+  }
 }

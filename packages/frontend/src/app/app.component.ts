@@ -445,6 +445,33 @@ export class AppComponent {
       [
         true,
         {
+          id: "meals",
+          title: meals,
+          icon: "calendar",
+          url: RouteMap.MealPlansPage.getPath(),
+        },
+      ],
+      [
+        true,
+        {
+          id: "shopping",
+          title: shopping,
+          icon: "cart",
+          url: RouteMap.ShoppingListsPage.getPath(),
+        },
+      ],
+      [
+        true,
+        {
+          id: "newrecipe",
+          title: newrecipe,
+          icon: "add",
+          url: RouteMap.EditRecipePage.getPath("new"),
+        },
+      ],
+      [
+        true,
+        {
           id: "labels",
           title: labels,
           icon: "pricetag",
@@ -485,33 +512,6 @@ export class AppComponent {
           title: inbox,
           icon: "mail",
           url: RouteMap.HomePage.getPath("inbox"),
-        },
-      ],
-      [
-        true,
-        {
-          id: "newrecipe",
-          title: newrecipe,
-          icon: "add",
-          url: RouteMap.EditRecipePage.getPath("new"),
-        },
-      ],
-      [
-        true,
-        {
-          id: "shopping",
-          title: shopping,
-          icon: "cart",
-          url: RouteMap.ShoppingListsPage.getPath(),
-        },
-      ],
-      [
-        true,
-        {
-          id: "meals",
-          title: meals,
-          icon: "calendar",
-          url: RouteMap.MealPlansPage.getPath(),
         },
       ],
       [

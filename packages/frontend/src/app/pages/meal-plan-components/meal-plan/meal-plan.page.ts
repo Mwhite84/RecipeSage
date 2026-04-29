@@ -132,6 +132,7 @@ export class MealPlanPage {
   pastDates: string[] = [];
   listItemsByDate = new Map<string, MealPlanItemSummary[]>();
   listFormattedDates = new Map<string, string>();
+  listFormattedWeekdays = new Map<string, string>();
 
   @ViewChild(MealCalendarComponent, { static: true })
   mealPlanCalendar?: MealCalendarComponent;
@@ -820,6 +821,7 @@ export class MealPlanPage {
 
     this.listItemsByDate = new Map();
     this.listFormattedDates = new Map();
+    this.listFormattedWeekdays = new Map();
     for (const dateStr of [...this.upcomingDates, ...this.pastDates]) {
       const d = dayjs(dateStr);
       this.listItemsByDate.set(
@@ -827,6 +829,7 @@ export class MealPlanPage {
         this.mealsByDate[d.year()]?.[d.month() + 1]?.[d.date()]?.items || [],
       );
       this.listFormattedDates.set(dateStr, d.format("MMMM D, YYYY"));
+      this.listFormattedWeekdays.set(dateStr, d.format("dddd"));
     }
 
     this.selectedDays = [];

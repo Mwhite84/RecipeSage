@@ -23,12 +23,12 @@
       </ion-title>
     }
     @if (!userId && !selectionMode && folder === "main") {
-      <ion-title> {{ "pages.home.title.main" | translate }} </ion-title>
+      <ion-title>{{ "pages.home.title.main" | translate }}</ion-title>
     }
     @if (!userId && !selectionMode && folder === "inbox") {
-      <ion-title> {{ "pages.home.title.inbox" | translate }} </ion-title>
+      <ion-title>{{ "pages.home.title.inbox" | translate }}</ion-title>
     }
-    @if (userId && otherUserProfile && this.selectedLabels.length) {
+    @if (userId && otherUserProfile && selectedLabels.length) {
       <ion-title>
         {{
           "pages.home.title.sharedLabel.withProfile"
@@ -37,7 +37,7 @@
         }}
       </ion-title>
     }
-    @if (userId && otherUserProfile && !this.selectedLabels.length) {
+    @if (userId && otherUserProfile && !selectedLabels.length) {
       <ion-title>
         {{
           "pages.home.title.sharedAll.withProfile"
@@ -45,7 +45,7 @@
         }}
       </ion-title>
     }
-    @if (userId && !otherUserProfile && this.selectedLabels.length) {
+    @if (userId && !otherUserProfile && selectedLabels.length) {
       <ion-title>
         {{
           "pages.home.title.sharedLabel"
@@ -53,8 +53,8 @@
         }}
       </ion-title>
     }
-    @if (userId && !otherUserProfile && !this.selectedLabels.length) {
-      <ion-title> {{ "pages.home.title.sharedAll" | translate }} </ion-title>
+    @if (userId && !otherUserProfile && !selectedLabels.length) {
+      <ion-title>{{ "pages.home.title.sharedAll" | translate }}</ion-title>
     }
 
     <ion-buttons slot="end">
@@ -73,7 +73,6 @@
           <ion-icon slot="icon-only" name="trash"></ion-icon>
         </ion-button>
       }
-
       <ion-button (click)="presentPopover($event)">
         <ion-icon slot="icon-only" name="options"></ion-icon>
       </ion-button>
@@ -103,15 +102,17 @@
         </ion-button>
       </div>
     }
+
+    <!-- ================================================================
+         TILES VIEW
+    ================================================================ -->
     @if (preferences[preferenceKeys.ViewType] === "tiles" && recipes.length) {
       <div class="infinite-scrolling-container">
         @if (getShouldShowLabelChips()) {
           <div class="labelChips">
             @for (label of labels; track label.id) {
               <a
-                [ngClass]="{
-                  selected: selectedLabels.indexOf(label.title) > -1,
-                }"
+                [class.selected]="selectedLabels.indexOf(label.title) > -1"
                 (click)="toggleLabel(label.title)"
               >
                 {{ label.title }} ({{ label._count.recipeLabels }})
@@ -133,28 +134,24 @@
                 button
               >
                 @if (
-                  recipe.recipeImages &&
-                  recipe.recipeImages.length > 0 &&
+                  recipe.recipeImages?.length &&
                   preferences[preferenceKeys.ShowImages]
                 ) {
-                  <img [src]="recipe.recipeImages[0].image.location" />
-                }
-                @if (
-                  (!recipe.recipeImages || !recipe.recipeImages.length) &&
-                  preferences[preferenceKeys.ShowImages]
-                ) {
-                  <img class="no-image" src="assets/imgs/logo_green.png" />
+                  <img
+                    [src]="recipe.recipeImages[0].image.location"
+                    [alt]="recipe.title"
+                    loading="lazy"
+                  />
+                } @else if (preferences[preferenceKeys.ShowImages]) {
+                  <div class="recipe-card-no-image"></div>
                 }
                 <div class="recipe-card-content">
-                  @if (!preferences[preferenceKeys.ShowImages]) {
-                    <div class="no-image-padding"></div>
-                  }
-                  <h2 dir="auto" [title]="recipe.title">{{ recipe.title }}</h2>
+                  <h2 dir="auto">{{ normalizeTitle(recipe.title) }}</h2>
                   @if (
                     recipe.description?.length &&
                     preferences[preferenceKeys.ShowRecipeDescription]
                   ) {
-                    <p dir="auto" [title]="recipe.description">
+                    <p dir="auto" class="recipe-card-meta">
                       {{ recipe.description }}
                     </p>
                   }
@@ -162,47 +159,33 @@
                     recipe.source?.length &&
                     preferences[preferenceKeys.ShowSource]
                   ) {
-                    <p [title]="recipe.source">
-                      {{ "pages.home.recipe.source" | translate }}
-                      {{ recipe.source }}
-                    </p>
+                    <p class="recipe-card-meta">{{ recipe.source }}</p>
                   }
                   @if (recipe.folder === "inbox" && recipe.fromUser) {
-                    <p [title]="recipe.fromUser.name">
-                      <b
-                        >{{ "pages.home.recipe.from" | translate }}
-                        {{ recipe.fromUser.name }}</b
-                      >
+                    <p class="recipe-card-meta">
+                      <b>{{ recipe.fromUser.name }}</b>
                     </p>
                   }
                   @if (
                     recipe.recipeLabels?.length &&
                     preferences[preferenceKeys.ShowLabels]
                   ) {
-                    <p [title]="getLabelList(recipe)">
-                      {{ "pages.home.recipe.labels" | translate }}
-                      {{ getLabelList(recipe) }}
-                    </p>
+                    <p class="recipe-card-meta">{{ getLabelList(recipe) }}</p>
                   }
                 </div>
                 @if (!userId && myProfile && myProfile.id !== recipe.userId) {
-                  <ion-badge
-                    [ngClass]="{
-                      'no-image': !preferences[preferenceKeys.ShowImages],
-                    }"
-                  >
+                  <ion-badge>
                     @if (friendsById && friendsById[recipe.userId]) {
                       &commat;{{ friendsById[recipe.userId].handle }}
-                    }
-                    @if (!friendsById || !friendsById[recipe.userId]) {
+                    } @else {
                       {{ "pages.home.recipe.fromSharedCollection" | translate }}
                     }
                   </ion-badge>
                 }
                 @if (selectedRecipeIds.indexOf(recipe.id) > -1) {
-                  <ion-badge>
-                    {{ "pages.home.recipe.selected" | translate }}
-                  </ion-badge>
+                  <ion-badge>{{
+                    "pages.home.recipe.selected" | translate
+                  }}</ion-badge>
                 }
               </div>
             }
@@ -210,20 +193,21 @@
         </div>
       </div>
     }
+
+    <!-- ================================================================
+         LIST / COMPACT VIEW
+    ================================================================ -->
     @if (
       (preferences[preferenceKeys.ViewType] === "list" ||
         preferences[preferenceKeys.ViewType] === "compact") &&
-      recipes &&
-      recipes.length > 0
+      recipes.length
     ) {
       <div class="infinite-scrolling-container">
         @if (getShouldShowLabelChips()) {
           <div class="labelChips">
             @for (label of labels; track label.id) {
               <a
-                [ngClass]="{
-                  selected: selectedLabels.indexOf(label.title) > -1,
-                }"
+                [class.selected]="selectedLabels.indexOf(label.title) > -1"
                 (click)="toggleLabel(label.title)"
               >
                 {{ label.title }} ({{ label._count.recipeLabels }})
@@ -236,103 +220,129 @@
           class="recipe-item"
           [class.list]="preferences[preferenceKeys.ViewType] === 'list'"
           [class.compact]="preferences[preferenceKeys.ViewType] === 'compact'"
-          [ngClass]="{
-            selected: selectedRecipeIds.indexOf(recipe.id) > -1,
-            'no-image': !preferences[preferenceKeys.ShowImages],
-          }"
+          [class.selected]="selectedRecipeIds.indexOf(recipe.id) > -1"
+          [class.no-image]="!preferences[preferenceKeys.ShowImages]"
           (click)="
             selectionMode ? selectRecipe(recipe) : openRecipe(recipe, $event)
           "
           button
         >
           @if (
-            recipe.recipeImages &&
-            recipe.recipeImages.length > 0 &&
+            recipe.recipeImages?.length &&
             preferences[preferenceKeys.ShowImages]
           ) {
-            <img [src]="recipe.recipeImages[0].image.location" />
-          }
-          @if (
-            (!recipe.recipeImages || !recipe.recipeImages.length) &&
-            preferences[preferenceKeys.ShowImages]
-          ) {
-            <img class="no-image" src="assets/imgs/logo_green.png" />
-          }
-          @if (!preferences[preferenceKeys.ShowImages]) {
+            <img
+              [src]="recipe.recipeImages[0].image.location"
+              [alt]="recipe.title"
+              loading="lazy"
+            />
+          } @else if (preferences[preferenceKeys.ShowImages]) {
+            <img
+              class="no-image"
+              src="assets/imgs/logo_green_padded.png"
+              [alt]="recipe.title"
+              loading="lazy"
+            />
+          } @else {
             <div></div>
           }
           <div class="recipe-item-content">
-            <h2>{{ recipe.title }}</h2>
+            <h2 dir="auto">{{ normalizeTitle(recipe.title) }}</h2>
             <div class="recipe-item-content-meta">
-              @if (preferences[preferenceKeys.ShowRecipeDescription]) {
+              @if (
+                preferences[preferenceKeys.ShowRecipeDescription] &&
+                recipe.description
+              ) {
                 <p class="description">{{ recipe.description }}</p>
               }
               @if (
                 recipe.source?.length && preferences[preferenceKeys.ShowSource]
               ) {
-                <p>
-                  {{ "pages.home.recipe.source" | translate }}
-                  {{ recipe.source }}
-                </p>
+                <p>{{ recipe.source }}</p>
               }
               @if (recipe.folder === "inbox" && recipe.fromUser) {
                 <p>
-                  <b
-                    >{{ "pages.home.recipe.from" | translate }}
-                    {{ recipe.fromUser.name }}</b
-                  >
+                  <b>{{ recipe.fromUser.name }}</b>
                 </p>
               }
               @if (
-                recipe.recipeLabels &&
-                recipe.recipeLabels.length > 0 &&
+                recipe.recipeLabels?.length &&
                 preferences[preferenceKeys.ShowLabels]
               ) {
-                <p>
-                  {{ "pages.home.recipe.labels" | translate }}
-                  @for (
-                    recipeLabel of recipe.recipeLabels;
-                    track recipeLabel.label.title;
-                    let idx = $index
-                  ) {
-                    <span
-                      >{{ recipeLabel.label.title }}
-                      @if (idx + 1 < recipe.recipeLabels.length) {
-                        <span>,&nbsp;</span>
-                      }
-                    </span>
-                  }
-                </p>
+                <p>{{ getLabelList(recipe) }}</p>
               }
             </div>
           </div>
+          <ion-icon
+            name="chevron-forward-outline"
+            class="recipe-item-chevron"
+            aria-hidden="true"
+          ></ion-icon>
           @if (!userId && myProfile && myProfile.id !== recipe.userId) {
             <ion-badge>
               @if (friendsById && friendsById[recipe.userId]) {
                 &commat;{{ friendsById[recipe.userId].handle }}
-              }
-              @if (!friendsById || !friendsById[recipe.userId]) {
+              } @else {
                 {{ "pages.home.recipe.fromSharedCollection" | translate }}
               }
             </ion-badge>
           }
           @if (selectedRecipeIds.indexOf(recipe.id) > -1) {
-            <ion-badge>
-              {{ "pages.home.recipe.selected" | translate }}
-            </ion-badge>
+            <ion-badge>{{
+              "pages.home.recipe.selected" | translate
+            }}</ion-badge>
           }
         </div>
       </div>
     }
+
+    <!-- ================================================================
+         REEL VIEW
+    ================================================================ -->
+    @if (preferences[preferenceKeys.ViewType] === "reel" && recipes.length) {
+      <div class="reel-container">
+        @for (recipe of recipes; track recipe.id) {
+          <div
+            class="reel-item"
+            (click)="utilService.openRecipe(navCtrl, recipe.id, $event)"
+          >
+            <div class="reel-card">
+              @if (recipe.recipeImages && recipe.recipeImages.length > 0) {
+                <img
+                  class="reel-img"
+                  [src]="recipe.recipeImages[0].image.location"
+                  [alt]="recipe.title"
+                />
+              } @else {
+                <div class="reel-img reel-img--fallback"></div>
+              }
+            </div>
+            <div class="reel-content">
+              <h2 class="reel-title" dir="auto">
+                {{ normalizeTitle(recipe.title) }}
+              </h2>
+              @if (recipe.source && recipe.source.trim()) {
+                <p class="reel-meta">{{ recipe.source }}</p>
+              }
+              @if (recipe.recipeLabels && recipe.recipeLabels.length > 0) {
+                <p class="reel-meta">{{ getLabelList(recipe) }}</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ================================================================
+         EMPTY STATES
+    ================================================================ -->
     @if (!recipes.length) {
       <div>
-        @if (!recipes.length && getShouldShowLabelChips()) {
+        @if (getShouldShowLabelChips()) {
           <div class="labelChips">
             @for (label of labels; track label.id) {
               <a
-                [ngClass]="{
-                  selected: selectedLabels.indexOf(label.title) > -1,
-                }"
+                [class.selected]="selectedLabels.indexOf(label.title) > -1"
                 (click)="toggleLabel(label.title)"
               >
                 {{ label.title }} ({{ label._count.recipeLabels }})
@@ -393,8 +403,9 @@
                   </h2>
                   <br /><br />
                   <p>
-                    {{ "pages.home.errors.emptyCollection.message" | translate
-                    }}<br />
+                    {{
+                      "pages.home.errors.emptyCollection.message" | translate
+                    }}
                   </p>
                 </ion-label>
               </null-state>
@@ -469,8 +480,12 @@
 
   @if (!userId && folder !== "inbox") {
     <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-      <ion-fab-button (click)="newRecipe()" color="primary">
-        <ion-icon name="add"></ion-icon>
+      <ion-fab-button
+        (click)="newRecipe()"
+        color="primary"
+        aria-label="New recipe"
+      >
+        <ion-icon name="add" aria-hidden="true"></ion-icon>
       </ion-fab-button>
     </ion-fab>
   }

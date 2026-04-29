@@ -1,6 +1,11 @@
+// =============================================================================
+// Meal Calendar Component
+// =============================================================================
+
 .mealplan-flex {
   display: flex;
   flex-wrap: wrap;
+  height: 100%;
 
   > * {
     flex-grow: 1;
@@ -9,140 +14,216 @@
 
   > .meal-list {
     padding-bottom: 4rem;
+    border-left: 1px solid var(--rs-border);
   }
 
   @media screen and (max-width: 900px) {
-    > * {
+    flex-direction: column;
+    flex-wrap: nowrap;
+
+    // Calendar section: don't grow beyond its natural height
+    > *:not(.meal-list) {
       width: 100%;
+      flex: 0 0 auto;
+    }
+
+    // Meal list: fill all remaining vertical space
+    > .meal-list {
+      width: 100%;
+      flex: 1 1 0;
+      min-height: 0;
+      border-left: none;
+      border-top: 1px solid var(--rs-border);
     }
   }
 }
 
+// -----------------------------------------------------------------------------
+// Month navigation
+// -----------------------------------------------------------------------------
 .calendar-nav {
-  text-align: center;
-  line-height: 44px;
-  font-weight: bold;
-  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
+  gap: var(--rs-space-2);
+  padding: var(--rs-space-3) var(--rs-space-4);
+  border-bottom: 1px solid var(--rs-border);
 
-.calendar {
-  .day-title {
+  span {
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-base);
+    font-weight: 600;
+    color: var(--rs-text-primary);
+    min-width: 160px;
     text-align: center;
   }
+}
 
-  .week {
-    user-select: none;
+// -----------------------------------------------------------------------------
+// Calendar grid
+// -----------------------------------------------------------------------------
+.calendar {
+  --cell-border: 1px solid var(--rs-border);
+
+  .week-title {
+    ion-col.day-title {
+      text-align: center;
+      font-family: var(--rs-font-body);
+      font-size: var(--rs-text-xs);
+      font-weight: 600;
+      color: var(--rs-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: var(--rs-space-2) 0;
+      border-bottom: var(--cell-border);
+    }
   }
 
+  // ── Full month view ────────────────────────────────────────────────────────
   &.full {
-    .week {
-      .day {
-        border: 1px solid;
-        border-color: var(--ion-border-color);
-        min-height: 80px;
-        cursor: pointer;
-        outline: none;
-        overflow: hidden; // Force same-size columns
-        transition: background-color 0.1s;
+    .week .day {
+      border: var(--cell-border);
+      border-top: none;
+      border-left: none;
+      min-height: 80px;
+      cursor: pointer;
+      outline: none;
+      overflow: hidden;
+      transition: background 120ms ease-out;
+      padding: var(--rs-space-1);
 
+      &:first-child {
+        border-left: var(--cell-border);
+      }
+
+      @media (hover: hover) {
         &:hover {
-          background-color: rgba(0, 0, 0, 0.017);
+          background: var(--rs-surface-sunken);
+        }
+      }
+
+      &.highlighted {
+        background: var(--rs-accent-subtle);
+      }
+
+      .date {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: var(--rs-radius-full);
+        font-family: var(--rs-font-body);
+        font-size: var(--rs-text-xs);
+        font-weight: 500;
+        color: var(--rs-text-primary);
+        margin-bottom: var(--rs-space-1);
+
+        &.inactive {
+          color: var(--rs-text-tertiary);
         }
 
-        &.selected {
-          background-color: var(--ion-border-color);
+        &.today {
+          background: var(--rs-accent);
+          color: var(--rs-text-on-accent);
+          font-weight: 600;
         }
 
         &.highlighted {
-          background-color: rgba(var(--ion-color-primary-rgb), 0.3);
-        }
-
-        .date {
-          border-radius: 45px;
-          display: inline-block;
-          text-align: center;
-
-          margin-bottom: 5px;
-
-          height: 28px;
-          width: 28px;
-          line-height: 28px;
-          padding-left: 1px; // Align center but slightly right within bubble
-
-          word-wrap: normal;
-
-          &.inactive {
-            color: var(--ion-color-medium);
-          }
-
-          &.today {
-            background: var(--ion-color-primary);
-            color: var(--ion-color-light);
-          }
+          background: var(--rs-accent-subtle);
+          color: var(--rs-accent-text);
+          font-weight: 600;
         }
       }
     }
   }
 
+  // ── Split + outline views ──────────────────────────────────────────────────
   &.split,
   &.outline {
-    .week {
-      .day {
-        text-align: center;
-        cursor: pointer;
-        outline: none;
+    .week .day {
+      text-align: center;
+      cursor: pointer;
+      outline: none;
+      padding: var(--rs-space-1) 0;
 
-        .date {
-          border-radius: 45px;
-          display: inline-block;
-          text-align: center;
+      .date {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: var(--rs-radius-full);
+        font-family: var(--rs-font-body);
+        font-size: var(--rs-text-sm);
+        font-weight: 400;
+        color: var(--rs-text-primary);
+        margin: 0 auto var(--rs-space-1);
+        transition: background 120ms ease-out;
 
-          margin-bottom: 2px;
-
-          height: 28px;
-          width: 28px;
-          line-height: 28px;
-          padding-left: 1px; // Align center but slightly right within bubble
-
-          word-wrap: normal;
-
-          &.inactive {
-            color: var(--ion-color-medium);
-          }
-
-          &.today {
-            color: var(--ion-color-primary);
-            font-weight: bold;
-          }
-
-          &.selected {
-            background: var(--ion-color-primary);
-            color: var(--ion-color-light);
-          }
-
-          &.highlighted {
-            background-color: rgba(var(--ion-color-primary-rgb), 0.7);
-            color: var(--ion-color-light);
-          }
+        &.inactive {
+          color: var(--rs-text-tertiary);
+          font-weight: 400;
         }
 
-        .meal-marker-container {
-          line-height: 0;
+        &.today {
+          color: var(--rs-accent-text);
+          font-weight: 700;
+          outline: 2px solid var(--rs-accent);
+          outline-offset: -2px;
+        }
 
-          .meal-marker {
-            width: 5px;
-            height: 5px;
-            margin: 2px;
-            margin-top: 0;
-            border-radius: 50%;
-            background: var(--ion-color-primary);
-            display: inline-block;
-          }
+        &.selected,
+        &.highlighted {
+          background: var(--rs-accent);
+          color: var(--rs-text-on-accent);
+          font-weight: 600;
+        }
+      }
+
+      .meal-marker-container {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 2px;
+        line-height: 0;
+
+        .meal-marker {
+          width: 5px;
+          height: 5px;
+          border-radius: var(--rs-radius-full);
+          background: var(--rs-accent);
+          display: inline-block;
         }
       }
     }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Outline mode footnote
+// -----------------------------------------------------------------------------
+.calendar.outline + p {
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-sm);
+  color: var(--rs-text-secondary);
+  padding: var(--rs-space-3) var(--rs-space-4);
+  margin: 0;
+}
+
+// -----------------------------------------------------------------------------
+// Split mode: meal list panel
+// -----------------------------------------------------------------------------
+.meal-list {
+  overflow-y: auto;
+  padding: var(--rs-space-6) var(--rs-space-4) var(--rs-space-3);
+
+  ion-item[lines="none"]:first-child ion-label {
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-sm);
+    font-weight: 600;
+    color: var(--rs-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 }

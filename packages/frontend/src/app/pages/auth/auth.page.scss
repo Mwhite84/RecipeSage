@@ -1,34 +1,87 @@
-.auth-container {
-  margin-left: auto;
-  margin-right: auto;
-  max-width: var(--content-max-width);
+// =============================================================================
+// Auth Page (Login / Register)
+// =============================================================================
 
-  .welcome {
-    color: var(--ion-text-color);
-    text-align: center;
-  }
+ion-content {
+  --background: var(--rs-surface-base);
+  --padding-start: var(--rs-inset-page);
+  --padding-end: var(--rs-inset-page);
+}
+
+.auth-container {
+  max-width: 420px;
+  margin: 0 auto;
+  padding-top: var(--rs-space-6);
+}
+
+.auth-entry {
+  text-align: center;
 
   logo-icon {
-    text-align: center;
-  }
-
-  .divider {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    .divider-segment {
-      width: 200px;
-      border-bottom: 1px solid var(--ion-text-color);
-    }
-
-    p {
-      margin-left: 20px;
-      margin-right: 20px;
-    }
+    display: block;
+    margin-bottom: var(--rs-space-5);
   }
 }
 
+.welcome {
+  margin-bottom: var(--rs-space-5);
+
+  h2 {
+    font-family: var(--rs-font-display);
+    font-size: var(--rs-text-xl);
+    font-weight: 400;
+    color: var(--rs-text-primary);
+    margin: 0 0 var(--rs-space-2);
+  }
+
+  span {
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-sm);
+    color: var(--rs-text-secondary);
+    line-height: var(--rs-leading-relaxed);
+  }
+}
+
+// Form fields
 ion-item {
-  --min-height: 66px;
+  --background: var(--rs-surface-elevated);
+  --border-color: var(--rs-border);
+  --border-radius: var(--rs-radius-md);
+  --border-width: 1px;
+  --border-style: solid;
+  --padding-start: var(--rs-space-4);
+  --inner-padding-end: var(--rs-space-3);
+  --min-height: 56px;
+  border-radius: var(--rs-radius-md);
+  overflow: hidden;
+  margin-bottom: var(--rs-space-3);
+
+  ion-input {
+    --color: var(--rs-text-primary);
+    --placeholder-color: var(--rs-text-tertiary);
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-base);
+  }
+}
+
+// "Or" divider
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-3);
+  padding: var(--rs-space-4) 0;
+
+  .divider-segment {
+    flex: 1;
+    height: 1px;
+    background: var(--rs-border);
+  }
+
+  p {
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-xs);
+    color: var(--rs-text-tertiary);
+    margin: 0;
+    white-space: nowrap;
+  }
 }

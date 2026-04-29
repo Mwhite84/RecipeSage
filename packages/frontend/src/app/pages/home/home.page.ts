@@ -57,11 +57,13 @@ import {
   pricetag,
   search,
   trash,
+  chevronForwardOutline,
+  playCircleOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
-const TILE_WIDTH = 200;
-const TILE_PADD = 20;
+const TILE_WIDTH = 160;
+const TILE_PADD = 12;
 
 @Component({
   standalone: true,
@@ -90,7 +92,7 @@ const TILE_PADD = 20;
   ],
 })
 export class HomePage {
-  private navCtrl = inject(NavController);
+  navCtrl = inject(NavController);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private events = inject(EventService);
@@ -101,7 +103,7 @@ export class HomePage {
   private preferencesService = inject(PreferencesService);
   private websocketService = inject(WebsocketService);
   private serverActionsService = inject(ServerActionsService);
-  private utilService = inject(UtilService);
+  utilService = inject(UtilService);
 
   defaultBackHref: string = RouteMap.PeoplePage.getPath();
   aboutHref: string = RouteMap.AboutPage.getPath();
@@ -190,6 +192,8 @@ export class HomePage {
       pricetag,
       search,
       trash,
+      chevronForwardOutline,
+      playCircleOutline,
     });
     this.showBack =
       !!this.router.getCurrentNavigation()?.extras.state?.showBack;
@@ -776,6 +780,20 @@ export class HomePage {
     return recipe.recipeLabels
       .map((recipeLabel) => recipeLabel.label.title)
       .join(", ");
+  }
+
+  normalizeTitle(title: string): string {
+    if (!title) return title;
+    const t = title.trim();
+    // All-caps imports (e.g. "PASTA CARBONARA") → title case each word
+    if (t === t.toUpperCase() && /[A-Z]/.test(t)) {
+      return t.toLowerCase().replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
+    }
+    // Starts lowercase → capitalize first character only
+    if (t.charAt(0) === t.charAt(0).toLowerCase()) {
+      return t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    return t;
   }
 
   getShouldShowLabelChips() {

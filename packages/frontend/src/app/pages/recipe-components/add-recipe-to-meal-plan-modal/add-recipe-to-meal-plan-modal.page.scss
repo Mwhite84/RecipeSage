@@ -1,0 +1,40 @@
+// =============================================================================
+// Add Recipe to Meal Plan Modal
+// =============================================================================
+
+ion-content {
+  --background: var(--rs-surface-base);
+  --padding-start: var(--rs-inset-page);
+  --padding-end: var(--rs-inset-page);
+  --padding-top: var(--rs-space-4);
+  --padding-bottom: var(--rs-space-4);
+
+  > p:first-child {
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-sm);
+    color: var(--rs-text-secondary);
+    margin: 0 0 var(--rs-space-4);
+  }
+}
+
+ion-item {
+  --background: var(--rs-surface-elevated);
+  --border-color: var(--rs-border);
+  --border-radius: var(--rs-radius-md);
+  --border-width: 1px;
+  --border-style: solid;
+  --padding-start: var(--rs-space-4);
+  --inner-padding-end: var(--rs-space-4);
+  border-radius: var(--rs-radius-md);
+  overflow: hidden;
+  margin-bottom: var(--rs-space-3);
+}
+
+ion-footer {
+  background: var(--rs-surface-elevated);
+  border-top: 1px solid var(--rs-border);
+
+  > div {
+    padding: var(--rs-space-3) var(--rs-inset-page);
+  }
+}

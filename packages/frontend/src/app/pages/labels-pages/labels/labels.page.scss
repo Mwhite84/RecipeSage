@@ -1,0 +1,97 @@
+// =============================================================================
+// Labels Page
+// =============================================================================
+
+ion-content {
+  --background: var(--rs-surface-base);
+}
+
+ion-list {
+  background: transparent;
+  padding: var(--rs-space-4) var(--rs-inset-page) 0;
+  max-width: 700px;
+  margin: 0 auto;
+
+  // Section intro item (heading + description)
+  ion-item:first-child {
+    --background: transparent;
+    --border-color: transparent;
+    --padding-start: var(--rs-space-1);
+    --inner-padding-end: 0;
+    margin-bottom: var(--rs-space-2);
+
+    ion-label {
+      h1 {
+        font-family: var(--rs-font-body);
+        font-size: var(--rs-text-xs);
+        font-weight: var(--rs-weight-semibold);
+        color: var(--rs-text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin: 0 0 var(--rs-space-1);
+      }
+
+      p {
+        font-family: var(--rs-font-body);
+        font-size: var(--rs-text-xs);
+        color: var(--rs-text-tertiary);
+        margin: 0;
+        line-height: 1.5;
+      }
+    }
+  }
+}
+
+// Label / group rows
+ion-item.ion-margin-start {
+  --background: var(--rs-surface-elevated);
+  --border-color: var(--rs-divider);
+  --padding-start: var(--rs-space-4);
+  --inner-padding-end: var(--rs-space-2);
+  --min-height: 60px;
+  --color: var(--rs-text-primary);
+  margin-inline-start: 0 !important;
+
+  ion-icon[slot="start"] {
+    color: var(--rs-accent-text);
+    font-size: 18px;
+    margin-right: var(--rs-space-3);
+  }
+
+  ion-label {
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-base);
+    font-weight: var(--rs-weight-medium);
+    color: var(--rs-text-primary);
+
+    p {
+      font-size: var(--rs-text-xs);
+      color: var(--rs-text-tertiary);
+      margin: 2px 0 0;
+      line-height: 1.4;
+    }
+  }
+
+  ion-button[slot="end"] {
+    --color: var(--rs-text-tertiary);
+    --padding-start: var(--rs-space-2);
+    --padding-end: var(--rs-space-2);
+    height: 36px;
+
+    @media (hover: hover) {
+      &:hover {
+        --color: var(--rs-accent-text);
+      }
+    }
+  }
+
+  ion-badge[slot="end"] {
+    background: var(--rs-accent);
+    color: var(--rs-text-on-accent);
+    border-radius: var(--rs-radius-full);
+    font-size: var(--rs-text-xs);
+    font-weight: var(--rs-weight-semibold);
+    padding: 3px 10px;
+    margin-left: var(--rs-space-2);
+  }
+}

@@ -2,12 +2,12 @@
   $iconSize: 50px;
 
   .bg {
-    box-shadow: 1px 1px 7px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--rs-shadow-sm);
     display: inline-block;
     border-radius: 100%;
-    background: #353b48;
+    background: var(--rs-surface-elevated);
+    border: 1px solid var(--rs-border);
     padding: 6px;
-    bottom: middle;
     width: $iconSize;
     height: $iconSize;
   }

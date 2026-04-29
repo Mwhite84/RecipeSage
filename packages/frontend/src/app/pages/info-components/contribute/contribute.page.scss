@@ -14,7 +14,7 @@
 
 .card {
   position: relative;
-  box-shadow: 1px 1px 7px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--rs-shadow-md);
   --padding: 20px;
   padding: var(--padding);
   margin-top: 50px;
@@ -34,7 +34,8 @@
     .bg {
       display: inline-block;
       border-radius: 100%;
-      background: #353b48;
+      background: var(--rs-surface-elevated);
+      border: 1px solid var(--rs-border);
       padding: 6px;
       bottom: middle;
       width: var(--iconSize);
@@ -52,7 +53,7 @@
     border-radius: 10px;
     color: var(--ion-color-primary-contrast);
     margin: 5px 15px 15px 15px;
-    box-shadow: 1px 1px 7px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--rs-shadow-sm);
     font-weight: 600;
     font-size: 0.8375rem;
   }

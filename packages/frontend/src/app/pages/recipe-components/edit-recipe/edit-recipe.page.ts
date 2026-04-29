@@ -1,4 +1,4 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, ViewChildren, QueryList } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import dayjs from "dayjs";
 import {
@@ -66,6 +66,7 @@ import {
   IonButton,
   IonIcon,
   IonContent,
+  IonFooter,
   IonPopover,
   IonList,
   IonItem,
@@ -79,14 +80,24 @@ import {
   IonAvatar,
 } from "@ionic/angular/standalone";
 import {
+  addOutline,
+  bookmarkOutline,
   camera,
   close,
   cutOutline,
   documentTextOutline,
   link,
+  listOutline,
   options,
+  removeCircleOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
+
+interface RecipeLine {
+  id: string;
+  text: string; // for headers: section name without brackets; for items: raw text
+  isHeader: boolean;
+}
 
 @Component({
   standalone: true,
@@ -108,6 +119,7 @@ import { addIcons } from "ionicons";
     IonButton,
     IonIcon,
     IonContent,
+    IonFooter,
     IonPopover,
     IonList,
     IonItem,
@@ -139,8 +151,18 @@ export class EditRecipePage {
   private preferencesService = inject(PreferencesService);
   private recipeDraftService = inject(RecipeDraftService);
 
+  @ViewChildren("ingredientLineInput")
+  ingredientLineInputs!: QueryList<IonInput>;
+  @ViewChildren("instructionLineInput")
+  instructionLineInputs!: QueryList<IonInput>;
+
   saving = false;
   defaultBackHref: string;
+
+  ingredientLines: RecipeLine[] = [];
+  instructionLines: RecipeLine[] = [];
+  ingredientsMode: "list" | "text" = "list";
+  instructionsMode: "list" | "text" = "list";
 
   nutritionAccordionValue: string | null = this.preferencesService.preferences[
     RecipeDetailsPreferenceKey.AutoExpandNutrition
@@ -183,7 +205,18 @@ export class EditRecipePage {
   private draftAgeInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    addIcons({ camera, close, cutOutline, documentTextOutline, link, options });
+    addIcons({
+      addOutline,
+      bookmarkOutline,
+      camera,
+      close,
+      cutOutline,
+      documentTextOutline,
+      link,
+      listOutline,
+      options,
+      removeCircleOutline,
+    });
     const recipeId = this.route.snapshot.paramMap.get("recipeId") || "new";
 
     if (recipeId === "new") {
@@ -270,6 +303,7 @@ export class EditRecipePage {
 
     this.draftRestored = true;
     this.draftAge = this.recipeDraftService.formatDraftAge(this.recipeId);
+    this.syncLinesToRecipe();
     this.markAsDirty();
   }
 
@@ -349,6 +383,7 @@ export class EditRecipePage {
       }));
     }
 
+    this.syncLinesToRecipe();
     loading.dismiss();
   }
 
@@ -1175,6 +1210,7 @@ export class EditRecipePage {
     this.recipe.ingredients = response.data.recipe.ingredients || "";
     this.recipe.instructions = response.data.recipe.instructions || "";
     this.recipe.notes = response.data.recipe.notes || "";
+    this.syncLinesToRecipe();
   }
 
   async scanImage() {
@@ -1291,6 +1327,7 @@ export class EditRecipePage {
     this.recipe.ingredients = response.data.recipe.ingredients || "";
     this.recipe.instructions = response.data.recipe.instructions || "";
     this.recipe.notes = response.data.recipe.notes || "";
+    this.syncLinesToRecipe();
 
     const imageResponse = await this.imageService.create(files[0], {
       "*": () => {},
@@ -1381,6 +1418,7 @@ export class EditRecipePage {
     this.recipe.ingredients = response.recipe.ingredients || "";
     this.recipe.instructions = response.recipe.instructions || "";
     this.recipe.notes = response.recipe.notes || "";
+    this.syncLinesToRecipe();
 
     if (includeNutrition && response.recipe.nutritionInfo) {
       await this.parseAndApplyNutrition(response.recipe.nutritionInfo);
@@ -1495,6 +1533,7 @@ export class EditRecipePage {
     this.recipe.instructions = response.data.instructions || "";
     this.recipe.notes = response.data.notes || "";
     this.recipe.url = url;
+    this.syncLinesToRecipe();
 
     if (includeNutrition && response.data.nutritionInfo) {
       await this.parseAndApplyNutrition(response.data.nutritionInfo);
@@ -1715,6 +1754,230 @@ export class EditRecipePage {
       (r) => r.id !== recipeId,
     );
     this.triggerAutosave();
+  }
+
+  // ─── Line editor helpers ───────────────────────────────────────────────────
+
+  private newLineId(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  private parseLines(raw: string): RecipeLine[] {
+    if (!raw) return [];
+    return raw.split("\n").map((line) => {
+      const headerMatch = line.trim().match(/^\[(.+)\]$/);
+      return {
+        id: this.newLineId(),
+        text: headerMatch ? headerMatch[1] : line,
+        isHeader: !!headerMatch,
+      };
+    });
+  }
+
+  private serializeLines(lines: RecipeLine[]): string {
+    return lines.map((l) => (l.isHeader ? `[${l.text}]` : l.text)).join("\n");
+  }
+
+  syncLinesToRecipe() {
+    this.ingredientLines = this.parseLines(this.recipe.ingredients || "");
+    this.instructionLines = this.parseLines(this.recipe.instructions || "");
+  }
+
+  updateIngredientLine(id: string, value: string) {
+    const line = this.ingredientLines.find((l) => l.id === id);
+    if (!line) return;
+    line.text = value;
+    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
+    this.triggerAutosave();
+  }
+
+  updateInstructionLine(id: string, value: string) {
+    const line = this.instructionLines.find((l) => l.id === id);
+    if (!line) return;
+    line.text = value;
+    this.recipe.instructions = this.serializeLines(this.instructionLines);
+    this.triggerAutosave();
+  }
+
+  addIngredientLine(afterId?: string) {
+    const newLine: RecipeLine = {
+      id: this.newLineId(),
+      text: "",
+      isHeader: false,
+    };
+    if (afterId) {
+      const idx = this.ingredientLines.findIndex((l) => l.id === afterId);
+      this.ingredientLines.splice(idx + 1, 0, newLine);
+    } else {
+      this.ingredientLines.push(newLine);
+    }
+    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
+    this.focusIngredientLine(newLine.id);
+  }
+
+  addInstructionLine() {
+    const newLine: RecipeLine = {
+      id: this.newLineId(),
+      text: "",
+      isHeader: false,
+    };
+    this.instructionLines.push(newLine);
+    this.recipe.instructions = this.serializeLines(this.instructionLines);
+    this.focusInstructionLine(newLine.id);
+  }
+
+  addIngredientSection() {
+    const newLine: RecipeLine = {
+      id: this.newLineId(),
+      text: "New Section",
+      isHeader: true,
+    };
+    this.ingredientLines.push(newLine);
+    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
+    this.focusIngredientLine(newLine.id);
+  }
+
+  addInstructionSection() {
+    const newLine: RecipeLine = {
+      id: this.newLineId(),
+      text: "New Section",
+      isHeader: true,
+    };
+    this.instructionLines.push(newLine);
+    this.recipe.instructions = this.serializeLines(this.instructionLines);
+    this.focusInstructionLine(newLine.id);
+  }
+
+  removeIngredientLine(id: string) {
+    const idx = this.ingredientLines.findIndex((l) => l.id === id);
+    this.ingredientLines.splice(idx, 1);
+    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
+    this.triggerAutosave();
+    if (idx > 0) {
+      const prevId = this.ingredientLines[idx - 1]?.id;
+      if (prevId) setTimeout(() => this.focusIngredientLine(prevId), 30);
+    }
+  }
+
+  removeInstructionLine(id: string) {
+    const idx = this.instructionLines.findIndex((l) => l.id === id);
+    this.instructionLines.splice(idx, 1);
+    this.recipe.instructions = this.serializeLines(this.instructionLines);
+    this.triggerAutosave();
+    if (idx > 0) {
+      const prevId = this.instructionLines[idx - 1]?.id;
+      if (prevId) setTimeout(() => this.focusInstructionLine(prevId), 30);
+    }
+  }
+
+  handleIngredientEnter(id: string) {
+    this.addIngredientLine(id);
+  }
+
+  handleIngredientBackspace(event: Event, id: string) {
+    const line = this.ingredientLines.find((l) => l.id === id);
+    if (!line || line.text !== "") return;
+    event.preventDefault();
+    this.removeIngredientLine(id);
+  }
+
+  setIngredientsMode(mode: "list" | "text") {
+    if (mode === this.ingredientsMode) return;
+    if (mode === "text") {
+      this.recipe.ingredients = this.serializeLines(this.ingredientLines);
+    } else {
+      this.ingredientLines = this.parseLines(this.recipe.ingredients || "");
+    }
+    this.ingredientsMode = mode;
+  }
+
+  setInstructionsMode(mode: "list" | "text") {
+    if (mode === this.instructionsMode) return;
+    if (mode === "text") {
+      this.recipe.instructions = this.serializeLines(this.instructionLines);
+    } else {
+      this.instructionLines = this.parseLines(this.recipe.instructions || "");
+    }
+    this.instructionsMode = mode;
+  }
+
+  handleIngredientPaste(event: ClipboardEvent, id: string) {
+    const text = event.clipboardData?.getData("text") || "";
+    const lines = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (lines.length <= 1) return;
+    event.preventDefault();
+    const idx = this.ingredientLines.findIndex((l) => l.id === id);
+    const currentLine = this.ingredientLines[idx];
+    const newLines: RecipeLine[] = lines.map((t) => {
+      const headerMatch = t.match(/^\[(.+)\]$/);
+      return {
+        id: this.newLineId(),
+        text: headerMatch ? headerMatch[1] : t,
+        isHeader: !!headerMatch,
+      };
+    });
+    if (currentLine && currentLine.text === "") {
+      this.ingredientLines.splice(idx, 1, ...newLines);
+    } else {
+      this.ingredientLines.splice(idx + 1, 0, ...newLines);
+    }
+    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
+    this.triggerAutosave();
+  }
+
+  handleInstructionPaste(event: ClipboardEvent, id: string) {
+    const text = event.clipboardData?.getData("text") || "";
+    const lines = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (lines.length <= 1) return;
+    event.preventDefault();
+    const idx = this.instructionLines.findIndex((l) => l.id === id);
+    const currentLine = this.instructionLines[idx];
+    const newLines: RecipeLine[] = lines.map((t) => {
+      const headerMatch = t.match(/^\[(.+)\]$/);
+      return {
+        id: this.newLineId(),
+        text: headerMatch ? headerMatch[1] : t,
+        isHeader: !!headerMatch,
+      };
+    });
+    if (currentLine && currentLine.text === "") {
+      this.instructionLines.splice(idx, 1, ...newLines);
+    } else {
+      this.instructionLines.splice(idx + 1, 0, ...newLines);
+    }
+    this.recipe.instructions = this.serializeLines(this.instructionLines);
+    this.triggerAutosave();
+  }
+
+  getInstructionStepNumber(id: string): number {
+    let count = 0;
+    for (const line of this.instructionLines) {
+      if (!line.isHeader) count++;
+      if (line.id === id) return count;
+    }
+    return count;
+  }
+
+  private focusIngredientLine(id: string) {
+    setTimeout(() => {
+      const inputs = this.ingredientLineInputs.toArray();
+      const idx = this.ingredientLines.findIndex((l) => l.id === id);
+      inputs[idx]?.setFocus();
+    }, 50);
+  }
+
+  private focusInstructionLine(id: string) {
+    setTimeout(() => {
+      const inputs = this.instructionLineInputs.toArray();
+      const idx = this.instructionLines.findIndex((l) => l.id === id);
+      inputs[idx]?.setFocus();
+    }, 50);
   }
 
   ionViewWillLeave() {

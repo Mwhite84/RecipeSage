@@ -52,12 +52,18 @@
               [class.selected]="selectedDaysSet.has(dateStr)"
               (click)="toggleDaySelection(dateStr)"
             >
-              <ion-label>{{ listFormattedDates.get(dateStr) }}</ion-label>
+              <ion-label>
+                <span class="date-weekday">{{
+                  listFormattedWeekdays.get(dateStr)
+                }}</span>
+                <span class="date-full">{{
+                  listFormattedDates.get(dateStr)
+                }}</span>
+              </ion-label>
             </ion-item-divider>
             @for (item of listItemsByDate.get(dateStr); track item.id) {
               <ion-item
                 class="meal-list-item"
-                [style.border-left-color]="getMealBorderColor(item.meal)"
                 (click)="itemClicked(item)"
                 button
               >
@@ -95,7 +101,6 @@
                 @for (item of listItemsByDate.get(dateStr); track item.id) {
                   <ion-item
                     class="meal-list-item"
-                    [style.border-left-color]="getMealBorderColor(item.meal)"
                     (click)="itemClicked(item)"
                     button
                   >

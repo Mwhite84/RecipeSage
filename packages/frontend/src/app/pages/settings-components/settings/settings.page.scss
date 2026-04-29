@@ -1,3 +1,69 @@
+// =============================================================================
+// Settings Page
+// =============================================================================
+
+ion-content {
+  --background: var(--rs-surface-base);
+}
+
+ion-list {
+  background: transparent;
+  padding: var(--rs-space-3) var(--rs-inset-page) 0;
+
+  // Section headers
+  ion-list-header {
+    --background: transparent;
+    padding-top: var(--rs-space-5);
+    padding-bottom: var(--rs-space-1);
+    padding-inline-start: var(--rs-space-1);
+
+    ion-label {
+      font-family: var(--rs-font-body);
+      font-size: var(--rs-text-xs);
+      font-weight: var(--rs-weight-semibold);
+      color: var(--rs-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+  }
+
+  // Item rows — card-style grouped list
+  ion-item {
+    --background: var(--rs-surface-elevated);
+    --border-color: var(--rs-divider);
+    --padding-start: var(--rs-space-4);
+    --inner-padding-end: var(--rs-space-4);
+    --min-height: 52px;
+    --color: var(--rs-text-primary);
+    font-family: var(--rs-font-body);
+    font-size: var(--rs-text-base);
+
+    &:first-of-type {
+      border-radius: var(--rs-radius-md) var(--rs-radius-md) 0 0;
+    }
+
+    &:last-of-type {
+      border-radius: 0 0 var(--rs-radius-md) var(--rs-radius-md);
+      --border-color: transparent;
+    }
+
+    ion-icon[slot="start"] {
+      color: var(--rs-text-tertiary);
+      font-size: 18px;
+      margin-right: var(--rs-space-3);
+    }
+
+    ion-label {
+      color: var(--rs-text-primary);
+    }
+
+    ion-toggle {
+      padding-inline-start: 0;
+    }
+  }
+}
+
 .custom-select-icon {
+  color: var(--rs-text-tertiary);
   width: 0.8125rem;
 }
