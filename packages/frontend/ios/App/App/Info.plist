@@ -28,6 +28,14 @@
 				<string>capacitor</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.recipesage.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>recipesage</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>

@@ -37,7 +37,32 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
     // Called when the app was launched with a url. Feel free to add additional processing here,
     // but if you want the App API to support tracking app url opens, make sure to keep this call
+    if url.scheme == "recipesage" {
+      handleRecipeSageURL(url)
+      return true
+    }
     return CAPBridge.handleOpenUrl(url, options)
+  }
+
+  private func handleRecipeSageURL(_ url: URL) {
+    var sharedData: [String: String] = [:]
+
+    if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+       let queryItems = components.queryItems {
+      for item in queryItems {
+        sharedData[item.name] = item.value ?? ""
+      }
+    }
+
+    if let host = url.host {
+      sharedData["action"] = host
+    }
+
+    if let jsonString = try? JSONSerialization.data(withJSONObject: sharedData, options: []),
+       let jsonStringValue = String(data: jsonString, encoding: .utf8) {
+      UserDefaults.standard.set(jsonStringValue, forKey: "recipeSageSharedData")
+      NotificationCenter.default.post(name: Notification.Name("recipeSageSharedData"), object: sharedData)
+    }
   }
   
   func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
