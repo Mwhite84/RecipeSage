@@ -1,0 +1,101 @@
+# ============================================================
+# RecipeSage API Backend - Multi-stage Docker Build
+# Target: linux/amd64 for k0s cluster
+# ============================================================
+
+# ---- Stage 1: Install dependencies ----
+FROM node:24.13-alpine AS deps
+
+WORKDIR /app
+
+RUN apk add --no-cache openssl
+
+COPY package-lock.json package-lock.json
+COPY package.json package.json
+RUN npm ci
+
+# ---- Stage 2: Copy source + generate prisma + build all ----
+FROM deps AS builder
+
+COPY .prettierignore .prettierignore
+COPY .prettierrc.json .prettierrc.json
+COPY .nvmrc .nvmrc
+COPY tsconfig.base.json tsconfig.base.json
+COPY nx.json nx.json
+COPY prisma.config.ts prisma.config.ts
+COPY eslint.config.mjs eslint.config.mjs
+COPY vitest.workspace.ts vitest.workspace.ts
+COPY packages packages
+COPY scripts scripts
+COPY fonts fonts
+
+# Generate Prisma client
+RUN npx prisma generate
+
+ENV NX_SKIP_NX_CACHE=true
+ENV NX_NO_CLOUD=true
+ENV NODE_ENV=selfhost
+ENV APP_VERSION=0.0.0-selfhost
+ENV ENVIRONMENT=selfhost
+
+# Build backend (produces dist/apps/backend/main.cjs)
+RUN npx nx build backend
+
+# Build queue-worker (produces dist/apps/queue-worker/worker.cjs + main.cjs)
+RUN npx nx build queue-worker
+
+# ---- Stage 3: Production runner ----
+FROM node:24.13-alpine AS runner
+
+WORKDIR /app
+
+# System dependencies for runtime
+RUN apk add --no-cache openssl mdbtools mdbtools-utils poppler-utils
+
+# Copy node_modules from builder stage (includes prisma generated client)
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copy prisma schema + migrations + generated client
+COPY --from=builder /app/packages/prisma ./packages/prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+
+# Copy built backend artifacts
+COPY --from=builder /app/dist/apps/backend ./dist/apps/backend
+
+# Copy built queue-worker artifacts
+COPY --from=builder /app/dist/apps/queue-worker ./dist/apps/queue-worker
+
+# Copy fonts for PDF generation
+COPY --from=builder /app/fonts ./fonts
+
+# Copy frontend i18n files (needed for label/template rendering)
+COPY --from=builder /app/packages/frontend/src/assets/i18n ./packages/frontend/src/assets/i18n
+
+# Copy package.json for prisma/nx seed
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/nx.json ./nx.json
+COPY --from=builder /app/packages/prisma/project.json ./packages/prisma/project.json
+
+# BullMQ worker expects its own main.js at a resolved path relative to module.filename.
+# When bundled by esbuild, the relative resolution breaks. Create the expected path
+# so BullMQ's ChildPool can find it at runtime.
+RUN mkdir -p /app/dist/cjs/classes && \
+    cp /app/node_modules/bullmq/dist/cjs/classes/main.js /app/dist/cjs/classes/main.js && \
+    cp /app/node_modules/bullmq/dist/cjs/classes/child-processor.js /app/dist/cjs/classes/child-processor.js
+
+# Runtime environment variables
+ENV VERSION=selfhost
+ENV NODE_ENV=selfhost
+ENV FONTS_PATH=/app/fonts
+ENV EXPRESS_VIEWS_PATH=/app/dist/apps/backend/views
+ENV FRONTEND_I18N_PATH=/app/packages/frontend/src/assets/i18n
+ENV JOB_QUEUE_WORKER_PATH=/app/dist/apps/queue-worker/worker.cjs
+ENV STORAGE_TYPE=filesystem
+ENV FILESYSTEM_STORAGE_PATH=/rs-media
+
+# Create storage directory
+RUN mkdir -p /rs-media
+
+EXPOSE 3000
+
+CMD ["node", "dist/apps/backend/main.cjs"]

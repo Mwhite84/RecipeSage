@@ -18,6 +18,16 @@
 		AABB00112233445566000004 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00112233445566000001 /* ShareViewController.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		AABB0011223344556600000E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 504EC3031FED79650016851F;
+			remoteInfo = App;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
@@ -28,13 +38,14 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = SOURCE_ROOT; };
+		6F5AC7BF2FA2D7AA00581BE7 /* RecipeSageShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RecipeSageShare.entitlements; sourceTree = "<group>"; };
+		AABB00112233445566000001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		AABB00112233445566000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AABB00112233445566000003 /* RecipeSageShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecipeSageShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		B9EEDC7023F4EB1A002212F2 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
-		AABB00112233445566000001 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
-		AABB00112233445566000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		AABB00112233445566000003 /* RecipeSageShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecipeSageShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,16 +65,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
-
-/* Begin PBXContainerItemProxy section */
-		AABB0011223344556600000E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 504EC3031FED79650016851F;
-			remoteInfo = App;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXGroup section */
 		27E2DDA53C4D2A4D1A88CE4A /* Frameworks */ = {
@@ -122,6 +123,7 @@
 		AABB00112233445566000005 /* RecipeSageShare */ = {
 			isa = PBXGroup;
 			children = (
+				6F5AC7BF2FA2D7AA00581BE7 /* RecipeSageShare.entitlements */,
 				AABB00112233445566000001 /* ShareViewController.swift */,
 				AABB00112233445566000002 /* Info.plist */,
 			);
@@ -284,6 +286,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		AABB0011223344556600000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 504EC3031FED79650016851F /* App */;
+			targetProxy = AABB0011223344556600000E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
@@ -302,14 +312,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
-
-/* Begin PBXTargetDependency section */
-		AABB0011223344556600000A /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 504EC3031FED79650016851F /* App */;
-			targetProxy = AABB0011223344556600000E /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		504EC3141FED79650016851F /* Debug */ = {
@@ -468,6 +470,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = RecipeSageShare/RecipeSageShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = LZ6K58VL6X;
@@ -487,6 +490,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = RecipeSageShare/RecipeSageShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = LZ6K58VL6X;
