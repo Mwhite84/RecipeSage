@@ -119,6 +119,14 @@ export const appRoutes: Routes = [
     title: "pages.contributeThankYou.tabTitle",
   },
   {
+    path: "auth/extension",
+    loadComponent: () =>
+      import("./pages/auth/extension-auth/extension-auth.page").then(
+        (m) => m.ExtensionAuthPage,
+      ),
+    title: "pages.extensionAuth.title",
+  },
+  {
     path: RouteMap.AuthPage.path,
     loadComponent: () =>
       import("./pages/auth/auth.page").then((m) => m.AuthPage),
@@ -189,6 +197,57 @@ export const appRoutes: Routes = [
     title: "pages.recipeDetails.tabTitle",
   },
   {
+    path: RouteMap.RecipePageCook.path,
+    loadComponent: () =>
+      import("./pages/recipe-components/cook/cook.page").then(
+        (m) => m.CookPage,
+      ),
+    title: "pages.cook.tabTitle",
+  },
+  {
+    path: RouteMap.DiscoverPage.path,
+    loadComponent: () =>
+      import("./pages/discover-components/discover/discover.page").then(
+        (m) => m.DiscoverPage,
+      ),
+    title: "pages.discover.tabTitle",
+  },
+  {
+    path: RouteMap.PublishDiscoverRecipePage.path,
+    loadComponent: () =>
+      import("./pages/discover-components/publish-discover-recipe/publish-discover-recipe.page").then(
+        (m) => m.PublishDiscoverRecipePage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.publishDiscoverRecipe.tabTitle",
+  },
+  {
+    path: RouteMap.EditDiscoverRecipePage.path,
+    loadComponent: () =>
+      import("./pages/discover-components/publish-discover-recipe/publish-discover-recipe.page").then(
+        (m) => m.PublishDiscoverRecipePage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.publishDiscoverRecipe.tabTitle",
+  },
+  {
+    path: RouteMap.DiscoverRecipePageCook.path,
+    loadComponent: () =>
+      import("./pages/recipe-components/cook/cook.page").then(
+        (m) => m.CookPage,
+      ),
+    data: { isDiscover: true },
+    title: "pages.cook.tabTitle",
+  },
+  {
+    path: RouteMap.DiscoverRecipePage.path,
+    loadComponent: () =>
+      import("./pages/discover-components/discover-recipe/discover-recipe.page").then(
+        (m) => m.DiscoverRecipePage,
+      ),
+    title: "pages.discoverRecipe.tabTitle",
+  },
+  {
     path: RouteMap.SettingsPage.path,
     loadComponent: () =>
       import("./pages/settings-components/settings/settings.page").then(
@@ -239,6 +298,85 @@ export const appRoutes: Routes = [
     title: "pages.export.tabTitle",
   },
   {
+    path: RouteMap.JobsPage.path,
+    loadComponent: () =>
+      import("./pages/settings-components/jobs/jobs.page").then(
+        (m) => m.JobsPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.jobs.tabTitle",
+  },
+  {
+    path: RouteMap.ServerSettingsPage.path,
+    loadComponent: () =>
+      import("./pages/settings-components/server-settings/server-settings.page").then(
+        (m) => m.ServerSettingsPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.serverSettings.tabTitle",
+  },
+  {
+    path: RouteMap.ToolsPage.path,
+    loadComponent: () =>
+      import("./pages/tools/tools.page").then((m) => m.ToolsPage),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.tools.tabTitle",
+  },
+  {
+    path: RouteMap.CookbookGeneratorPage.path,
+    loadComponent: () =>
+      import("./pages/tools/cookbook-generator/cookbook-generator.page").then(
+        (m) => m.CookbookGeneratorPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.cookbook.tabTitle",
+  },
+  {
+    path: RouteMap.NutritionCalculatorPage.path,
+    loadComponent: () =>
+      import("./pages/tools/nutrition-calculator/nutrition-calculator.page").then(
+        (m) => m.NutritionCalculatorPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.nutritionCalculator.tabTitle",
+  },
+  {
+    path: RouteMap.MeasurementConverterPage.path,
+    loadComponent: () =>
+      import("./pages/tools/measurement-converter/measurement-converter.page").then(
+        (m) => m.MeasurementConverterPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.measurementConverter.tabTitle",
+  },
+  {
+    path: RouteMap.CookingTemperaturesPage.path,
+    loadComponent: () =>
+      import("./pages/tools/cooking-temperatures/cooking-temperatures.page").then(
+        (m) => m.CookingTemperaturesPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.cookingTemperatures.tabTitle",
+  },
+  {
+    path: RouteMap.PanBakewareConverterPage.path,
+    loadComponent: () =>
+      import("./pages/tools/pan-bakeware-converter/pan-bakeware-converter.page").then(
+        (m) => m.PanBakewareConverterPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.panBakewareConverter.tabTitle",
+  },
+  {
+    path: RouteMap.SearchByIngredientsPage.path,
+    loadComponent: () =>
+      import("./pages/tools/search-by-ingredients/search-by-ingredients.page").then(
+        (m) => m.SearchByIngredientsPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.searchByIngredients.tabTitle",
+  },
+  {
     path: RouteMap.ImportPage.path,
     loadComponent: () =>
       import("./pages/settings-components/import/import.page").then(
@@ -264,6 +402,24 @@ export const appRoutes: Routes = [
       ),
     canDeactivate: [UnsavedChangesGuardService],
     title: "pages.importPaprika.tabTitle",
+  },
+  {
+    path: RouteMap.ImportMelaPage.path,
+    loadComponent: () =>
+      import("./pages/settings-components/import-mela/import-mela.page").then(
+        (m) => m.ImportMelaPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.importMela.tabTitle",
+  },
+  {
+    path: RouteMap.ImportCroutonPage.path,
+    loadComponent: () =>
+      import("./pages/settings-components/import-crouton/import-crouton.page").then(
+        (m) => m.ImportCroutonPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.importCrouton.tabTitle",
   },
   {
     path: RouteMap.ImportJSONLDPage.path,

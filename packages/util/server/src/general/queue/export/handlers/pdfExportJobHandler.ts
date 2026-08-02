@@ -1,4 +1,4 @@
-import type { JobSummary } from "@recipesage/prisma";
+import type { ExportJobSummary } from "@recipesage/prisma";
 import { RecipeSummary } from "@recipesage/prisma";
 import { PassThrough } from "stream";
 import {
@@ -11,7 +11,7 @@ import { recipeAsyncIteratorToPDF } from "../../../recipeSummariesToPDF";
 import { pipeline } from "stream/promises";
 
 export async function pdfExportJobHandler(
-  job: JobSummary,
+  job: ExportJobSummary,
   recipes: AsyncIterable<RecipeSummary>,
   onProgress: (processedCount: number) => void,
 ): Promise<StorageObjectRecord> {
@@ -30,9 +30,13 @@ export async function pdfExportJobHandler(
 
   const pipelineP = pipeline(zipStream, outputStream);
 
+  const language = job.meta.language ?? "en-us";
+
   let processedCount = 0;
   for await (const result of recipeAsyncIteratorToPDF(recipes, {
+    language,
     includeImageUrls: true,
+    includeLabels: true,
   })) {
     await new Promise<void>((resolve, reject) => {
       zipStream.entry(

@@ -1,5 +1,19 @@
 import { createReadStream } from "fs";
 
+export const IMAGE_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "image/avif",
+]);
+
+export const PDF_MIME_TYPE = "application/pdf";
+
+export const MAX_NOTE_BYTES = 20 * 1024 * 1024;
+
 export interface XmlElement {
   type?: string;
   name?: string;
@@ -94,6 +108,7 @@ export const elementText = (node: XmlElement | undefined): string => {
  */
 export async function* streamNoteChunks(
   filePath: string,
+  onSkippedNote?: () => void,
 ): AsyncGenerator<string> {
   const stream = createReadStream(filePath, { encoding: "utf8" });
   let buffer = "";
@@ -117,8 +132,13 @@ export async function* streamNoteChunks(
         if (start > 0) buffer = buffer.slice(start);
         break;
       }
-      yield buffer.slice(start, end + endTag.length);
+      const noteXml = buffer.slice(start, end + endTag.length);
       buffer = buffer.slice(end + endTag.length);
+      if (noteXml.length <= MAX_NOTE_BYTES) {
+        yield noteXml;
+      } else {
+        onSkippedNote?.();
+      }
     }
   }
 }

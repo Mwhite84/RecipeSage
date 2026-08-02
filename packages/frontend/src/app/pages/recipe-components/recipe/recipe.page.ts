@@ -10,25 +10,28 @@ import {
 import { TranslateService } from "@ngx-translate/core";
 import dayjs from "dayjs";
 
-import { linkifyHtml } from "~/utils/linkify";
-import {
-  RecipeService,
-  ParsedInstruction,
-  ParsedIngredient,
-  ParsedNote,
-  RecipeFolderName,
-} from "~/services/recipe.service";
-import { CookingToolbarService } from "~/services/cooking-toolbar.service";
-import { LoadingService } from "~/services/loading.service";
-import { UtilService, RouteMap } from "~/services/util.service";
-import { WakeLockService } from "~/services/wakelock.service";
-import { PreferencesService } from "~/services/preferences.service";
+import { linkifyHtml } from "../../../utils/linkify";
+import { CookingToolbarService } from "../../../services/cooking-toolbar.service";
+import { LoadingService } from "../../../services/loading.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
+import { WakeLockService } from "../../../services/wakelock.service";
+import { FullscreenService } from "../../../services/fullscreen.service";
+import { PreferencesService } from "../../../services/preferences.service";
 import {
   RecipeDetailsPreferenceKey,
   GlobalPreferenceKey,
   SupportedFontSize,
+  ParsedInstruction,
+  ParsedIngredient,
+  ParsedNote,
+  parseIngredients,
+  inferRecipeNotation,
+  applyDecimalNotation,
+  type DecimalNotation,
+  parseInstructions,
+  parseNotes,
 } from "@recipesage/util/shared";
-import { RecipeCompletionTrackerService } from "~/services/recipe-completion-tracker.service";
+import { RecipeCompletionTrackerService } from "../../../services/recipe-completion-tracker.service";
 
 import { AddRecipeToShoppingListModalPage } from "../add-recipe-to-shopping-list-modal/add-recipe-to-shopping-list-modal.page";
 import { AddRecipeToMealPlanModalPage } from "../add-recipe-to-meal-plan-modal/add-recipe-to-meal-plan-modal.page";
@@ -37,19 +40,15 @@ import {
   RecipeDetailsPopoverPage,
   type RecipeDetailsPopoverActionTypes,
 } from "../recipe-details-popover/recipe-details-popover.page";
-import { ShareModalPage } from "~/pages/share-modal/share-modal.page";
-import { AuthPage } from "~/pages/auth/auth.page";
-import { ImageViewerComponent } from "~/modals/image-viewer/image-viewer.component";
+import { ShareModalPage } from "../../share-modal/share-modal.page";
+import { AuthPage } from "../../auth/auth.page";
+import { ImageViewerComponent } from "../../../modals/image-viewer/image-viewer.component";
 import {
   ScaleRecipeComponent,
   type UnitSystem,
-} from "~/modals/scale-recipe/scale-recipe.component";
+} from "../../../modals/scale-recipe/scale-recipe.component";
 import { System } from "unitz-ts";
-import type {
-  RecipeSummary,
-  RecipeSummaryLite,
-  UserPublic,
-} from "@recipesage/prisma";
+import type { RecipeSummary, RecipeSummaryLite } from "@recipesage/prisma";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import { Title } from "@angular/platform-browser";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
@@ -59,52 +58,51 @@ import {
   IonToolbar,
   IonButtons,
   IonBackButton,
+  IonTitle,
   IonButton,
   IonIcon,
   IonContent,
+  IonItem,
+  IonThumbnail,
+  IonLabel,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonAvatar,
   IonChip,
   IonFab,
   IonFabButton,
   IonFabList,
 } from "@ionic/angular/standalone";
 import {
-  book,
-  calendar,
-  cloudDownload,
-  copy,
-  create,
-  documentText,
-  fitness,
-  flashlight,
-  link,
-  list,
-  options,
-  pin,
-  pricetag,
-  print,
-  share,
-  trash,
-  text,
-  addCircle,
-  removeCircle,
-  refresh,
-  // Outline variants for action bar + meta row
+  bookOutline,
   calendarOutline,
   cloudDownloadOutline,
   copyOutline,
   createOutline,
+  documentTextOutline,
+  fitnessOutline,
+  flashlightOutline,
+  linkOutline,
+  listOutline,
+  optionsOutline,
+  pinOutline,
+  pricetagOutline,
+  printOutline,
+  shareOutline,
+  trashOutline,
+  // Font size FAB
+  text,
+  addCircle,
+  removeCircle,
+  refresh,
+  // Action bar + meta row
+  checkmarkCircleOutline,
   chevronForwardOutline,
   ellipsisHorizontal,
   hourglassOutline,
-  linkOutline,
-  listOutline,
   peopleOutline,
-  pinOutline,
-  printOutline,
-  shareOutline,
   timeOutline,
-  trashOutline,
-  checkmarkCircleOutline,
   todayOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
@@ -114,7 +112,6 @@ import { addIcons } from "ionicons";
   selector: "page-recipe",
   templateUrl: "recipe.page.html",
   styleUrls: ["recipe.page.scss"],
-  providers: [RecipeService],
   imports: [
     ...SHARED_UI_IMPORTS,
     RatingComponent,
@@ -122,9 +119,17 @@ import { addIcons } from "ionicons";
     IonToolbar,
     IonButtons,
     IonBackButton,
+    IonTitle,
     IonButton,
     IonIcon,
     IonContent,
+    IonItem,
+    IonThumbnail,
+    IonLabel,
+    IonGrid,
+    IonRow,
+    IonCol,
+    IonAvatar,
     IonChip,
     IonFab,
     IonFabButton,
@@ -140,12 +145,12 @@ export class RecipePage {
   private loadingService = inject(LoadingService);
   private preferencesService = inject(PreferencesService);
   private wakeLockService = inject(WakeLockService);
+  private fullscreenService = inject(FullscreenService);
   private recipeCompletionTrackerService = inject(
     RecipeCompletionTrackerService,
   );
   private route = inject(ActivatedRoute);
   utilService = inject(UtilService);
-  private recipeService = inject(RecipeService);
   cookingToolbarService = inject(CookingToolbarService);
   private translate = inject(TranslateService);
   private serverActionsService = inject(ServerActionsService);
@@ -157,7 +162,8 @@ export class RecipePage {
     release: () => void;
   } = null;
 
-  me: UserPublic | null = null;
+  private meQuery = this.serverActionsService.users.getMe({ 401: () => {} });
+  me = this.meQuery.value;
   recipe: RecipeSummary | null = null;
   similarRecipes: RecipeSummaryLite[] = [];
   linkedRecipes: Array<{
@@ -165,11 +171,12 @@ export class RecipePage {
     title: string;
     recipeImages: Array<{ image: { location: string } }>;
   }> = [];
-  recipeId: string;
+  recipeId: string = "";
   ingredients?: ParsedIngredient[];
   instructions?: ParsedInstruction[];
   notes?: ParsedNote[];
-  scale = 1;
+  scale: string = "1";
+  decimalNotationMode: DecimalNotation = ".";
   unitSystem: UnitSystem = "original";
 
   labelGroupIds: string[] = [];
@@ -208,62 +215,57 @@ export class RecipePage {
 
   constructor() {
     addIcons({
-      book,
-      calendar,
-      cloudDownload,
-      copy,
-      create,
-      documentText,
-      fitness,
-      flashlight,
-      link,
-      list,
-      options,
-      pin,
-      pricetag,
-      print,
-      share,
-      trash,
-      text,
-      addCircle,
-      removeCircle,
-      refresh,
+      bookOutline,
       calendarOutline,
       cloudDownloadOutline,
       copyOutline,
       createOutline,
+      documentTextOutline,
+      fitnessOutline,
+      flashlightOutline,
+      linkOutline,
+      listOutline,
+      optionsOutline,
+      pinOutline,
+      pricetagOutline,
+      printOutline,
+      shareOutline,
+      trashOutline,
+      text,
+      addCircle,
+      removeCircle,
+      refresh,
+      checkmarkCircleOutline,
       chevronForwardOutline,
       ellipsisHorizontal,
       hourglassOutline,
-      linkOutline,
-      listOutline,
       peopleOutline,
-      pinOutline,
-      printOutline,
-      shareOutline,
       timeOutline,
-      trashOutline,
-      checkmarkCircleOutline,
       todayOutline,
     });
     this.updateIsLoggedIn();
+    this.applyRouteParams();
+    this.applyScale();
+  }
 
+  private applyRouteParams() {
     const recipeId = this.route.snapshot.paramMap.get("recipeId");
     if (!recipeId) {
       this.navCtrl.navigateBack(this.defaultBackHref);
       throw new Error("No recipeId was provided");
     }
     this.recipeId = recipeId;
-
     this.scale =
-      this.recipeCompletionTrackerService.getRecipeScale(this.recipeId) || 1;
-
-    this.applyScale();
+      this.recipeCompletionTrackerService.getRecipeScale(this.recipeId) || "1";
   }
 
   ionViewWillEnter() {
+    const snapshotRecipeId = this.route.snapshot.paramMap.get("recipeId");
+    if (snapshotRecipeId && snapshotRecipeId !== this.recipeId) {
+      this.applyRouteParams();
+    }
+
     this.recipe = null;
-    this.me = null;
     this.similarRecipes = [];
     this.linkedRecipes = [];
 
@@ -287,11 +289,7 @@ export class RecipePage {
   }
 
   async load() {
-    return Promise.all([
-      this._loadRecipe(),
-      this._loadSimilarRecipes(),
-      this._loadMyUserProfile(),
-    ]);
+    return Promise.all([this._loadRecipe(), this._loadSimilarRecipes()]);
   }
 
   async _loadRecipe() {
@@ -351,6 +349,23 @@ export class RecipePage {
       .sort((a, b) => a.label.title.localeCompare(b.label.title));
   }
 
+  get isOwner() {
+    return !!this.recipe && this.recipe.userId === this.me()?.id;
+  }
+
+  openLabel(labelTitle: string) {
+    if (!this.isOwner) return;
+
+    this.navCtrl.navigateForward(
+      RouteMap.HomePage.getPath("main", { selectedLabels: [labelTitle] }),
+      {
+        state: {
+          showBack: true,
+        },
+      },
+    );
+  }
+
   async _loadSimilarRecipes() {
     if (!this.isLoggedIn) return;
 
@@ -367,15 +382,6 @@ export class RecipePage {
     this.similarRecipes = response;
   }
 
-  async _loadMyUserProfile() {
-    if (!this.isLoggedIn) return;
-
-    const response = await this.serverActionsService.users.getMe();
-    if (!response) return;
-
-    this.me = response;
-  }
-
   updateRatingVisual() {
     if (!this.recipe) return;
 
@@ -389,7 +395,7 @@ export class RecipePage {
       component: RecipeDetailsPopoverPage,
       componentProps: {
         recipe: this.recipe,
-        me: this.me,
+        me: this.me(),
         isLoggedIn: this.isLoggedIn,
       },
       event,
@@ -407,6 +413,8 @@ export class RecipePage {
             RecipeDetailsPreferenceKey.EnableWakeLock
           ];
         return wlEnabled ? this.setupWakeLock() : this.releaseWakeLock();
+      case "enterCookMode":
+        return this.enterCookMode();
       case "addToShoppingList":
         return this.addRecipeToShoppingList();
       case "addToMealPlan":
@@ -431,6 +439,8 @@ export class RecipePage {
         return this.deleteRecipe();
       case "setLastMadeToday":
         return this.setLastMadeToday();
+      case "publishToDiscover":
+        return this.publishToDiscover();
       default:
         const exhaustiveCheck: never = action;
         throw new Error(`Unhandled action case: ${exhaustiveCheck}`);
@@ -475,6 +485,9 @@ export class RecipePage {
       componentProps: {
         scale: this.scale.toString(),
         unitSystem: this.unitSystem,
+        yieldText: this.recipe?.yield ?? null,
+        ingredients: this.ingredients ?? [],
+        decimalNotationMode: this.decimalNotationMode,
       },
       cssClass: "scaleRecipeModal",
     });
@@ -497,6 +510,10 @@ export class RecipePage {
     this.applyScale();
   }
 
+  get scaleDisplay(): string {
+    return applyDecimalNotation(this.scale, this.decimalNotationMode);
+  }
+
   applyScale() {
     if (!this.recipe) return;
 
@@ -507,29 +524,30 @@ export class RecipePage {
           ? System.US
           : undefined;
 
-    this.ingredients = this.recipeService.parseIngredients(
-      this.recipe.ingredients,
-      this.scale,
-      targetSystem,
+    const decimalNotationMode = inferRecipeNotation(
+      this.recipe,
+      this.translate.getCurrentLang(),
     );
-    this.instructions = this.recipeService.parseInstructions(
+    this.decimalNotationMode = decimalNotationMode;
+
+    this.ingredients = parseIngredients(this.recipe.ingredients, this.scale, {
+      targetSystem,
+      decimalNotationMode,
+    });
+    this.instructions = parseInstructions(
       this.recipe.instructions,
       this.scale,
-      targetSystem,
-      this.getInlineImageRefs(),
+      { targetSystem, decimalNotationMode, images: this.getInlineImageRefs() },
     );
     if (this.recipe.notes && this.recipe.notes.length > 0) {
-      this.notes = this.recipeService
-        .parseNotes(
-          this.recipe.notes,
-          this.scale,
-          targetSystem,
-          this.getInlineImageRefs(),
-        )
-        .map((note) => ({
-          ...note,
-          htmlContent: linkifyHtml(note.htmlContent),
-        }));
+      this.notes = parseNotes(this.recipe.notes, this.scale, {
+        targetSystem,
+        decimalNotationMode,
+        images: this.getInlineImageRefs(),
+      }).map((note) => ({
+        ...note,
+        htmlContent: linkifyHtml(note.htmlContent),
+      }));
     }
   }
 
@@ -543,6 +561,37 @@ export class RecipePage {
   editRecipe() {
     this.navCtrl.navigateForward(
       RouteMap.EditRecipePage.getPath(this.recipeId),
+    );
+  }
+
+  async publishToDiscover() {
+    if (!this.recipe) return;
+
+    if (this.recipe.source?.trim() || this.recipe.url?.trim()) {
+      const header = await this.translate
+        .get("pages.publishDiscoverRecipe.ineligible.header")
+        .toPromise();
+      const message = await this.translate
+        .get("pages.publishDiscoverRecipe.ineligible.message")
+        .toPromise();
+      const okay = await this.translate.get("generic.okay").toPromise();
+
+      const alert = await this.alertCtrl.create({
+        header,
+        message,
+        buttons: [
+          {
+            text: okay,
+            role: "cancel",
+          },
+        ],
+      });
+      alert.present();
+      return;
+    }
+
+    this.navCtrl.navigateForward(
+      RouteMap.PublishDiscoverRecipePage.getPath(this.recipe.id),
     );
   }
 
@@ -582,10 +631,12 @@ export class RecipePage {
 
     const loading = this.loadingService.start();
 
-    const response = await this.recipeService.delete(this.recipe.id);
+    const response = await this.serverActionsService.recipes.deleteRecipe({
+      id: this.recipe.id,
+    });
 
     loading.dismiss();
-    if (!response.success) return;
+    if (!response) return;
 
     this.navCtrl.navigateRoot(RouteMap.HomePage.getPath(this.recipe.folder));
   }
@@ -676,7 +727,7 @@ export class RecipePage {
     shareModal.present();
   }
 
-  async moveToFolder(folderName: RecipeFolderName) {
+  async moveToFolder(folderName: "main" | "inbox") {
     if (!this.recipe) return;
 
     const loading = this.loadingService.start();
@@ -715,7 +766,7 @@ export class RecipePage {
     const loading = this.loadingService.start();
 
     const labelIds =
-      this.me?.id === this.recipe.id
+      this.me()?.id === this.recipe.id
         ? this.recipe.recipeLabels.map((recipeLabel) => recipeLabel.label.id)
         : [];
 
@@ -824,6 +875,13 @@ export class RecipePage {
 
   openRecipe(recipeId: string, event?: MouseEvent | KeyboardEvent) {
     this.utilService.openRecipe(this.navCtrl, recipeId, event);
+  }
+
+  async enterCookMode() {
+    await this.fullscreenService.request();
+    this.navCtrl.navigateForward(
+      RouteMap.RecipePageCook.getPath(this.recipeId),
+    );
   }
 
   setupWakeLock() {

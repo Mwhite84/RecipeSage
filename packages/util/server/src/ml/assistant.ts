@@ -12,7 +12,8 @@ import { userHasCapability } from "../capabilities";
 import { Capabilities } from "@recipesage/util/shared";
 import { Converter } from "showdown";
 import { generateText, ModelMessage } from "ai";
-import { AI_MODEL_HIGH, AI_MODEL_LOW, aiProvider } from "./vercel";
+import { aiProvider } from "./vercel";
+import { config } from "../general/config";
 import type { InputJsonValue } from "@prisma/client/runtime/client";
 import { convertPrismaAssistantMessageSummariesToAssistantMessageSummaries } from "../db/convertPrismaAssistantMessageSummaries";
 import { metrics } from "../general/metrics";
@@ -50,9 +51,7 @@ export class Assistant {
         userId,
         version: 2,
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       select: {
         json: true,
       },
@@ -126,7 +125,11 @@ export class Assistant {
 
     const response = await generateText({
       system: this.systemPrompt,
-      model: aiProvider(useLowQualityModel ? AI_MODEL_LOW : AI_MODEL_HIGH),
+      model: aiProvider(
+        useLowQualityModel
+          ? config.ai.model.assistantLow
+          : config.ai.model.assistant,
+      ),
       messages: context,
       tools: {
         createRecipe: initCreateAssistantRecipeTool(),
@@ -152,6 +155,9 @@ export class Assistant {
     }
 
     await prisma.$transaction(async (tx) => {
+      const baseTime = Date.now();
+      let messageSequence = 0;
+
       await tx.assistantMessage.create({
         data: {
           userId,
@@ -159,7 +165,7 @@ export class Assistant {
           content: userMessage.content,
           json: userMessage,
           version: 2,
-          createdAt: new Date(), // Since ordering is important and we're in a transaction, we must create date here
+          createdAt: new Date(baseTime + messageSequence++), // Since ordering is important and we're in a transaction, we must create date here
         },
       });
 
@@ -194,7 +200,7 @@ export class Assistant {
             content,
             json: message as InputJsonValue,
             version: 2,
-            createdAt: new Date(), // Since ordering is important and we're in a transaction, we must create date here
+            createdAt: new Date(baseTime + messageSequence++), // Since ordering is important and we're in a transaction, we must create date here
           },
         });
       }
@@ -207,11 +213,11 @@ export class Assistant {
         userId,
       },
       ...assistantMessageSummary,
-      orderBy: {
-        createdAt: "asc",
-      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: this.chatHistoryLimit,
     });
+
+    rawMessages.reverse();
 
     const messages =
       convertPrismaAssistantMessageSummariesToAssistantMessageSummaries(

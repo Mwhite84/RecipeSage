@@ -1,6 +1,6 @@
 import { prisma } from "@recipesage/prisma";
 import * as Sentry from "@sentry/node";
-import { broadcastWSEventIgnoringErrors, WSBoardcastEventType } from "../grip";
+import { broadcastWSEventIgnoringErrors, WSBroadcastEventType } from "../grip";
 import { throttleDropPromise } from "../throttleDropPromise";
 
 export const convertJobProgress = (args: {
@@ -38,7 +38,7 @@ export const updateJobProgress = async (args: {
 export const onJobUpdate = (args: { jobId: string; userId: string }) => {
   return broadcastWSEventIgnoringErrors(
     args.userId,
-    WSBoardcastEventType.JobUpdated,
+    WSBroadcastEventType.JobUpdated,
     {
       jobId: args.jobId,
     },

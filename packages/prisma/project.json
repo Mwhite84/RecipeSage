@@ -8,14 +8,14 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/prisma",
-        "command": "npx tsx src/seeders/index.ts"
+        "command": "tsx src/seeders/index.ts"
       }
     },
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/prisma",
-        "command": "prisma generate --schema=./src/prisma/schema.prisma && tsc"
+        "command": "tsc"
       }
     },
     "typecheck": {

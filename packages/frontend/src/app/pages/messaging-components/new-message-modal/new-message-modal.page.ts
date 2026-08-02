@@ -6,10 +6,9 @@ import {
 } from "@ionic/angular/standalone";
 import { TranslateService } from "@ngx-translate/core";
 
-import { MessagingService } from "~/services/messaging.service";
-import { UtilService, RouteMap } from "~/services/util.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
 import { ServerActionsService } from "../../../services/server-actions.service";
-import { UserPublic } from "@recipesage/prisma";
+import type { UserPublic } from "@recipesage/prisma";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { SelectUserComponent } from "../../../components/select-user/select-user.component";
 import {
@@ -25,7 +24,7 @@ import {
   IonTextarea,
   IonFooter,
 } from "@ionic/angular/standalone";
-import { close, send } from "ionicons/icons";
+import { closeOutline, sendOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -56,7 +55,6 @@ export class NewMessageModalPage {
   toastCtrl = inject(ToastController);
   serverActionsService = inject(ServerActionsService);
   utilService = inject(UtilService);
-  messagingService = inject(MessagingService);
 
   @Input() initialRecipientId?: string;
   recipientId?: string;
@@ -65,7 +63,7 @@ export class NewMessageModalPage {
   message = "";
 
   constructor() {
-    addIcons({ close, send });
+    addIcons({ closeOutline, sendOutline });
     setTimeout(() => {
       if (this.initialRecipientId) {
         this.setSelectedUser(this.initialRecipientId);
@@ -96,11 +94,11 @@ export class NewMessageModalPage {
 
     this.message = this.message || defaultMessage;
 
-    const response = await this.messagingService.create({
+    const response = await this.serverActionsService.messages.createMessage({
       to: this.recipientId,
       body: this.message,
     });
-    if (!response.success) return;
+    if (!response) return;
 
     this.modalCtrl.dismiss();
     this.navCtrl.navigateForward(

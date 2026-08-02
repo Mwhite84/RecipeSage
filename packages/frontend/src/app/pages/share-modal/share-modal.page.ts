@@ -5,15 +5,14 @@ import {
   ToastController,
 } from "@ionic/angular/standalone";
 
-import { MessagingService } from "~/services/messaging.service";
-import { User, UserService } from "~/services/user.service";
-import { RecipeService, Recipe } from "~/services/recipe.service";
-import { LoadingService } from "~/services/loading.service";
+import { ServerActionsService } from "../../services/server-actions.service";
+import type { UserPublic, RecipeSummary } from "@recipesage/prisma";
+import { LoadingService } from "../../services/loading.service";
 import {
   UtilService,
   RecipeTemplateModifiers,
   RouteMap,
-} from "~/services/util.service";
+} from "../../services/util.service";
 import { SHARED_UI_IMPORTS } from "../../providers/shared-ui.provider";
 import { SelectUserKnownUserComponent } from "../../components/select-user-knownuser/select-user-knownuser.component";
 import { CopyWithWebshareComponent } from "../../components/copy-with-webshare/copy-with-webshare.component";
@@ -35,19 +34,21 @@ import {
   IonToggle,
   IonInput,
   IonFooter,
+  type SegmentCustomEvent,
 } from "@ionic/angular/standalone";
 import {
-  close,
-  codeWorking,
-  documentText,
-  image,
-  link,
-  print,
-  resize,
-  send,
-  swapHorizontal,
+  closeOutline,
+  codeWorkingOutline,
+  documentTextOutline,
+  imageOutline,
+  linkOutline,
+  printOutline,
+  resizeOutline,
+  sendOutline,
+  swapHorizontalOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
+import { serverConfig } from "../../utils/serverConfig";
 
 @Component({
   standalone: true,
@@ -82,20 +83,16 @@ export class ShareModalPage {
   toastCtrl = inject(ToastController);
   utilService = inject(UtilService);
   loadingService = inject(LoadingService);
-  messagingService = inject(MessagingService);
-  recipeService = inject(RecipeService);
-  userService = inject(UserService);
+  serverActionsService = inject(ServerActionsService);
   modalCtrl = inject(ModalController);
 
   @Input({
     required: true,
   })
-  recipe!: Recipe;
+  recipe!: RecipeSummary;
 
-  selectedUser?: User;
+  selectedUser?: UserPublic;
   recipientId?: string;
-
-  threads: any = [];
 
   shareMethod = "account";
 
@@ -118,25 +115,20 @@ export class ShareModalPage {
 
   constructor() {
     addIcons({
-      close,
-      codeWorking,
-      documentText,
-      image,
-      link,
-      print,
-      resize,
-      send,
-      swapHorizontal,
+      closeOutline,
+      codeWorkingOutline,
+      documentTextOutline,
+      imageOutline,
+      linkOutline,
+      printOutline,
+      resizeOutline,
+      sendOutline,
+      swapHorizontalOutline,
     });
     setTimeout(() => {
       this.recipeURL =
         `${window.location.protocol}//${window.location.host}` +
         `/api/share/recipe/${this.recipe.id}`;
-
-      this.loadThreads().then(
-        () => {},
-        () => {},
-      );
 
       this.updateEmbed(true);
     });
@@ -156,7 +148,7 @@ export class ShareModalPage {
     }
 
     const jsonLDCode = `<script>
-      fetch('${this.utilService.getBase()}recipes/${this.recipe.id}/json-ld')
+      fetch('${serverConfig.apiBase}recipes/${this.recipe.id}/json-ld')
       .then(response => response.text())
       .then(structuredDataText => {
         const script = document.createElement('script');
@@ -179,14 +171,7 @@ export class ShareModalPage {
     this.recipeEmbedCode = embedCode;
   }
 
-  async loadThreads() {
-    const response = await this.messagingService.threads();
-    if (!response.success) return;
-
-    this.threads = response.data;
-  }
-
-  selectUser(user: User) {
+  selectUser(user: UserPublic | undefined) {
     if (!user) {
       this.selectedUser = undefined;
       this.recipientId = undefined;
@@ -202,13 +187,13 @@ export class ShareModalPage {
 
     const loading = this.loadingService.start();
 
-    const response = await this.messagingService.create({
+    const response = await this.serverActionsService.messages.createMessage({
       to: this.recipientId,
       body: "",
       recipeId: this.recipe.id,
     });
     loading.dismiss();
-    if (!response.success) return;
+    if (!response) return;
 
     this.modalCtrl.dismiss();
     this.navCtrl.navigateForward(
@@ -216,7 +201,7 @@ export class ShareModalPage {
     );
   }
 
-  shareMethodChanged(event: any) {
-    this.shareMethod = event.detail.value;
+  shareMethodChanged(event: SegmentCustomEvent) {
+    this.shareMethod = String(event.detail.value);
   }
 }

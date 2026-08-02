@@ -1,22 +1,27 @@
 import { JobStatus } from "@recipesage/prisma";
-import { prisma, type JobSummary } from "@recipesage/prisma";
+import {
+  prisma,
+  type ImportJobMeta,
+  type ImportJobSummary,
+} from "@recipesage/prisma";
 import { JOB_RESULT_CODES } from "@recipesage/util/shared";
 import {
   importStandardizedRecipes,
   type StandardizedRecipeImportEntry,
 } from "../../db/importStandardizedRecipes";
-import { indexRecipes } from "../../search";
 import { ImportNoRecipesError } from "./jobErrors";
 import { convertJobProgress, updateJobProgress } from "./updateJobProgress";
 import { IMPORT_JOB_STEP_COUNT } from "../queue/import/processImportJob";
 import { CreditOperation, recordCreditsSpent } from "../credits";
 
 export async function importJobFinishCommon(args: {
-  job: JobSummary;
+  job: ImportJobSummary;
   userId: string;
   standardizedRecipeImportInput: StandardizedRecipeImportEntry[];
   importTempDirectory: string | undefined;
   creditOperation?: CreditOperation;
+  partialCount?: number;
+  failedCount?: number;
 }) {
   if (args.standardizedRecipeImportInput.length === 0) {
     throw new ImportNoRecipesError();
@@ -35,17 +40,8 @@ export async function importJobFinishCommon(args: {
   const createdRecipeIds = await importStandardizedRecipes(
     args.userId,
     args.standardizedRecipeImportInput,
+    args.job.meta.language || "en-us",
     args.importTempDirectory,
-  );
-  const createdRecipeIdsSet = new Set(createdRecipeIds);
-
-  const allRecipes = await prisma.recipe.findMany({
-    where: {
-      userId: args.userId,
-    },
-  });
-  const recipesToIndex = allRecipes.filter((el) =>
-    createdRecipeIdsSet.has(el.id),
   );
 
   await updateJobProgress({
@@ -58,7 +54,8 @@ export async function importJobFinishCommon(args: {
     }),
   });
 
-  await indexRecipes(recipesToIndex);
+  const hasMetaUpdates =
+    args.partialCount !== undefined || args.failedCount !== undefined;
 
   await prisma.job.update({
     where: {
@@ -68,6 +65,13 @@ export async function importJobFinishCommon(args: {
       status: JobStatus.SUCCESS,
       resultCode: JOB_RESULT_CODES.success,
       progress: 100,
+      ...(hasMetaUpdates && {
+        meta: {
+          ...args.job.meta,
+          partialCount: args.partialCount,
+          failedCount: args.failedCount,
+        } satisfies ImportJobMeta,
+      }),
     },
   });
 

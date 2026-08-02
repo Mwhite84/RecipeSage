@@ -12,6 +12,7 @@ const sourcemap = (() => {
 
 module.exports = {
   sourcemap,
+  keepNames: true,
   plugins: [
     sentryEsbuildPlugin({
       disable: process.env.SOURCEMAP_UPLOAD !== "true",

@@ -3,38 +3,42 @@ import * as Sentry from "@sentry/node";
 import {
   NotFoundError,
   ServerError,
+  rateLimitHandler,
   typesafeExpressIndexRouter,
 } from "@recipesage/express";
 
 import express from "express";
+import compression from "compression";
 import logger from "morgan";
 import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import cors from "cors";
 
-import { trpcExpressMiddleware } from "@recipesage/trpc";
+import {
+  trpcExpressMiddleware,
+  openApiDocument,
+  openApiExpressMiddleware,
+} from "@recipesage/trpc";
 
 import { setupInvalidateStaleJobsInterval } from "@recipesage/util/server/db";
 setupInvalidateStaleJobsInterval();
-import { metrics } from "@recipesage/util/server/general";
+import { metrics, config } from "@recipesage/util/server/general";
 
 // Routes
 import index from "./routes/index.js";
 import users from "./routes/users.js";
 import recipes from "./routes/recipes.js";
-import labels from "./routes/labels.js";
 import messages from "./routes/messages.js";
-import shoppingLists from "./routes/shoppingLists.js";
-import mealPlans from "./routes/mealPlans.js";
-import print from "./routes/print.js";
-import payments from "./routes/payments.js";
 import images from "./routes/images.js";
-import data from "./routes/data.js";
 import proxy from "./routes/proxy.js";
 
 import { ErrorRequestHandler } from "express";
 
 const app = express();
+
+app.set("trust proxy", config.rateLimit.trustProxyHops);
+
+app.use(compression());
 
 const defaultCorsAllowlist = [
   "https://www.recipesage.com",
@@ -44,11 +48,11 @@ const defaultCorsAllowlist = [
   "https://windows.recipesage.com",
   "https://android.recipesage.com",
   "https://ios.recipesage.com",
+  "https://desktop-vhost.recipesage.com",
   "https://localhost",
   "capacitor://localhost",
   "moz-extension://*",
-  "chrome-extension://oepplnnfceidfaaacjpdpobnjkcpgcpo",
-  "*", // Temporary fix for 1401, circle back and fix webextension manifests
+  "chrome-extension://*",
 ];
 
 const hostMatch = (pattern: string, origin: string) => {
@@ -86,6 +90,16 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(cookieParser());
 
+const rateLimitExemptPrefixes = ["/metrics", "/stripe/webhook"];
+const globalRateLimitHandler = rateLimitHandler("global");
+app.use((req, res, next) => {
+  if (rateLimitExemptPrefixes.some((prefix) => req.path.startsWith(prefix))) {
+    next();
+    return;
+  }
+  globalRateLimitHandler(req, res, next);
+});
+
 const EXPRESS_VIEWS_PATH = process.env.EXPRESS_VIEWS_PATH;
 if (!EXPRESS_VIEWS_PATH) throw new Error("EXPRESS_VIEWS_PATH must be provided");
 app.set("views", EXPRESS_VIEWS_PATH);
@@ -94,14 +108,11 @@ app.set("view engine", "pug");
 if (process.env.NODE_ENV !== "test") app.use(logger("dev"));
 app.use(
   bodyParser.json({
-    limit: "250MB",
+    limit: "1MB",
     verify: (req, res, buf) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const url = (req as any).originalUrl;
-      if (
-        url.startsWith("/payments/stripe/webhooks") ||
-        url.startsWith("/stripe/webhook")
-      ) {
+      if (url.startsWith("/stripe/webhook")) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (req as any).rawBody = buf.toString();
       }
@@ -131,23 +142,21 @@ app.use(function (req, res, next) {
   next();
 });
 
-app.use(bodyParser.urlencoded({ limit: "250MB", extended: false }));
+app.use(bodyParser.urlencoded({ limit: "1MB", extended: false }));
 app.use(cookieParser());
 app.disable("x-powered-by");
 app.use("/", typesafeExpressIndexRouter);
 app.use("/", index);
 app.use("/trpc", trpcExpressMiddleware);
+app.get("/compat/openapi.json", (_req, res) => {
+  res.json(openApiDocument);
+});
+app.use("/compat/v2", openApiExpressMiddleware);
 app.use("/users", users);
 app.use("/recipes", recipes);
-app.use("/labels", labels);
 app.use("/messages", messages);
-app.use("/shoppingLists", shoppingLists);
-app.use("/mealPlans", mealPlans);
-app.use("/print", print);
-app.use("/payments", payments);
 app.use("/images", images);
 app.use("/proxy", proxy);
-app.use("/data", data);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

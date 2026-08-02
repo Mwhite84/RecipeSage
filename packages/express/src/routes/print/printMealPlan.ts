@@ -6,7 +6,7 @@ import {
 } from "@recipesage/util/server/db";
 import { NotFoundError } from "../../errors";
 import { AuthenticationEnforcement, defineHandler } from "../../defineHandler";
-import { translate } from "@recipesage/util/server/general";
+import { getRequestLanguage, translate } from "@recipesage/util/server/general";
 import {
   DEFAULT_MEAL_I18N,
   getMealSortOrder,
@@ -118,9 +118,7 @@ export const printMealPlanHandler = defineHandler(
       },
     });
 
-    const languageHeader =
-      req.query.preferredLanguage || req.headers["accept-language"] || "en-us";
-    const locale = (req.query.preferredLanguage || "en-US").replace("_", "-");
+    const language = getRequestLanguage(req);
 
     const sortOrder = getMealSortOrder(mealPlan.customMealOptions);
     const mealColorMap = getMealColors(mealPlan.customMealOptions);
@@ -128,7 +126,7 @@ export const printMealPlanHandler = defineHandler(
 
     const mealLabels: Record<string, string> = {};
     for (const [meal, key] of Object.entries(DEFAULT_MEAL_I18N)) {
-      mealLabels[meal] = await translate(languageHeader, key);
+      mealLabels[meal] = await translate(language, key);
     }
 
     const itemsByDateStr = new Map<string, PrintItem[]>();
@@ -247,7 +245,7 @@ export const printMealPlanHandler = defineHandler(
       res.render("mealplan-default", {
         title: mealPlan.title,
         viewType: "calendar",
-        monthTitle: getMonthName(month, year, locale),
+        monthTitle: getMonthName(month, year, language),
         dayTitles,
         weeks,
         mealLabels,
@@ -263,7 +261,7 @@ export const printMealPlanHandler = defineHandler(
 
       const dates = futureDates.map((dateStr) => ({
         dateStr,
-        formattedDate: formatDatePretty(dateStr, locale),
+        formattedDate: formatDatePretty(dateStr, language),
         items: itemsByDateStr.get(dateStr) || [],
       }));
 

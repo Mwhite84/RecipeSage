@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { JobSummary } from "@recipesage/prisma";
-import { type JobMeta } from "@recipesage/prisma";
+import type { ImportJobSummary } from "@recipesage/prisma";
+
 import type { StandardizedRecipeImportEntry } from "../../../../db/index";
 import { importJobFinishCommon } from "../../../index";
 import { userHasCapability } from "../../../../capabilities/index";
 import { cleanLabelTitle, Capabilities } from "@recipesage/util/shared";
 import { downloadS3ToTemp } from "./shared/s3Download";
 import { readdir, mkdtempDisposable, stat } from "fs/promises";
-import extract from "extract-zip";
+import { safeExtractZip } from "../../../safeExtractZip";
 import path from "path";
 import { spawn } from "child_process";
-import type { JobQueueItem } from "../../JobQueueItem";
+import type { StandardJobQueueItem } from "../../JobQueueItem";
 import { ImportBadFormatError } from "../../../jobs/jobErrors";
 import { debounceJobUpdateProgress } from "../../../jobs/updateJobProgress";
 import { IMPORT_JOB_STEP_COUNT } from "../processImportJob";
@@ -96,10 +96,10 @@ async function findFilesByRegex(
 }
 
 export async function lcbImportJobHandler(
-  job: JobSummary,
-  queueItem: JobQueueItem,
+  job: ImportJobSummary,
+  queueItem: StandardJobQueueItem,
 ): Promise<void> {
-  const jobMeta = job.meta as JobMeta;
+  const jobMeta = job.meta;
   const importLabels = jobMeta.importLabels || [];
 
   if (!queueItem.storageKey) {
@@ -110,7 +110,7 @@ export async function lcbImportJobHandler(
   await using extractDir = await mkdtempDisposable("/tmp/");
   const extractPath = extractDir.path;
 
-  await extract(downloaded.filePath, { dir: extractPath });
+  await safeExtractZip(downloaded.filePath, extractPath);
 
   const mdbFiles = await findFilesByRegex(extractPath, /\.mdb$/i);
   if (mdbFiles.length === 0) {
@@ -397,7 +397,7 @@ export async function lcbImportJobHandler(
 
     standardizedRecipeImportInput.push({
       recipe: {
-        title: lcbRecipe.recipename || "Untitled",
+        title: lcbRecipe.recipename || "",
         description,
         notes: notes.filter((n) => n).join("\r\n\r\n"),
         ingredients,

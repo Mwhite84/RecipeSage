@@ -5,8 +5,8 @@ import {
   ToastController,
 } from "@ionic/angular/standalone";
 
-import { LoadingService } from "~/services/loading.service";
-import { UtilService, RouteMap } from "~/services/util.service";
+import { LoadingService } from "../../../services/loading.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
 import { TranslateService } from "@ngx-translate/core";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import type {
@@ -20,13 +20,11 @@ import {
   IonHeader,
   IonToolbar,
   IonButtons,
-  IonMenuButton,
+  IonBackButton,
   IonTitle,
   IonButton,
   IonIcon,
   IonContent,
-  IonRefresher,
-  IonRefresherContent,
   IonLabel,
   IonItem,
   IonAvatar,
@@ -34,7 +32,7 @@ import {
   IonTextarea,
   IonSpinner,
 } from "@ionic/angular/standalone";
-import { refresh, send } from "ionicons/icons";
+import { refreshOutline, sendOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -49,13 +47,11 @@ import { addIcons } from "ionicons";
     IonHeader,
     IonToolbar,
     IonButtons,
-    IonMenuButton,
+    IonBackButton,
     IonTitle,
     IonButton,
     IonIcon,
     IonContent,
-    IonRefresher,
-    IonRefresherContent,
     IonLabel,
     IonItem,
     IonAvatar,
@@ -66,7 +62,7 @@ import { addIcons } from "ionicons";
 })
 export class AssistantPage {
   constructor() {
-    addIcons({ refresh, send });
+    addIcons({ refreshOutline, sendOutline });
   }
 
   private navCtrl = inject(NavController);
@@ -76,6 +72,8 @@ export class AssistantPage {
   private loadingService = inject(LoadingService);
   private utilService = inject(UtilService);
   private serverActionsService = inject(ServerActionsService);
+
+  defaultBackHref: string = RouteMap.ToolsPage.getPath();
 
   @ViewChild("content", { static: true }) content: any;
 
@@ -130,17 +128,6 @@ export class AssistantPage {
         this.reloading = false; // TODO: Replace with better delay for minimum animation time
       }, 350);
     });
-  }
-
-  refresh(refresher: any) {
-    this.loadMessages("bottom", true).then(
-      () => {
-        refresher.target.complete();
-      },
-      () => {
-        refresher.target.complete();
-      },
-    );
   }
 
   scrollToBottom(animate?: boolean, delay?: boolean, callback?: () => any) {

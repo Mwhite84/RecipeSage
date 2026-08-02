@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { getBase } from "../utils/getBase";
+import { serverConfig } from "../utils/serverConfig";
 
 @Injectable({
   providedIn: "root",
@@ -9,6 +9,6 @@ import { getBase } from "../utils/getBase";
  */
 export class MealPlanService {
   getICalUrl(mealPlanId: string) {
-    return `${getBase()}mealPlans/${mealPlanId}/ical`;
+    return `${serverConfig.apiBase}mealPlans/${mealPlanId}/ical`;
   }
 }

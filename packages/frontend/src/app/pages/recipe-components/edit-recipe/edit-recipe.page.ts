@@ -1,4 +1,4 @@
-import { Component, inject, ViewChildren, QueryList } from "@angular/core";
+import { Component, inject } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import dayjs from "dayjs";
 import {
@@ -21,19 +21,21 @@ import {
   type Photo,
 } from "@capacitor/camera";
 
-import { RouteMap } from "~/services/util.service";
-import { RecipeService } from "~/services/recipe.service";
-import { LoadingService } from "~/services/loading.service";
-import { UnsavedChangesService } from "~/services/unsaved-changes.service";
-import { CapabilitiesService } from "~/services/capabilities.service";
-import { ImageService } from "~/services/image.service";
-import { PreferencesService } from "~/services/preferences.service";
-import { RecipeDetailsPreferenceKey } from "@recipesage/util/shared";
+import { RouteMap } from "../../../services/util.service";
+import { LoadingService } from "../../../services/loading.service";
+import { UnsavedChangesService } from "../../../services/unsaved-changes.service";
+import { CapabilitiesService } from "../../../services/capabilities.service";
+import { ImageService } from "../../../services/image.service";
+import { PreferencesService } from "../../../services/preferences.service";
 import {
   RecipeDraftService,
   type RecipeDraft,
-} from "~/services/recipe-draft.service";
-import { getQueryParam } from "~/utils/queryParams";
+} from "../../../services/recipe-draft.service";
+import {
+  RecipeDetailsPreferenceKey,
+  decodeBasicHtmlEntities,
+} from "@recipesage/util/shared";
+import { getQueryParam } from "../../../utils/queryParams";
 
 import { EditRecipePopoverPage } from "../edit-recipe-popover/edit-recipe-popover.page";
 import type {
@@ -50,13 +52,15 @@ import {
 } from "../../../components/select-multiple-items/select-multiple-items.component";
 import { IS_SELFHOST } from "@recipesage/frontend/src/environments/environment";
 import { ErrorHandlers } from "../../../services/http-error-handler.service";
-import { EventName, EventService } from "../../../services/event.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { RatingComponent } from "../../../components/rating/rating.component";
 import { MultiImageUploadComponent } from "../../../components/multi-image-upload/multi-image-upload.component";
 import { MlService } from "../../../services/ml.service";
 import { Capacitor } from "@capacitor/core";
 import { SelectRecipeComponent } from "../../../components/select-recipe/select-recipe.component";
+import { RecipeFormatToolbarComponent } from "../../../components/recipe-format-toolbar/recipe-format-toolbar.component";
+import { TextInputComponent } from "../../../components/forms/text-input/text-input.component";
+import { TextAreaComponent } from "../../../components/forms/text-area/text-area.component";
 import {
   IonHeader,
   IonToolbar,
@@ -66,13 +70,10 @@ import {
   IonButton,
   IonIcon,
   IonContent,
-  IonFooter,
   IonPopover,
   IonList,
   IonItem,
   IonModal,
-  IonInput,
-  IonTextarea,
   IonAccordionGroup,
   IonAccordion,
   IonLabel,
@@ -80,37 +81,29 @@ import {
   IonAvatar,
 } from "@ionic/angular/standalone";
 import {
-  addOutline,
-  bookmarkOutline,
-  camera,
-  close,
+  cameraOutline,
+  closeOutline,
   cutOutline,
   documentTextOutline,
-  link,
-  listOutline,
-  options,
-  removeCircleOutline,
+  linkOutline,
+  optionsOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
-
-interface RecipeLine {
-  id: string;
-  text: string; // for headers: section name without brackets; for items: raw text
-  isHeader: boolean;
-}
 
 @Component({
   standalone: true,
   selector: "page-edit-recipe",
   templateUrl: "edit-recipe.page.html",
   styleUrls: ["edit-recipe.page.scss"],
-  providers: [RecipeService],
   imports: [
     ...SHARED_UI_IMPORTS,
     SelectMultipleItemsComponent,
     RatingComponent,
     MultiImageUploadComponent,
     SelectRecipeComponent,
+    RecipeFormatToolbarComponent,
+    TextInputComponent,
+    TextAreaComponent,
     IonHeader,
     IonToolbar,
     IonButtons,
@@ -119,13 +112,10 @@ interface RecipeLine {
     IonButton,
     IonIcon,
     IonContent,
-    IonFooter,
     IonPopover,
     IonList,
     IonItem,
     IonModal,
-    IonInput,
-    IonTextarea,
     IonAccordionGroup,
     IonAccordion,
     IonLabel,
@@ -144,25 +134,13 @@ export class EditRecipePage {
   private unsavedChangesService = inject(UnsavedChangesService);
   private loadingCtrl = inject(LoadingController);
   private loadingService = inject(LoadingService);
-  private recipeService = inject(RecipeService);
   private imageService = inject(ImageService);
   private capabilitiesService = inject(CapabilitiesService);
-  private events = inject(EventService);
   private preferencesService = inject(PreferencesService);
   private recipeDraftService = inject(RecipeDraftService);
 
-  @ViewChildren("ingredientLineInput")
-  ingredientLineInputs!: QueryList<IonInput>;
-  @ViewChildren("instructionLineInput")
-  instructionLineInputs!: QueryList<IonInput>;
-
   saving = false;
-  defaultBackHref: string;
-
-  ingredientLines: RecipeLine[] = [];
-  instructionLines: RecipeLine[] = [];
-  ingredientsMode: "list" | "text" = "list";
-  instructionsMode: "list" | "text" = "list";
+  defaultBackHref: string = RouteMap.HomePage.getPath("main");
 
   nutritionAccordionValue: string | null = this.preferencesService.preferences[
     RecipeDetailsPreferenceKey.AutoExpandNutrition
@@ -200,31 +178,37 @@ export class EditRecipePage {
   }[] = [];
 
   isAutoclipPopoverOpen = false;
+
   draftRestored = false;
   draftAge: string | null = null;
   private draftAgeInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     addIcons({
-      addOutline,
-      bookmarkOutline,
-      camera,
-      close,
+      cameraOutline,
+      closeOutline,
       cutOutline,
       documentTextOutline,
-      link,
-      listOutline,
-      options,
-      removeCircleOutline,
+      linkOutline,
+      optionsOutline,
     });
+    this.applyRouteParams();
+    this.load();
+  }
+
+  private applyRouteParams() {
     const recipeId = this.route.snapshot.paramMap.get("recipeId") || "new";
 
+    // Draft state is per-recipe, so it must not carry across a route change
+    this.draftRestored = false;
+    this.draftAge = null;
+
     if (recipeId === "new") {
+      this.recipeId = undefined;
       this.checkAutoClip();
     } else {
       this.recipeId = recipeId;
     }
-    this.load();
 
     this.defaultBackHref = this.recipeId
       ? RouteMap.RecipePage.getPath(this.recipeId)
@@ -232,54 +216,85 @@ export class EditRecipePage {
   }
 
   ionViewWillEnter() {
-    // Check for draft restoration when entering the view
-    this.checkForDraft();
+    const snapshotRecipeId =
+      this.route.snapshot.paramMap.get("recipeId") || "new";
+    const currentRecipeId = this.recipeId || "new";
+    if (snapshotRecipeId !== currentRecipeId) {
+      this.applyRouteParams();
+      this.load();
+    }
 
-    // Start interval to update draftAge display every second
+    this.startDraftAgeTimer();
+  }
+
+  ionViewWillLeave() {
+    // Navigating away is not a save - flush whatever is in the form to the
+    // draft store immediately so a back-navigation or tab close can't lose it
+    if (this.unsavedChangesService.hasPendingChanges()) {
+      this.immediateSaveDraft();
+    }
+
+    this.stopDraftAgeTimer();
+  }
+
+  private startDraftAgeTimer() {
+    this.stopDraftAgeTimer();
+
     this.draftAgeInterval = setInterval(() => {
       this.draftAge = this.recipeDraftService.formatDraftAge(this.recipeId);
     }, 1000);
   }
 
+  private stopDraftAgeTimer() {
+    if (this.draftAgeInterval) {
+      clearInterval(this.draftAgeInterval);
+      this.draftAgeInterval = null;
+    }
+  }
+
+  /**
+   * Looks for a locally persisted draft for this recipe and either restores it
+   * (existing recipes) or offers to restore it (new recipes). Must run after
+   * load(), otherwise _loadRecipe would overwrite whatever we restore.
+   */
   private async checkForDraft() {
     if (this.draftRestored) return;
 
     const draft = this.recipeDraftService.getDraft(this.recipeId);
     if (!draft) return;
 
-    const hasContent = this.recipeDraftService.draftHasContent(draft);
-
-    if (!hasContent) {
+    if (!this.recipeDraftService.draftHasContent(draft)) {
       this.recipeDraftService.clearDraft(this.recipeId);
       return;
     }
 
     if (this.recipeId) {
       this.restoreDraft(draft);
-    } else {
-      const ageText =
-        this.recipeDraftService.formatDraftAge(this.recipeId) || "previously";
-      const alert = await this.alertCtrl.create({
-        header: "Unsaved Draft",
-        message: `You have an unsaved draft from ${ageText}. Would you like to restore it?`,
-        buttons: [
-          {
-            text: "Discard",
-            role: "cancel",
-            handler: () => {
-              this.recipeDraftService.clearDraft(this.recipeId);
-            },
-          },
-          {
-            text: "Restore",
-            handler: () => {
-              this.restoreDraft(draft);
-            },
-          },
-        ],
-      });
-      await alert.present();
+      return;
     }
+
+    const ageText =
+      this.recipeDraftService.formatDraftAge(this.recipeId) || "previously";
+    const alert = await this.alertCtrl.create({
+      header: "Unsaved Draft",
+      message: `You have an unsaved draft from ${ageText}. Would you like to restore it?`,
+      buttons: [
+        {
+          text: "Discard",
+          role: "cancel",
+          handler: () => {
+            this.recipeDraftService.clearDraft(this.recipeId);
+          },
+        },
+        {
+          text: "Restore",
+          handler: () => {
+            this.restoreDraft(draft);
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
   private restoreDraft(draft: RecipeDraft) {
@@ -297,20 +312,20 @@ export class EditRecipePage {
 
     if (draft.labelIds?.length && this.labels.length > 0) {
       this.selectedLabels = this.labels.filter((label) =>
-        draft.labelIds!.includes(label.id),
+        draft.labelIds.includes(label.id),
       );
     }
 
     this.draftRestored = true;
     this.draftAge = this.recipeDraftService.formatDraftAge(this.recipeId);
-    this.syncLinesToRecipe();
-    this.markAsDirty();
+
+    // Deliberately not markAsDirty() - rewriting the draft here would reset its
+    // saved-at timestamp, which is what draftAge reports to the user
+    this.unsavedChangesService.setPendingChanges();
   }
 
-  triggerAutosave() {
-    this.markAsDirty();
-
-    const draft: Omit<RecipeDraft, "savedAt"> = {
+  private buildDraft(): Omit<RecipeDraft, "savedAt"> {
+    return {
       title: this.recipe.title || "",
       description: this.recipe.description || "",
       yield: this.recipe.yield || "",
@@ -323,36 +338,23 @@ export class EditRecipePage {
       instructions: this.recipe.instructions || "",
       rating: this.recipe.rating ?? null,
       lastMadeAt: this.recipe.lastMadeAt || "",
-      imageIds: this.images.map((img) => img.id),
+      imageIds: this.images.map((image) => image.id),
       labelIds: this.selectedLabels.map((label) => label.id),
-      linkedRecipeIds: this.selectedLinkedRecipes.map((lr) => lr.id),
+      linkedRecipeIds: this.selectedLinkedRecipes.map((recipe) => recipe.id),
     };
+  }
 
-    this.recipeDraftService.debouncedSave(draft, this.recipeId, () => {
-      this.draftAge = this.recipeDraftService.formatDraftAge(this.recipeId);
-    });
+  /**
+   * Template-facing alias for markAsDirty. Kept because the edit-recipe
+   * template binds field changes to triggerAutosave().
+   */
+  triggerAutosave() {
+    this.markAsDirty();
   }
 
   private immediateSaveDraft() {
-    const draft: Omit<RecipeDraft, "savedAt"> = {
-      title: this.recipe.title || "",
-      description: this.recipe.description || "",
-      yield: this.recipe.yield || "",
-      activeTime: this.recipe.activeTime || "",
-      totalTime: this.recipe.totalTime || "",
-      source: this.recipe.source || "",
-      url: this.recipe.url || "",
-      notes: this.recipe.notes || "",
-      ingredients: this.recipe.ingredients || "",
-      instructions: this.recipe.instructions || "",
-      rating: this.recipe.rating ?? null,
-      lastMadeAt: this.recipe.lastMadeAt || "",
-      imageIds: this.images.map((img) => img.id),
-      labelIds: this.selectedLabels.map((label) => label.id),
-      linkedRecipeIds: this.selectedLinkedRecipes.map((lr) => lr.id),
-    };
-
-    this.recipeDraftService.immediateSave(draft, this.recipeId);
+    this.recipeDraftService.immediateSave(this.buildDraft(), this.recipeId);
+    this.draftAge = this.recipeDraftService.formatDraftAge(this.recipeId);
   }
 
   async load() {
@@ -383,8 +385,9 @@ export class EditRecipePage {
       }));
     }
 
-    this.syncLinesToRecipe();
     loading.dismiss();
+
+    await this.checkForDraft();
   }
 
   async _loadRecipe() {
@@ -395,7 +398,12 @@ export class EditRecipePage {
 
       if (response) {
         this.fullRecipe = response;
-        this.recipe = response;
+        this.recipe = {
+          ...response,
+          ingredients: decodeBasicHtmlEntities(response.ingredients),
+          instructions: decodeBasicHtmlEntities(response.instructions),
+          notes: decodeBasicHtmlEntities(response.notes),
+        };
         this.images = response.recipeImages
           .sort((a, b) => a.order - b.order)
           .map((el) => el.image);
@@ -483,7 +491,7 @@ export class EditRecipePage {
   lastMadeAtDateChange(event: any) {
     const value = event.target.value;
     this.recipe.lastMadeAt = value || "";
-    this.triggerAutosave();
+    this.markAsDirty();
   }
 
   private isValidNutritionValue(value: unknown): boolean {
@@ -578,7 +586,7 @@ export class EditRecipePage {
     this.recipe.nutritionCalcium = response.calcium;
     this.recipe.nutritionIron = response.iron;
     this.recipe.nutritionPotassium = response.potassium;
-    this.triggerAutosave();
+    this.markAsDirty();
   }
 
   async confirmClearNutrition() {
@@ -634,7 +642,7 @@ export class EditRecipePage {
     this.recipe.nutritionIron = undefined;
     this.recipe.nutritionPotassium = undefined;
     this.recipe.nutritionOtherDetails = undefined;
-    this.triggerAutosave();
+    this.markAsDirty();
   }
 
   async autofillNutritionFromText() {
@@ -744,7 +752,7 @@ export class EditRecipePage {
       this.recipe.nutritionCalcium = response.calcium;
       this.recipe.nutritionIron = response.iron;
       this.recipe.nutritionPotassium = response.potassium;
-      this.triggerAutosave();
+      this.markAsDirty();
     }
 
     loading.dismiss();
@@ -807,8 +815,6 @@ export class EditRecipePage {
       nutritionOtherDetails: this.recipe.nutritionOtherDetails || null,
     });
 
-    this.events.publish(EventName.RecipeCreated);
-
     return response;
   }
 
@@ -870,8 +876,6 @@ export class EditRecipePage {
       nutritionOtherDetails: this.recipe.nutritionOtherDetails || null,
     });
 
-    this.events.publish(EventName.RecipeUpdated);
-
     return response;
   }
 
@@ -891,9 +895,6 @@ export class EditRecipePage {
     if (!response) return;
 
     this.markAsClean();
-    this.recipeDraftService.clearDraft(this.recipeId);
-    this.draftRestored = false;
-    this.draftAge = null;
 
     this.navCtrl.navigateForward(RouteMap.RecipePage.getPath(response.id), {
       replaceUrl: true,
@@ -1074,10 +1075,26 @@ export class EditRecipePage {
 
   markAsDirty() {
     this.unsavedChangesService.setPendingChanges();
+
+    // UnsavedChangesService only warns about pending changes, it persists
+    // nothing - the draft service is what survives a crash or tab close
+    this.recipeDraftService.debouncedSave(
+      this.buildDraft(),
+      this.recipeId,
+      () => {
+        this.draftAge = this.recipeDraftService.formatDraftAge(this.recipeId);
+      },
+    );
   }
 
   markAsClean() {
     this.unsavedChangesService.clearPendingChanges();
+
+    // Cancel first, otherwise an in-flight debounced save resurrects the draft
+    this.recipeDraftService.cancelPendingSave();
+    this.recipeDraftService.clearDraft(this.recipeId);
+    this.draftRestored = false;
+    this.draftAge = null;
   }
 
   isValidHttpUrl(input: string) {
@@ -1141,11 +1158,41 @@ export class EditRecipePage {
       : {};
   }
 
-  async scanPDF() {
+  private readonly SUPPORTED_DOCUMENT_MIME_TYPES = [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/rtf",
+    "application/vnd.oasis.opendocument.text",
+    "text/markdown",
+    "text/html",
+    "text/plain",
+  ];
+
+  private getDocumentExtension(fileName: string): string {
+    const dotIndex = fileName.lastIndexOf(".");
+    if (dotIndex < 0) return "";
+    return fileName.substring(dotIndex).toLowerCase();
+  }
+
+  isClipDocumentModalOpen = false;
+  clipDocumentIncludeNutrition = false;
+
+  scanDocument() {
+    this.clipDocumentIncludeNutrition = false;
+    this.isClipDocumentModalOpen = true;
+  }
+
+  submitClipDocument() {
+    const includeNutrition = this.clipDocumentIncludeNutrition;
+    this.isClipDocumentModalOpen = false;
+    this._scanDocument(includeNutrition);
+  }
+
+  async _scanDocument(includeNutrition: boolean) {
     let filePickerResult: PickFilesResult;
     try {
       filePickerResult = await FilePicker.pickFiles({
-        types: ["application/pdf"],
+        types: this.SUPPORTED_DOCUMENT_MIME_TYPES,
         limit: 1,
       });
     } catch (e) {
@@ -1154,6 +1201,8 @@ export class EditRecipePage {
 
     const file = filePickerResult.files.at(0);
     if (!file) return;
+
+    const extension = this.getDocumentExtension(file.name);
 
     const pleaseWait = await this.translate
       .get("pages.editRecipe.clip.loading")
@@ -1176,11 +1225,11 @@ export class EditRecipePage {
       const response = await fetch(webPath);
       return response.blob();
     })();
-    const webFile = new File([blob], "scan.pdf", {
-      type: "application/pdf",
+    const webFile = new File([blob], `scan${extension}`, {
+      type: file.mimeType || "application/octet-stream",
     });
 
-    const response = await this.mlService.getRecipeFromPDF(webFile, {
+    const errorHandlers = {
       ...this.getSelfhostErrorHandlers(),
       400: async () => {
         (
@@ -1195,11 +1244,17 @@ export class EditRecipePage {
           })
         ).present();
       },
-    });
+    };
 
-    loading.dismiss();
+    const response =
+      extension === ".pdf"
+        ? await this.mlService.getRecipeFromPDF(webFile, errorHandlers)
+        : await this.mlService.getRecipeFromDocument(webFile, errorHandlers);
 
-    if (!response.success) return;
+    if (!response.success) {
+      loading.dismiss();
+      return;
+    }
 
     this.recipe.title = response.data.recipe.title || "";
     this.recipe.description = response.data.recipe.description || "";
@@ -1210,7 +1265,12 @@ export class EditRecipePage {
     this.recipe.ingredients = response.data.recipe.ingredients || "";
     this.recipe.instructions = response.data.recipe.instructions || "";
     this.recipe.notes = response.data.recipe.notes || "";
-    this.syncLinesToRecipe();
+
+    if (includeNutrition && response.data.recipe.nutritionInfo) {
+      await this.parseAndApplyNutrition(response.data.recipe.nutritionInfo);
+    }
+
+    loading.dismiss();
   }
 
   async scanImage() {
@@ -1327,7 +1387,6 @@ export class EditRecipePage {
     this.recipe.ingredients = response.data.recipe.ingredients || "";
     this.recipe.instructions = response.data.recipe.instructions || "";
     this.recipe.notes = response.data.recipe.notes || "";
-    this.syncLinesToRecipe();
 
     const imageResponse = await this.imageService.create(files[0], {
       "*": () => {},
@@ -1418,7 +1477,6 @@ export class EditRecipePage {
     this.recipe.ingredients = response.recipe.ingredients || "";
     this.recipe.instructions = response.recipe.instructions || "";
     this.recipe.notes = response.recipe.notes || "";
-    this.syncLinesToRecipe();
 
     if (includeNutrition && response.recipe.nutritionInfo) {
       await this.parseAndApplyNutrition(response.recipe.nutritionInfo);
@@ -1498,7 +1556,7 @@ export class EditRecipePage {
       message: pleaseWait,
     });
     await loading.present();
-    const response = await this.recipeService.clipFromUrl(
+    const response = await this.serverActionsService.ml.clipFromUrl(
       {
         url,
       },
@@ -1518,25 +1576,24 @@ export class EditRecipePage {
         },
       },
     );
-    if (!response.success) {
+    if (!response) {
       loading.dismiss();
       return;
     }
 
-    this.recipe.title = response.data.title || "";
-    this.recipe.description = response.data.description || "";
-    this.recipe.source = response.data.source || "";
-    this.recipe.yield = response.data.yield || "";
-    this.recipe.activeTime = response.data.activeTime || "";
-    this.recipe.totalTime = response.data.totalTime || "";
-    this.recipe.ingredients = response.data.ingredients || "";
-    this.recipe.instructions = response.data.instructions || "";
-    this.recipe.notes = response.data.notes || "";
+    this.recipe.title = response.title || "";
+    this.recipe.description = response.description || "";
+    this.recipe.source = response.source || "";
+    this.recipe.yield = response.yield || "";
+    this.recipe.activeTime = response.activeTime || "";
+    this.recipe.totalTime = response.totalTime || "";
+    this.recipe.ingredients = response.ingredients || "";
+    this.recipe.instructions = response.instructions || "";
+    this.recipe.notes = response.notes || "";
     this.recipe.url = url;
-    this.syncLinesToRecipe();
 
-    if (includeNutrition && response.data.nutritionInfo) {
-      await this.parseAndApplyNutrition(response.data.nutritionInfo);
+    if (includeNutrition && response.nutritionInfo) {
+      await this.parseAndApplyNutrition(response.nutritionInfo);
     }
 
     if (!this.recipe.ingredients?.trim() && !this.recipe.instructions?.trim()) {
@@ -1556,7 +1613,7 @@ export class EditRecipePage {
       ).present();
     }
 
-    if (response.data.imageURL?.trim().length) {
+    if (response.imageURL?.trim().length) {
       const IMAGE_LOADING_TIMEOUT = 3000;
 
       // Handle very long image fetch. Dismiss loading overlay if image import takes too long.
@@ -1566,7 +1623,7 @@ export class EditRecipePage {
           const imageResponse =
             await this.serverActionsService.images.createRecipeImageFromUrl(
               {
-                url: response.data.imageURL,
+                url: response.imageURL,
               },
               {
                 "*": () => {},
@@ -1580,43 +1637,18 @@ export class EditRecipePage {
     loading.dismiss();
   }
 
-  async addImageByUrlPrompt() {
-    const header = await this.translate
-      .get("pages.editRecipe.addImage.header")
-      .toPromise();
-    const message = await this.translate
-      .get("pages.editRecipe.addImage.message")
-      .toPromise();
-    const placeholder = await this.translate
-      .get("pages.editRecipe.addImage.placeholder")
-      .toPromise();
-    const cancel = await this.translate.get("generic.cancel").toPromise();
-    const confirm = await this.translate.get("generic.confirm").toPromise();
+  isAddImageByUrlModalOpen = false;
+  addImageByUrlInput = "";
 
-    const alert = await this.alertCtrl.create({
-      header,
-      message,
-      inputs: [
-        {
-          name: "imageUrl",
-          placeholder,
-        },
-      ],
-      buttons: [
-        {
-          text: cancel,
-          handler: () => {},
-        },
-        {
-          text: confirm,
-          handler: (data) => {
-            if (data.imageUrl) this._addImageByUrlPrompt(data.imageUrl);
-          },
-        },
-      ],
-    });
+  addImageByUrlPrompt() {
+    this.addImageByUrlInput = "";
+    this.isAddImageByUrlModalOpen = true;
+  }
 
-    await alert.present();
+  submitAddImageByUrl() {
+    const imageUrl = this.addImageByUrlInput;
+    this.isAddImageByUrlModalOpen = false;
+    if (imageUrl) this._addImageByUrlPrompt(imageUrl);
   }
 
   async _addImageByUrlPrompt(imageUrl: string) {
@@ -1682,7 +1714,7 @@ export class EditRecipePage {
     const mapped = labels.map((label) => ({
       id: label.id,
       title: label.title,
-      icon: "pricetag",
+      icon: "pricetag-outline",
     }));
 
     return mapped;
@@ -1746,248 +1778,13 @@ export class EditRecipePage {
     }
 
     this.selectedLinkedRecipes.push(recipe);
-    this.triggerAutosave();
+    this.markAsDirty();
   }
 
   removeLinkedRecipe(recipeId: string) {
     this.selectedLinkedRecipes = this.selectedLinkedRecipes.filter(
       (r) => r.id !== recipeId,
     );
-    this.triggerAutosave();
-  }
-
-  // ─── Line editor helpers ───────────────────────────────────────────────────
-
-  private newLineId(): string {
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  }
-
-  private parseLines(raw: string): RecipeLine[] {
-    if (!raw) return [];
-    return raw.split("\n").map((line) => {
-      const headerMatch = line.trim().match(/^\[(.+)\]$/);
-      return {
-        id: this.newLineId(),
-        text: headerMatch ? headerMatch[1] : line,
-        isHeader: !!headerMatch,
-      };
-    });
-  }
-
-  private serializeLines(lines: RecipeLine[]): string {
-    return lines.map((l) => (l.isHeader ? `[${l.text}]` : l.text)).join("\n");
-  }
-
-  syncLinesToRecipe() {
-    this.ingredientLines = this.parseLines(this.recipe.ingredients || "");
-    this.instructionLines = this.parseLines(this.recipe.instructions || "");
-  }
-
-  updateIngredientLine(id: string, value: string) {
-    const line = this.ingredientLines.find((l) => l.id === id);
-    if (!line) return;
-    line.text = value;
-    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
-    this.triggerAutosave();
-  }
-
-  updateInstructionLine(id: string, value: string) {
-    const line = this.instructionLines.find((l) => l.id === id);
-    if (!line) return;
-    line.text = value;
-    this.recipe.instructions = this.serializeLines(this.instructionLines);
-    this.triggerAutosave();
-  }
-
-  addIngredientLine(afterId?: string) {
-    const newLine: RecipeLine = {
-      id: this.newLineId(),
-      text: "",
-      isHeader: false,
-    };
-    if (afterId) {
-      const idx = this.ingredientLines.findIndex((l) => l.id === afterId);
-      this.ingredientLines.splice(idx + 1, 0, newLine);
-    } else {
-      this.ingredientLines.push(newLine);
-    }
-    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
-    this.focusIngredientLine(newLine.id);
-  }
-
-  addInstructionLine() {
-    const newLine: RecipeLine = {
-      id: this.newLineId(),
-      text: "",
-      isHeader: false,
-    };
-    this.instructionLines.push(newLine);
-    this.recipe.instructions = this.serializeLines(this.instructionLines);
-    this.focusInstructionLine(newLine.id);
-  }
-
-  addIngredientSection() {
-    const newLine: RecipeLine = {
-      id: this.newLineId(),
-      text: "New Section",
-      isHeader: true,
-    };
-    this.ingredientLines.push(newLine);
-    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
-    this.focusIngredientLine(newLine.id);
-  }
-
-  addInstructionSection() {
-    const newLine: RecipeLine = {
-      id: this.newLineId(),
-      text: "New Section",
-      isHeader: true,
-    };
-    this.instructionLines.push(newLine);
-    this.recipe.instructions = this.serializeLines(this.instructionLines);
-    this.focusInstructionLine(newLine.id);
-  }
-
-  removeIngredientLine(id: string) {
-    const idx = this.ingredientLines.findIndex((l) => l.id === id);
-    this.ingredientLines.splice(idx, 1);
-    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
-    this.triggerAutosave();
-    if (idx > 0) {
-      const prevId = this.ingredientLines[idx - 1]?.id;
-      if (prevId) setTimeout(() => this.focusIngredientLine(prevId), 30);
-    }
-  }
-
-  removeInstructionLine(id: string) {
-    const idx = this.instructionLines.findIndex((l) => l.id === id);
-    this.instructionLines.splice(idx, 1);
-    this.recipe.instructions = this.serializeLines(this.instructionLines);
-    this.triggerAutosave();
-    if (idx > 0) {
-      const prevId = this.instructionLines[idx - 1]?.id;
-      if (prevId) setTimeout(() => this.focusInstructionLine(prevId), 30);
-    }
-  }
-
-  handleIngredientEnter(id: string) {
-    this.addIngredientLine(id);
-  }
-
-  handleIngredientBackspace(event: Event, id: string) {
-    const line = this.ingredientLines.find((l) => l.id === id);
-    if (!line || line.text !== "") return;
-    event.preventDefault();
-    this.removeIngredientLine(id);
-  }
-
-  setIngredientsMode(mode: "list" | "text") {
-    if (mode === this.ingredientsMode) return;
-    if (mode === "text") {
-      this.recipe.ingredients = this.serializeLines(this.ingredientLines);
-    } else {
-      this.ingredientLines = this.parseLines(this.recipe.ingredients || "");
-    }
-    this.ingredientsMode = mode;
-  }
-
-  setInstructionsMode(mode: "list" | "text") {
-    if (mode === this.instructionsMode) return;
-    if (mode === "text") {
-      this.recipe.instructions = this.serializeLines(this.instructionLines);
-    } else {
-      this.instructionLines = this.parseLines(this.recipe.instructions || "");
-    }
-    this.instructionsMode = mode;
-  }
-
-  handleIngredientPaste(event: ClipboardEvent, id: string) {
-    const text = event.clipboardData?.getData("text") || "";
-    const lines = text
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-    if (lines.length <= 1) return;
-    event.preventDefault();
-    const idx = this.ingredientLines.findIndex((l) => l.id === id);
-    const currentLine = this.ingredientLines[idx];
-    const newLines: RecipeLine[] = lines.map((t) => {
-      const headerMatch = t.match(/^\[(.+)\]$/);
-      return {
-        id: this.newLineId(),
-        text: headerMatch ? headerMatch[1] : t,
-        isHeader: !!headerMatch,
-      };
-    });
-    if (currentLine && currentLine.text === "") {
-      this.ingredientLines.splice(idx, 1, ...newLines);
-    } else {
-      this.ingredientLines.splice(idx + 1, 0, ...newLines);
-    }
-    this.recipe.ingredients = this.serializeLines(this.ingredientLines);
-    this.triggerAutosave();
-  }
-
-  handleInstructionPaste(event: ClipboardEvent, id: string) {
-    const text = event.clipboardData?.getData("text") || "";
-    const lines = text
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-    if (lines.length <= 1) return;
-    event.preventDefault();
-    const idx = this.instructionLines.findIndex((l) => l.id === id);
-    const currentLine = this.instructionLines[idx];
-    const newLines: RecipeLine[] = lines.map((t) => {
-      const headerMatch = t.match(/^\[(.+)\]$/);
-      return {
-        id: this.newLineId(),
-        text: headerMatch ? headerMatch[1] : t,
-        isHeader: !!headerMatch,
-      };
-    });
-    if (currentLine && currentLine.text === "") {
-      this.instructionLines.splice(idx, 1, ...newLines);
-    } else {
-      this.instructionLines.splice(idx + 1, 0, ...newLines);
-    }
-    this.recipe.instructions = this.serializeLines(this.instructionLines);
-    this.triggerAutosave();
-  }
-
-  getInstructionStepNumber(id: string): number {
-    let count = 0;
-    for (const line of this.instructionLines) {
-      if (!line.isHeader) count++;
-      if (line.id === id) return count;
-    }
-    return count;
-  }
-
-  private focusIngredientLine(id: string) {
-    setTimeout(() => {
-      const inputs = this.ingredientLineInputs.toArray();
-      const idx = this.ingredientLines.findIndex((l) => l.id === id);
-      inputs[idx]?.setFocus();
-    }, 50);
-  }
-
-  private focusInstructionLine(id: string) {
-    setTimeout(() => {
-      const inputs = this.instructionLineInputs.toArray();
-      const idx = this.instructionLines.findIndex((l) => l.id === id);
-      inputs[idx]?.setFocus();
-    }, 50);
-  }
-
-  ionViewWillLeave() {
-    if (this.unsavedChangesService.hasPendingChanges()) {
-      this.immediateSaveDraft();
-    }
-
-    if (this.draftAgeInterval) {
-      clearInterval(this.draftAgeInterval);
-      this.draftAgeInterval = null;
-    }
+    this.markAsDirty();
   }
 }

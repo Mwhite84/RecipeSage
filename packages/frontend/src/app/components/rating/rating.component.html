@@ -1,7 +1,16 @@
-<span class="rating-stars">
+<span
+  class="rating-stars"
+  [attr.role]="enableEdit ? null : 'img'"
+  [attr.aria-label]="
+    enableEdit
+      ? null
+      : ('components.rating.label' | translate: { rating: filledStarCount })
+  "
+>
   @for (star of ratingVisual; track star; let i = $index) {
     <ion-icon
       [name]="star"
+      [attr.aria-hidden]="enableEdit ? null : 'true'"
       (click)="setRating(i + 1)"
       [ngClass]="{ pointer: enableEdit }"
     ></ion-icon>

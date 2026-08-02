@@ -7,12 +7,12 @@ import {
 } from "@ionic/angular/standalone";
 import { TranslateService } from "@ngx-translate/core";
 
-import { LoadingService } from "~/services/loading.service";
-import { RouteMap, UtilService } from "~/services/util.service";
+import { LoadingService } from "../../../services/loading.service";
+import { RouteMap, UtilService } from "../../../services/util.service";
 
-import { LabelsPopoverPage } from "~/pages/labels-pages/labels-popover/labels-popover.page";
-import { ManageLabelModalPage } from "~/pages/labels-pages/manage-label-modal/manage-label-modal.page";
-import { PreferencesService } from "~/services/preferences.service";
+import { LabelsPopoverPage } from "../labels-popover/labels-popover.page";
+import { ManageLabelModalPage } from "../manage-label-modal/manage-label-modal.page";
+import { PreferencesService } from "../../../services/preferences.service";
 import { ManageLabelsPreferenceKey } from "@recipesage/util/shared";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import type { LabelGroupSummary, LabelSummary } from "@recipesage/prisma";
@@ -29,24 +29,24 @@ import {
   IonIcon,
   IonTitle,
   IonContent,
-  IonRefresher,
-  IonRefresherContent,
+  IonSearchbar,
   IonList,
   IonItem,
   IonLabel,
   IonBadge,
   IonFab,
   IonFabButton,
+  IonSpinner,
 } from "@ionic/angular/standalone";
 import {
-  add,
-  close,
-  folderOpen,
-  options,
-  pencil,
-  pricetag,
-  pricetags,
-  trash,
+  addOutline,
+  closeOutline,
+  folderOpenOutline,
+  optionsOutline,
+  pencilOutline,
+  pricetagOutline,
+  pricetagsOutline,
+  trashOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -66,27 +66,27 @@ import { addIcons } from "ionicons";
     IonIcon,
     IonTitle,
     IonContent,
-    IonRefresher,
-    IonRefresherContent,
+    IonSearchbar,
     IonList,
     IonItem,
     IonLabel,
     IonBadge,
     IonFab,
     IonFabButton,
+    IonSpinner,
   ],
 })
 export class LabelsPage {
   constructor() {
     addIcons({
-      add,
-      close,
-      folderOpen,
-      options,
-      pencil,
-      pricetag,
-      pricetags,
-      trash,
+      addOutline,
+      closeOutline,
+      folderOpenOutline,
+      optionsOutline,
+      pencilOutline,
+      pricetagOutline,
+      pricetagsOutline,
+      trashOutline,
     });
   }
 
@@ -106,6 +106,10 @@ export class LabelsPage {
   labels: LabelSummary[] = [];
   labelGroups: LabelGroupSummary[] = [];
 
+  searchText = "";
+  filteredLabels: LabelSummary[] = [];
+  filteredLabelGroups: LabelGroupSummary[] = [];
+
   loading = true;
   selectedLabelIds: string[] = [];
   selectionMode = false;
@@ -113,12 +117,6 @@ export class LabelsPage {
   ionViewWillEnter() {
     this.clearSelectedLabels();
     this.loadWithBar();
-  }
-
-  refresh(refresher: any) {
-    this.load().finally(() => {
-      refresher.target.complete();
-    });
   }
 
   async load() {
@@ -137,6 +135,29 @@ export class LabelsPage {
     this.labels = labelsResponse.sort((a, b) => a.title.localeCompare(b.title));
     this.labelGroups = labelGroupsResponse.sort((a, b) =>
       a.title.localeCompare(b.title),
+    );
+
+    this.applyFilter();
+  }
+
+  onSearchInput() {
+    this.applyFilter();
+  }
+
+  applyFilter() {
+    const term = this.searchText.trim().toLowerCase();
+
+    if (!term) {
+      this.filteredLabels = this.labels;
+      this.filteredLabelGroups = this.labelGroups;
+      return;
+    }
+
+    this.filteredLabels = this.labels.filter((label) =>
+      label.title.toLowerCase().includes(term),
+    );
+    this.filteredLabelGroups = this.labelGroups.filter((labelGroup) =>
+      labelGroup.title.toLowerCase().includes(term),
     );
   }
 

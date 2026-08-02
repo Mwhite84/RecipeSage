@@ -122,3 +122,8 @@ ion-list:last-of-type {
     opacity: 0.6;
   }
 }
+
+.page-wrapper {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+}

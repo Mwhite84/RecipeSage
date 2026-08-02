@@ -1,6 +1,6 @@
 import { Input, Component, inject } from "@angular/core";
 import { ModalController } from "@ionic/angular/standalone";
-import { CookingToolbarService } from "~/services/cooking-toolbar.service";
+import { CookingToolbarService } from "../../../services/cooking-toolbar.service";
 import type { MealPlanItemSummary } from "@recipesage/prisma";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import {
@@ -17,7 +17,7 @@ import {
   IonCheckbox,
   IonFooter,
 } from "@ionic/angular/standalone";
-import { close, pin } from "ionicons/icons";
+import { closeOutline, pinOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -54,7 +54,7 @@ export class MealPlanBulkPinModalPage {
   recipeIdSelectionMap: Record<string, boolean> = {};
 
   constructor() {
-    addIcons({ close, pin });
+    addIcons({ closeOutline, pinOutline });
     setTimeout(() => {
       this.selectAllRecipes();
     });

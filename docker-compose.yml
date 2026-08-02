@@ -23,22 +23,16 @@ x-common-env: &common-env
   DATABASE_URL: postgresql://recipesage_dev:recipesage_dev@postgres:5432/recipesage_dev
   GRIP_URL: http://pushpin:5561/
   GRIP_KEY: changeme
-  SEARCH_PROVIDER: typesense
-  TYPESENSE_NODES: '[{"host": "typesense", "port": 8108, "protocol": "http"}]'
-  TYPESENSE_API_KEY: recipesage_dev
-  BROWSERLESS_HOST: browserless
-  BROWSERLESS_PORT: "3000"
-  BROWSERLESS_TOKEN: recipesage_dev
   JOB_QUEUE_REDIS_HOST: valkey
-  INGREDIENT_INSTRUCTION_CLASSIFIER_URL: http://ingredient-instruction-classifier:3000/
   GROCERY_CATEGORIZER_URL: http://grocery-categorizer:8000/
   OTEL_LOG_LEVEL: info
   FIREBASE_CREDENTIALS_PATH: /app/.credentials/firebase.json
-  RECIPECLIPPER_MINISERVER_URL: http://recipeclipper-miniserver:3000/
   NX_DAEMON: "true"
+  API_PUBLIC_BASE_URL: https://example.com
 
 services:
   proxy:
+    restart: on-failure
     image: nginx
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
@@ -52,6 +46,7 @@ services:
       - pushpin
     stop_grace_period: 1s
   frontend:
+    restart: on-failure
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -59,7 +54,7 @@ services:
       - ./packages:/app/packages
     ports:
       - "8100:8100"
-    command: npx nx start frontend
+    command: pnpm exec nx start frontend
     environment:
       - ENVIRONMENT=development
       - APP_VERSION=development
@@ -69,6 +64,7 @@ services:
         hard: 0
     stop_grace_period: 1s
   www:
+    restart: on-failure
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -76,15 +72,15 @@ services:
       - ./packages:/app/packages
     ports:
       - "4321:4321"
-    command: npx nx dev www
+    command: pnpm exec nx dev www
     environment:
       - ENVIRONMENT=development
     stop_grace_period: 1s
   backend:
+    restart: on-failure
     depends_on:
       - postgres
       - pushpin
-      - browserless
       - grocery-categorizer
     build:
       context: .
@@ -99,6 +95,7 @@ services:
       - ./.env
     stop_grace_period: 1s
   queue-worker:
+    restart: on-failure
     depends_on:
       - postgres
     build:
@@ -114,12 +111,8 @@ services:
     env_file:
       - ./.env
     stop_grace_period: 1s
-  typesense:
-    image: typesense/typesense:0.24.1
-    volumes:
-      - typesense-data:/data
-    command: "--data-dir /data --api-key=recipesage_dev --enable-cors"
   pushpin:
+    restart: on-failure
     image: julianpoy/pushpin:2023-09-17
     entrypoint: /bin/sh -c
     command:
@@ -131,37 +124,27 @@ services:
       - TARGET=backend:3000
     stop_grace_period: 1s
   postgres:
+    restart: on-failure
     image: postgres:16.1
     command:
       - "postgres"
       - "-c"
       - "wal_level=logical"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     ports:
       - 5432:5432
     environment:
       - POSTGRES_DB=recipesage_dev
       - POSTGRES_USER=recipesage_dev
       - POSTGRES_PASSWORD=recipesage_dev
-  browserless:
-    image: ghcr.io/browserless/chromium:v2.38.2
-    environment:
-      - CONCURRENT=3
-      - QUEUED=10
-      - HEALTH=true
-      - MAX_MEMORY_PERCENT=80
-      - TOKEN=recipesage_dev
-    stop_grace_period: 1s
   valkey:
+    restart: on-failure
     image: valkey/valkey
-  ingredient-instruction-classifier:
-    image: julianpoy/ingredient-instruction-classifier:1.4.9
-    stop_grace_period: 1s
   grocery-categorizer:
-    image: julianpoy/ingredient-categorizer:latest
-    stop_grace_period: 1s
-  recipeclipper-miniserver:
-    image: julianpoy/recipeclipper-miniserver:1.2.0
+    restart: on-failure
+    image: julianpoy/grocery-categorizer:f9d9562
     stop_grace_period: 1s
 
 volumes:
-  typesense-data:
+  postgres-data:

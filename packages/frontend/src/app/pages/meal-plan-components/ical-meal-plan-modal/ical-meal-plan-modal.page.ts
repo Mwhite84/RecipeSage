@@ -1,4 +1,4 @@
-import { MealPlanService } from "~/services/meal-plan.service";
+import { MealPlanService } from "../../../services/meal-plan.service";
 import { Component, Input, inject } from "@angular/core";
 import { ModalController } from "@ionic/angular/standalone";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
@@ -13,7 +13,7 @@ import {
   IonIcon,
   IonLabel,
 } from "@ionic/angular/standalone";
-import { close } from "ionicons/icons";
+import { closeOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -36,7 +36,7 @@ import { addIcons } from "ionicons";
 })
 export class ICalMealPlanModalPage {
   constructor() {
-    addIcons({ close });
+    addIcons({ closeOutline });
   }
 
   private modalCtrl = inject(ModalController);

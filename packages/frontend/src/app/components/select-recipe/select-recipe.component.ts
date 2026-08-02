@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, inject } from "@angular/core";
-import { LoadingService } from "~/services/loading.service";
+import { LoadingService } from "../../services/loading.service";
 import { SHARED_UI_IMPORTS } from "../../providers/shared-ui.provider";
 import { ServerActionsService } from "../../services/server-actions.service";
 import type {
@@ -16,7 +16,7 @@ import {
   IonSpinner,
   IonIcon,
 } from "@ionic/angular/standalone";
-import { folderOpen } from "ionicons/icons";
+import { folderOpenOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -39,7 +39,10 @@ export class SelectRecipeComponent {
   private loadingService = inject(LoadingService);
   private serverActionsService = inject(ServerActionsService);
 
-  myProfile?: UserPublic;
+  private myProfileQuery = this.serverActionsService.users.getMe({
+    401: () => {},
+  });
+  myProfile = this.myProfileQuery.value;
   friendsById?: {
     [key: string]: UserPublic;
   };
@@ -68,18 +71,8 @@ export class SelectRecipeComponent {
   recipes: RecipeSummaryLite[] = [];
 
   constructor() {
-    addIcons({ folderOpen });
-    this.fetchMyProfile();
+    addIcons({ folderOpenOutline });
     this.fetchFriends();
-  }
-
-  async fetchMyProfile() {
-    const response = await this.serverActionsService.users.getMe({
-      401: () => {},
-    });
-    if (!response) return;
-
-    this.myProfile = response;
   }
 
   async fetchFriends() {

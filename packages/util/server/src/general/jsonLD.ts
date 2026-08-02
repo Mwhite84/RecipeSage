@@ -1,5 +1,9 @@
 import { RecipeSummary } from "@recipesage/prisma";
-import { parseIngredients, parseInstructions } from "@recipesage/util/shared";
+import {
+  parseIngredients,
+  parseInstructions,
+  inferRecipeNotation,
+} from "@recipesage/util/shared";
 import { convertFromISO8601Time } from "./convertToISO8601Time";
 import { convertToISO8601Time } from "./convertFromISO8601Time";
 import { StandardizedRecipeImportEntry } from "../db";
@@ -35,17 +39,30 @@ export type JsonLD = {
   "@type": "Recipe" | string;
   identifier?: string;
   name?: string;
+  inLanguage?: string;
   datePublished?: string;
   description?: string;
   recipeYield?: string | string[];
   prepTime?: string | string[];
+  cookTime?: string | string[];
   totalTime?: string | string[];
   recipeInstructions?:
     | string
     | (
         | string
         | {
+            "@type"?: string;
+            name?: string;
             text?: string;
+            itemListElement?:
+              | string
+              | (
+                  | string
+                  | {
+                      text?: string;
+                      name?: string;
+                    }
+                )[];
           }
       )[];
   recipeIngredient?:
@@ -75,10 +92,21 @@ export type JsonLD = {
         bestRating?: string;
       };
   creditText?: string;
+  author?:
+    | string
+    | {
+        name?: string;
+      }
+    | (
+        | string
+        | {
+            name?: string;
+          }
+      )[];
   isBasedOn?: string;
   images?: JsonLDImages;
   image?: JsonLDImages;
-  nutrition?: string | NutritionInformation;
+  nutrition?: string | NutritionInformation | NutritionInformation[];
 };
 
 const parseSchemaOrgNumber = (
@@ -96,8 +124,10 @@ const formatMilligrams = (value: number) => `${value} mg`;
 const formatMicrograms = (value: number) => `${value} mcg`;
 const formatCalories = (value: number) => `${value} kcal`;
 
-export const recipeToJSONLD = (recipe: RecipeSummary) =>
-  ({
+export const recipeToJSONLD = (recipe: RecipeSummary) => {
+  const decimalNotationMode = inferRecipeNotation(recipe, undefined);
+
+  return {
     "@context": "http://schema.org",
     "@type": "Recipe",
     identifier: recipe.id,
@@ -108,10 +138,12 @@ export const recipeToJSONLD = (recipe: RecipeSummary) =>
     ),
     name: recipe.title,
     prepTime: convertToISO8601Time(recipe.activeTime) || recipe.activeTime,
-    recipeIngredient: parseIngredients(recipe.ingredients, 1).map((el) =>
-      el.isHeader ? `[${el.content}]` : el.content,
-    ),
-    recipeInstructions: parseInstructions(recipe.instructions, 1).map((el) => ({
+    recipeIngredient: parseIngredients(recipe.ingredients, "1", {
+      decimalNotationMode,
+    }).map((el) => (el.isHeader ? `[${el.content}]` : el.content)),
+    recipeInstructions: parseInstructions(recipe.instructions, "1", {
+      decimalNotationMode,
+    }).map((el) => ({
       "@type": el.isHeader ? "HowToSection" : "HowToStep",
       text: el.isHeader ? `[${el.content}]` : el.content,
     })),
@@ -137,7 +169,8 @@ export const recipeToJSONLD = (recipe: RecipeSummary) =>
         }
       : undefined,
     nutrition: getNutritionForExport(recipe),
-  }) satisfies JsonLD;
+  } satisfies JsonLD;
+};
 
 const getNutritionForExport = (
   recipe: RecipeSummary,
@@ -354,24 +387,30 @@ const getActiveTimeFromSchema = (jsonLD: JsonLD) => {
   if (!prepTime) return "";
 
   if (typeof prepTime === "string") {
-    return convertFromISO8601Time(prepTime);
+    return convertFromISO8601Time(prepTime, jsonLD.inLanguage);
   }
-  if (Array.isArray(prepTime) && prepTime[0] === "string") {
-    return convertFromISO8601Time(getLongestString(prepTime));
+  if (Array.isArray(prepTime) && typeof prepTime[0] === "string") {
+    return convertFromISO8601Time(
+      getLongestString(prepTime),
+      jsonLD.inLanguage,
+    );
   }
 
   return "";
 };
 
 const getTotalTimeFromSchema = (jsonLD: JsonLD) => {
-  const { totalTime } = jsonLD;
+  const totalTime = jsonLD.totalTime || jsonLD.cookTime;
   if (!totalTime) return "";
 
   if (typeof totalTime === "string") {
-    return convertFromISO8601Time(totalTime);
+    return convertFromISO8601Time(totalTime, jsonLD.inLanguage);
   }
-  if (Array.isArray(totalTime) && totalTime[0] === "string") {
-    return convertFromISO8601Time(getLongestString(totalTime));
+  if (Array.isArray(totalTime) && typeof totalTime[0] === "string") {
+    return convertFromISO8601Time(
+      getLongestString(totalTime),
+      jsonLD.inLanguage,
+    );
   }
 
   return "";
@@ -382,17 +421,30 @@ const getInstructionsFromSchema = (jsonLD: JsonLD) => {
   if (!instructions) return "";
 
   if (typeof instructions === "string") return instructions;
-  if (Array.isArray(instructions)) {
-    const acc: string[] = [];
-    for (const instruction of instructions) {
-      if (typeof instruction === "string") acc.push(instruction);
-      else acc.push(instruction.text || "");
-    }
+  if (!Array.isArray(instructions)) return "";
 
-    return acc.join("\n");
+  const acc: string[] = [];
+  for (const instruction of instructions) {
+    if (typeof instruction === "string") {
+      acc.push(instruction);
+    } else if (instruction["@type"] === "HowToSection") {
+      if (instruction.name) acc.push(`[${instruction.name}]`);
+
+      const steps = instruction.itemListElement;
+      if (typeof steps === "string") {
+        acc.push(steps);
+      } else if (Array.isArray(steps)) {
+        for (const step of steps) {
+          if (typeof step === "string") acc.push(step);
+          else acc.push(step.text || "");
+        }
+      }
+    } else {
+      acc.push(instruction.text || "");
+    }
   }
 
-  return "";
+  return acc.join("\n");
 };
 
 const getIngredientsFromSchema = (jsonLD: JsonLD) => {
@@ -451,8 +503,26 @@ const getAggregateRatingFromSchema = (jsonLD: JsonLD) => {
   }
 };
 
+const getAuthorFromSchema = (jsonLD: JsonLD) => {
+  const { author } = jsonLD;
+  if (!author) return "";
+
+  if (typeof author === "string") return author;
+  if (Array.isArray(author)) {
+    const first = author[0];
+    if (typeof first === "string") return first;
+    if (first && typeof first.name === "string") return first.name;
+    return "";
+  }
+  if (typeof author.name === "string") return author.name;
+
+  return "";
+};
+
 const getNutritionFromSchema = (jsonLD: JsonLD) => {
-  const { nutrition } = jsonLD;
+  const nutrition = Array.isArray(jsonLD.nutrition)
+    ? jsonLD.nutrition[0]
+    : jsonLD.nutrition;
   if (!nutrition || typeof nutrition === "string") return {};
 
   const unsaturatedFat = parseSchemaOrgNumber(nutrition.unsaturatedFatContent);
@@ -492,7 +562,7 @@ export const jsonLDToStandardizedRecipeImportEntry = (
     yield: getYieldFromSchema(jsonLD),
     activeTime: getActiveTimeFromSchema(jsonLD),
     totalTime: getTotalTimeFromSchema(jsonLD),
-    source: jsonLD.creditText || "",
+    source: jsonLD.creditText || getAuthorFromSchema(jsonLD),
     url: jsonLD.isBasedOn || "",
     notes: getAuthorNotesCommentFromSchema(jsonLD) || "",
     ingredients: getIngredientsFromSchema(jsonLD),

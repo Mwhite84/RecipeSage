@@ -30,6 +30,13 @@ export enum SupportedLanguages {
   SV = "sv", // Swedish
   RO = "ro", // Romanian
   CS = "cs", // Czech
+  AR_SA = "ar-sa", // Arabic, Saudi Arabia
+  HI = "hi", // Hindi
+  ES_MX = "es-mx", // Spanish, Mexico
+  KO = "ko", // Korean
+  NB_NO = "nb-no", // Norwegian Bokmål, Norway
+  TR = "tr", // Turkish
+  ZH_HANT = "zh-hant", // Chinese (Traditional)
 }
 
 export enum SupportedFontSize {
@@ -103,6 +110,11 @@ export enum ShoppingListSortOptions {
   CreatedAtDesc = "-createdAt",
 }
 
+export enum OfflineModePromptOptions {
+  Ask = "ask",
+  Never = "never",
+}
+
 export enum GlobalPreferenceKey {
   EnableSplitPane = "global.enableSplitPane",
   Language = "global.language",
@@ -110,6 +122,7 @@ export enum GlobalPreferenceKey {
   Theme = "global.theme",
   PreferencesSync = "global.preferencesSync",
   StartPage = "global.startPage",
+  OfflineModePrompt = "global.offlineModePrompt",
 }
 
 export enum MyRecipesPreferenceKey {
@@ -119,6 +132,7 @@ export enum MyRecipesPreferenceKey {
   ShowImages = "myRecipes.showImages",
   ShowSource = "myRecipes.showSource",
   ShowRecipeDescription = "myRecipes.showRecipeDescription",
+  ShowRating = "myRecipes.showRating",
   ViewType = "myRecipes.viewType",
   SortBy = "myRecipes.sortBy",
   IncludeFriends = "myRecipes.includeFriends",
@@ -129,8 +143,16 @@ export enum RecipeDetailsPreferenceKey {
   AutoExpandNutrition = "recipeDetails.autoExpandNutrition",
 }
 
+export enum CookModePreferenceKey {
+  FontSize = "cookMode.fontSize",
+}
+
 export enum ManageLabelsPreferenceKey {
   ShowCreatedAt = "manageLabels.showCreatedAt",
+}
+
+export enum MeasurementConverterPreferenceKey {
+  EnabledUnits = "measurementConverter.enabledUnits",
 }
 
 export enum MealPlanPreferenceKey {
@@ -160,6 +182,7 @@ export interface AppPreferenceTypes {
   [GlobalPreferenceKey.Theme]: AppTheme;
   [GlobalPreferenceKey.PreferencesSync]: PreferencesSync;
   [GlobalPreferenceKey.StartPage]: StartPageOptions;
+  [GlobalPreferenceKey.OfflineModePrompt]: OfflineModePromptOptions;
 
   [MyRecipesPreferenceKey.EnableLabelIntersection]: boolean;
   [MyRecipesPreferenceKey.ShowLabels]: boolean;
@@ -167,6 +190,7 @@ export interface AppPreferenceTypes {
   [MyRecipesPreferenceKey.ShowImages]: boolean;
   [MyRecipesPreferenceKey.ShowSource]: boolean;
   [MyRecipesPreferenceKey.ShowRecipeDescription]: boolean;
+  [MyRecipesPreferenceKey.ShowRating]: boolean;
   [MyRecipesPreferenceKey.ViewType]: MyRecipesViewTypeOptions;
   [MyRecipesPreferenceKey.SortBy]: MyRecipesSortOptions;
   [MyRecipesPreferenceKey.IncludeFriends]: MyRecipesIncludeFriendsOptions;
@@ -174,7 +198,11 @@ export interface AppPreferenceTypes {
   [RecipeDetailsPreferenceKey.EnableWakeLock]: boolean;
   [RecipeDetailsPreferenceKey.AutoExpandNutrition]: boolean;
 
+  [CookModePreferenceKey.FontSize]: SupportedFontSize;
+
   [ManageLabelsPreferenceKey.ShowCreatedAt]: boolean;
+
+  [MeasurementConverterPreferenceKey.EnabledUnits]: string[];
 
   [MealPlanPreferenceKey.ShowAddedBy]: boolean;
   [MealPlanPreferenceKey.ShowAddedOn]: boolean;

@@ -6,8 +6,10 @@ import {
   parseIngredients,
   parseInstructions,
   parseNotes,
+  inferRecipeNotation,
 } from "@recipesage/util/shared";
 import {
+  getRequestLanguage,
   sanitizeRemoveHtmlFromString,
   sortRecipeImages,
 } from "@recipesage/util/server/general";
@@ -56,7 +58,24 @@ export const printRecipeHandler = defineHandler(
       ? res.locals.session.userId === recipe.userId
       : false;
 
-    const scale = parseFloat(req.query.scale || "1");
+    const scale =
+      typeof req.query.scale === "string" && req.query.scale.trim()
+        ? req.query.scale
+        : "1";
+
+    const locale = getRequestLanguage(req);
+
+    const ingredientsText = sanitizeRemoveHtmlFromString(sorted.ingredients);
+    const instructionsText = sanitizeRemoveHtmlFromString(sorted.instructions);
+    const notesText = sanitizeRemoveHtmlFromString(sorted.notes);
+    const decimalNotationMode = inferRecipeNotation(
+      {
+        ingredients: ingredientsText,
+        instructions: instructionsText,
+        notes: notesText,
+      },
+      locale,
+    );
 
     const modifiers = {
       version: req.query.version,
@@ -94,24 +113,19 @@ export const printRecipeHandler = defineHandler(
         url: sorted.url,
         images,
         labels,
-        ingredients: parseIngredients(
-          sanitizeRemoveHtmlFromString(sorted.ingredients),
-          scale,
-        ),
-        instructions: parseInstructions(
-          sanitizeRemoveHtmlFromString(sorted.instructions),
-          scale,
-          undefined,
-          inlineImageRefs,
-        ),
-        notes: parseNotes(
-          sanitizeRemoveHtmlFromString(sorted.notes),
-          scale,
-          undefined,
-          inlineImageRefs,
-        ),
+        ingredients: parseIngredients(ingredientsText, scale, {
+          decimalNotationMode,
+        }),
+        instructions: parseInstructions(instructionsText, scale, {
+          decimalNotationMode,
+          images: inlineImageRefs,
+        }),
+        notes: parseNotes(notesText, scale, {
+          decimalNotationMode,
+          images: inlineImageRefs,
+        }),
       },
-      recipeURL: `https://recipesage.com/#/recipe/${sorted.id}`,
+      recipeURL: `https://recipesage.com/app/recipe/${sorted.id}`,
       date: new Date().toDateString(),
       modifiers,
     });

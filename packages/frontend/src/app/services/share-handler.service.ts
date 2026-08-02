@@ -7,9 +7,9 @@ import {
 } from "@ionic/angular/standalone";
 import { Capacitor } from "@capacitor/core";
 import { Subscription } from "rxjs";
-import { RecipeService } from "./recipe.service";
+import { ServerActionsService } from "./server-actions.service";
 import { LoadingService } from "./loading.service";
-import { EditRecipePage } from "~/pages/recipe-components/edit-recipe/edit-recipe.page";
+import { EditRecipePage } from "../pages/recipe-components/edit-recipe/edit-recipe.page";
 import {
   RecipeSageShare,
   SharedRecipeData,
@@ -37,7 +37,7 @@ interface SharePluginData {
 export class ShareHandlerService implements OnDestroy {
   private router = inject(Router);
   private platform = inject(Platform);
-  private recipeService = inject(RecipeService);
+  private serverActionsService = inject(ServerActionsService);
   private loadingService = inject(LoadingService);
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
@@ -222,16 +222,17 @@ export class ShareHandlerService implements OnDestroy {
 
   private async importFromUrl(url: string, caption?: string): Promise<void> {
     try {
-      const response = await this.recipeService.clipFromUrl({
+      // Upstream's ml.clipFromUrl returns the recipe directly, or undefined on failure
+      const recipe = await this.serverActionsService.ml.clipFromUrl({
         url,
       });
 
-      if (response.success && response.data) {
+      if (recipe) {
         // Open edit recipe page with the imported data
         const modal = await this.modalCtrl.create({
           component: EditRecipePage,
           componentProps: {
-            recipe: response.data,
+            recipe,
             isImport: true,
           },
         });

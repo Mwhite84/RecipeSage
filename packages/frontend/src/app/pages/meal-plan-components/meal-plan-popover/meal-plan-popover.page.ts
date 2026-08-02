@@ -7,9 +7,9 @@ import {
 } from "@ionic/angular/standalone";
 import { TranslateService } from "@ngx-translate/core";
 
-import { LoadingService } from "~/services/loading.service";
-import { RouteMap, UtilService } from "~/services/util.service";
-import { PreferencesService } from "~/services/preferences.service";
+import { LoadingService } from "../../../services/loading.service";
+import { RouteMap, UtilService } from "../../../services/util.service";
+import { PreferencesService } from "../../../services/preferences.service";
 import {
   GlobalPreferenceKey,
   MealPlanPreferenceKey,
@@ -30,14 +30,15 @@ import {
   IonIcon,
 } from "@ionic/angular/standalone";
 import {
-  cart,
-  copy,
-  cut,
-  pencil,
-  pin,
-  print,
-  share,
-  trash,
+  cartOutline,
+  copyOutline,
+  cutOutline,
+  nutritionOutline,
+  pencilOutline,
+  pinOutline,
+  printOutline,
+  shareOutline,
+  trashOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -59,7 +60,17 @@ import { addIcons } from "ionicons";
 })
 export class MealPlanPopoverPage {
   constructor() {
-    addIcons({ cart, copy, cut, pencil, pin, print, share, trash });
+    addIcons({
+      cartOutline,
+      copyOutline,
+      cutOutline,
+      nutritionOutline,
+      pencilOutline,
+      pinOutline,
+      printOutline,
+      shareOutline,
+      trashOutline,
+    });
   }
 
   private popoverCtrl = inject(PopoverController);
@@ -88,6 +99,7 @@ export class MealPlanPopoverPage {
     required: true,
   })
   isOwner!: boolean;
+  @Input() setReference?: (reference: string) => void;
   @Input() calendarCenter?: Date;
   @Input() viewType?: string;
 
@@ -141,6 +153,12 @@ export class MealPlanPopoverPage {
   bulkAddToShoppingList() {
     this.popoverCtrl.dismiss({
       bulkAddToShoppingList: true,
+    });
+  }
+
+  calculateNutrition() {
+    this.popoverCtrl.dismiss({
+      calculateNutrition: true,
     });
   }
 
@@ -211,9 +229,18 @@ export class MealPlanPopoverPage {
   async _deleteMealPlan() {
     const loading = this.loadingService.start();
 
-    const result = await this.serverActionsService.mealPlans.deleteMealPlan({
-      id: this.mealPlanId,
-    });
+    const reference = crypto.randomUUID();
+    this.setReference?.(reference);
+
+    const result = this.isOwner
+      ? await this.serverActionsService.mealPlans.deleteMealPlan({
+          id: this.mealPlanId,
+          reference,
+        })
+      : await this.serverActionsService.mealPlans.detachMealPlan({
+          id: this.mealPlanId,
+          reference,
+        });
     loading.dismiss();
     if (!result) return;
 
@@ -225,7 +252,7 @@ export class MealPlanPopoverPage {
     const modal = await this.modalCtrl.create({
       component: UpdateMealPlanModalPage,
       componentProps: {
-        mealPlanId: this.mealPlanId,
+        mealPlan: this.mealPlan,
       },
     });
 

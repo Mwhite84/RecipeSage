@@ -1,17 +1,17 @@
 import { DBSchema, IDBPDatabase, openDB } from "idb";
 import * as Sentry from "@sentry/browser";
-import {
+import type {
   AssistantMessageSummary,
   JobSummary,
   LabelGroupSummary,
   LabelSummary,
+  MealPlanItemSummary,
   MealPlanSummaryWithItems,
   RecipeSummary,
   SessionDTO,
+  ShoppingListItemSummary,
   ShoppingListSummaryWithItems,
   UserPublic,
-  type MealPlanItemSummary,
-  type ShoppingListItemSummary,
 } from "@recipesage/prisma";
 import { trpcClient as trpc } from "../trpcClient";
 import { localDBMigration_1 } from "./migrations/localDBMigration_1";
@@ -35,11 +35,14 @@ export enum ObjectStoreName {
 export enum KVStoreKeys {
   Session = "session",
   RecipeSearchIndex = "recipeSearchIndex",
+  RecipeSearchIndexVersion = "recipeSearchIndexVersion",
   LastSync = "lastSync",
   LastSessionUserId = "lastSessionUserId",
   MyUserProfile = "myUserProfile",
   MyFriends = "myFriends",
   MyStats = "myStats",
+  MyCapabilities = "myCapabilities",
+  PersistenceRequested = "persistenceRequested",
 }
 
 export interface KVSession {
@@ -49,6 +52,10 @@ export interface KVSession {
 export interface KVRecipeSearchIndex {
   key: KVStoreKeys.RecipeSearchIndex;
   value: string;
+}
+export interface KVRecipeSearchIndexVersion {
+  key: KVStoreKeys.RecipeSearchIndexVersion;
+  value: number;
 }
 export interface KVLastSync {
   key: KVStoreKeys.LastSync;
@@ -72,15 +79,26 @@ export interface KVMyStats {
   key: KVStoreKeys.MyStats;
   value: Awaited<ReturnType<typeof trpc.users.getMyStats.query>>;
 }
+export interface KVMyCapabilities {
+  key: KVStoreKeys.MyCapabilities;
+  value: Awaited<ReturnType<typeof trpc.users.getMyCapabilities.query>>;
+}
+export interface KVPersistenceRequested {
+  key: KVStoreKeys.PersistenceRequested;
+  value: boolean;
+}
 
 export type KVStoreValue = {
   [KVStoreKeys.Session]: KVSession;
   [KVStoreKeys.RecipeSearchIndex]: KVRecipeSearchIndex;
+  [KVStoreKeys.RecipeSearchIndexVersion]: KVRecipeSearchIndexVersion;
   [KVStoreKeys.LastSync]: KVLastSync;
   [KVStoreKeys.LastSessionUserId]: KVLastSessionUserId;
   [KVStoreKeys.MyUserProfile]: KVMyUserProfile;
   [KVStoreKeys.MyFriends]: KVMyFriends;
   [KVStoreKeys.MyStats]: KVMyStats;
+  [KVStoreKeys.MyCapabilities]: KVMyCapabilities;
+  [KVStoreKeys.PersistenceRequested]: KVPersistenceRequested;
 };
 
 export interface RSLocalDB extends DBSchema {

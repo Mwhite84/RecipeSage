@@ -1,8 +1,7 @@
-import { publicProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import {
-  WSBoardcastEventType,
+  WSBroadcastEventType,
   broadcastWSEventIgnoringErrors,
-  validateTrpcSession,
 } from "@recipesage/util/server/general";
 import { prisma } from "@recipesage/prisma";
 import { TRPCError } from "@trpc/server";
@@ -11,13 +10,25 @@ import {
   getAccessToShoppingList,
 } from "@recipesage/util/server/db";
 import { updateShoppingListItemsInput } from "@recipesage/util/shared";
+import { z } from "zod";
 
-export const updateShoppingListItems = publicProcedure
+export const updateShoppingListItems = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/shoppingLists/updateShoppingListItems",
+      tags: ["shoppingLists"],
+      summary: "Update multiple shopping list items",
+      protect: true,
+    },
+  })
   .input(updateShoppingListItemsInput)
+  .output(
+    z.object({
+      reference: z.uuid(),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    validateTrpcSession(session);
-
     const shoppingListItems = await prisma.shoppingListItem.findMany({
       where: {
         id: {
@@ -39,7 +50,7 @@ export const updateShoppingListItems = publicProcedure
     }
 
     const access = await getAccessToShoppingList(
-      session.userId,
+      ctx.session.userId,
       input.shoppingListId,
     );
 
@@ -76,11 +87,11 @@ export const updateShoppingListItems = publicProcedure
       }
     });
 
-    const reference = crypto.randomUUID();
+    const reference = input.reference ?? crypto.randomUUID();
     for (const subscriberId of access.subscriberIds) {
       broadcastWSEventIgnoringErrors(
         subscriberId,
-        WSBoardcastEventType.ShoppingListUpdated,
+        WSBroadcastEventType.ShoppingListUpdated,
         {
           reference,
           shoppingListId: input.shoppingListId,

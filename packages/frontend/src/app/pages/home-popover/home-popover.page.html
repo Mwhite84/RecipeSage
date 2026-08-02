@@ -84,6 +84,17 @@
   </ion-item>
 
   <ion-item lines="full">
+    <ion-toggle
+      [(ngModel)]="preferences[preferenceKeys.ShowRating]"
+      (ngModelChange)="savePreferences()"
+    >
+      <div class="ion-text-wrap">
+        {{ "pages.homepopover.options.showRating" | translate }}
+      </div>
+    </ion-toggle>
+  </ion-item>
+
+  <ion-item lines="full">
     <ion-select
       label="{{ 'pages.homepopover.options.sortBy' | translate }}"
       [(ngModel)]="preferences[preferenceKeys.SortBy]"
@@ -124,7 +135,7 @@
       class="ion-margin"
     >
       <ion-icon
-        [name]="selectionMode ? 'close' : 'checkmark'"
+        [name]="selectionMode ? 'close-outline' : 'checkmark-outline'"
         slot="start"
       ></ion-icon>
       @if (selectionMode) {

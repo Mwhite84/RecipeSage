@@ -1,13 +1,14 @@
-import type { JobSummary } from "@recipesage/prisma";
-import { type JobMeta } from "@recipesage/prisma";
+import type { ImportJobSummary } from "@recipesage/prisma";
+
 import type { StandardizedRecipeImportEntry } from "../../../../db/index";
 import { clipUrl, importJobFinishCommon } from "../../../index";
 import { downloadS3ToTemp } from "./shared/s3Download";
 import { readFile } from "fs/promises";
-import type { JobQueueItem } from "../../JobQueueItem";
+import type { StandardJobQueueItem } from "../../JobQueueItem";
 import { debounceJobUpdateProgress } from "../../../jobs/updateJobProgress";
 import { IMPORT_JOB_STEP_COUNT } from "../processImportJob";
 import { ImportTooManyRecipesError } from "../../../jobs/jobErrors";
+import * as Sentry from "@sentry/node";
 
 /**
  * A sanity limit so that we don't overload the service or run up a huge bill.
@@ -15,10 +16,10 @@ import { ImportTooManyRecipesError } from "../../../jobs/jobErrors";
 const MAX_COUNT_LIMIT = 100;
 
 export async function urlsImportJobHandler(
-  job: JobSummary,
-  queueItem: JobQueueItem,
+  job: ImportJobSummary,
+  queueItem: StandardJobQueueItem,
 ): Promise<void> {
-  const jobMeta = job.meta as JobMeta;
+  const jobMeta = job.meta;
   const importLabels = jobMeta.importLabels || [];
 
   if (!queueItem.storageKey) {
@@ -43,15 +44,17 @@ export async function urlsImportJobHandler(
   }
 
   let processedCount = 0;
+  let failedCount = 0;
   for (const url of urls) {
     try {
       const clipResults = await clipUrl(url);
       standardizedRecipeImportInput.push({
         ...clipResults,
-        labels: importLabels,
+        labels: [...importLabels],
       });
-    } catch (_e) {
-      // Skip entry
+    } catch (e) {
+      Sentry.captureException(e, { extra: { jobId: job.id } });
+      failedCount++;
     }
 
     processedCount++;
@@ -69,5 +72,6 @@ export async function urlsImportJobHandler(
     standardizedRecipeImportInput,
     importTempDirectory: undefined,
     creditOperation: "importUrls",
+    failedCount,
   });
 }

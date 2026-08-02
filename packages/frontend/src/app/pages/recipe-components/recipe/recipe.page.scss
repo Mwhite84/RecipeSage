@@ -1,5 +1,11 @@
 @import "../../../../theme/shared-variables.scss";
 
+// From upstream: centered page wrapper (used by upstream's markup hunks)
+.page-wrapper {
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
 // =============================================================================
 // Recipe Detail Page
 // Mobile-first. Kitchen context: glanceable, high contrast, arm's-length legible.
@@ -728,4 +734,10 @@ ion-content {
   color: var(--rs-text-tertiary);
   font-style: italic;
   margin: var(--rs-space-3) 0;
+}
+
+// From upstream: non-clickable chips should not present as interactive
+ion-chip:not(.clickable) {
+  pointer-events: none;
+  cursor: default;
 }

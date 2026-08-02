@@ -1,11 +1,14 @@
 import { Component, inject } from "@angular/core";
 import { ModalController } from "@ionic/angular/standalone";
-import { ParsedIngredient } from "~/services/recipe.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { SelectIngredientsComponent } from "../../../components/select-ingredients/select-ingredients.component";
 import { SelectRecipeComponent } from "../../../components/select-recipe/select-recipe.component";
+import { TextAreaComponent } from "../../../components/forms/text-area/text-area.component";
 import type { RecipeSummary } from "@recipesage/prisma";
-import { SHOPPING_LIST_ITEMS_TITLE_LENGTH_LIMIT } from "@recipesage/util/shared";
+import {
+  SHOPPING_LIST_ITEMS_TITLE_LENGTH_LIMIT,
+  ParsedIngredient,
+} from "@recipesage/util/shared";
 import {
   IonHeader,
   IonToolbar,
@@ -16,12 +19,10 @@ import {
   IonContent,
   IonSegment,
   IonSegmentButton,
-  IonItem,
-  IonInput,
   IonFooter,
   IonLabel,
 } from "@ionic/angular/standalone";
-import { close, list } from "ionicons/icons";
+import { closeOutline, listOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -42,15 +43,14 @@ import { addIcons } from "ionicons";
     IonContent,
     IonSegment,
     IonSegmentButton,
-    IonItem,
-    IonInput,
     IonFooter,
     IonLabel,
+    TextAreaComponent,
   ],
 })
 export class NewShoppingListItemModalPage {
   constructor() {
-    addIcons({ close, list });
+    addIcons({ closeOutline, listOutline });
   }
 
   private modalCtrl = inject(ModalController);
@@ -59,7 +59,7 @@ export class NewShoppingListItemModalPage {
 
   readonly titleMaxLength = SHOPPING_LIST_ITEMS_TITLE_LENGTH_LIMIT;
 
-  itemFields: { title?: string }[] = [{}];
+  itemsText = "";
 
   selectedRecipe: RecipeSummary | undefined;
   selectedIngredients: ParsedIngredient[] = [];
@@ -68,10 +68,11 @@ export class NewShoppingListItemModalPage {
     this.inputType = event.detail.value;
   }
 
-  addOrRemoveTextFields() {
-    if ((this.itemFields[this.itemFields.length - 1].title || "").length > 0) {
-      this.itemFields.push({});
-    }
+  parseItemTitles() {
+    return this.itemsText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
   }
 
   isFormValid() {
@@ -83,9 +84,7 @@ export class NewShoppingListItemModalPage {
       return this.selectedIngredients.length > 0;
     }
     if (this.inputType === "items") {
-      for (const itemField of this.itemFields) {
-        if (itemField.title) return true;
-      }
+      return this.parseItemTitles().length > 0;
     }
     return false;
   }
@@ -101,18 +100,13 @@ export class NewShoppingListItemModalPage {
         recipeId: this.selectedRecipe?.id || null,
       }));
     } else {
-      // Redundant for now. Kept for sterilization
-      items = this.itemFields
-        .filter((e) => {
-          return (e.title || "").length > 0;
-        })
-        .map((e) => {
-          return {
-            title: e.title,
-            completed: false,
-            recipeId: null,
-          };
-        });
+      items = this.parseItemTitles().map((title) => {
+        return {
+          title: title.slice(0, this.titleMaxLength),
+          completed: false,
+          recipeId: null,
+        };
+      });
     }
 
     this.modalCtrl.dismiss({

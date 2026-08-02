@@ -10,17 +10,21 @@ import { TranslateService } from "@ngx-translate/core";
 
 import { IS_SELFHOST } from "../../../../environments/environment";
 
-import { UserProfile, UserService } from "~/services/user.service";
-import { LoadingService } from "~/services/loading.service";
-import { UtilService, RouteMap } from "~/services/util.service";
-import { RecipeService } from "~/services/recipe.service";
-import { ImageViewerComponent } from "~/modals/image-viewer/image-viewer.component";
-import { NewMessageModalPage } from "~/pages/messaging-components/new-message-modal/new-message-modal.page";
+import { ServerActionsService } from "../../../services/server-actions.service";
+import type { RouterOutputs } from "../../../services/server-actions/actions-base";
+import { LoadingService } from "../../../services/loading.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
+import { ImageViewerComponent } from "../../../modals/image-viewer/image-viewer.component";
+import { NewMessageModalPage } from "../../messaging-components/new-message-modal/new-message-modal.page";
 import { ShareProfileModalPage } from "../share-profile-modal/share-profile-modal.page";
-import { AuthPage } from "~/pages/auth/auth.page";
+import { AuthPage } from "../../auth/auth.page";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { NullStateComponent } from "../../../components/null-state/null-state.component";
 import { SelfhostWarningItemComponent } from "../../../components/selfhost-warning-item/selfhost-warning-item.component";
+import {
+  FeatureFlagService,
+  FeatureFlagKeys,
+} from "../../../services/feature-flag.service";
 import {
   IonHeader,
   IonToolbar,
@@ -29,8 +33,6 @@ import {
   IonBackButton,
   IonTitle,
   IonContent,
-  IonRefresher,
-  IonRefresherContent,
   IonThumbnail,
   IonItem,
   IonIcon,
@@ -39,14 +41,16 @@ import {
   IonAvatar,
   IonFooter,
   IonButton,
+  IonSpinner,
 } from "@ionic/angular/standalone";
 import {
-  bookmarks,
-  folder,
-  key,
-  mail,
-  pricetag,
-  shareSocial,
+  bookmarksOutline,
+  compassOutline,
+  folderOutline,
+  keyOutline,
+  mailOutline,
+  pricetagOutline,
+  shareSocialOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -66,8 +70,6 @@ import { addIcons } from "ionicons";
     IonBackButton,
     IonTitle,
     IonContent,
-    IonRefresher,
-    IonRefresherContent,
     IonThumbnail,
     IonItem,
     IonIcon,
@@ -76,6 +78,7 @@ import { addIcons } from "ionicons";
     IonAvatar,
     IonFooter,
     IonButton,
+    IonSpinner,
   ],
 })
 export class ProfilePage {
@@ -87,19 +90,39 @@ export class ProfilePage {
   modalCtrl = inject(ModalController);
   utilService = inject(UtilService);
   loadingService = inject(LoadingService);
-  recipeService = inject(RecipeService);
-  userService = inject(UserService);
+  serverActionsService = inject(ServerActionsService);
+  featureFlagService = inject(FeatureFlagService);
 
   defaultBackHref: string = RouteMap.PeoplePage.getPath();
   isSelfHost = IS_SELFHOST;
+  enableDiscover =
+    this.featureFlagService.flags[FeatureFlagKeys.EnableDiscover];
 
-  handle: string;
-  profile?: UserProfile;
+  handle: string = "";
+  profile?: RouterOutputs["users"]["getUserProfileByHandle"];
+  profileItems: RouterOutputs["users"]["getVisibleUserProfileItems"] = [];
+  publishedRecipes: RouterOutputs["discover"]["getDiscoverRecipesByAuthor"]["recipes"] =
+    [];
+  incomingFriendship = false;
+  outgoingFriendship = false;
 
-  myProfile?: UserProfile;
+  private meQuery = this.serverActionsService.users.getMe({ 401: () => {} });
+  me = this.meQuery.value;
 
   constructor() {
-    addIcons({ bookmarks, folder, key, mail, pricetag, shareSocial });
+    addIcons({
+      bookmarksOutline,
+      compassOutline,
+      folderOutline,
+      keyOutline,
+      mailOutline,
+      pricetagOutline,
+      shareSocialOutline,
+    });
+    this.applyRouteParams();
+  }
+
+  private applyRouteParams() {
     const handle = this.route.snapshot.paramMap.get("handle")?.substring(1);
 
     if (!handle) {
@@ -135,26 +158,77 @@ export class ProfilePage {
   }
 
   ionViewWillEnter() {
+    const snapshotHandle = this.route.snapshot.paramMap
+      .get("handle")
+      ?.substring(1);
+    if (snapshotHandle && snapshotHandle !== this.handle) {
+      this.applyRouteParams();
+      this.profile = undefined;
+      this.publishedRecipes = [];
+    }
+
+    this.meQuery.refresh();
     this.load();
   }
 
   async load() {
     const loading = this.loadingService.start();
-    const profileResponse = await this.userService.getProfileByHandle(
-      this.handle,
-      {
-        403: () => this.profileDisabledError(),
-      },
-    );
 
-    const myProfileResponse = await this.userService.getMyProfile({
-      401: () => {},
-    });
+    const profileResponse =
+      await this.serverActionsService.users.getUserProfileByHandle(
+        { handle: this.handle },
+        {
+          404: () => this.profileDisabledError(),
+        },
+      );
+
+    if (!profileResponse) {
+      loading.dismiss();
+      return;
+    }
+
+    const loggedIn = this.isLoggedIn();
+    const [items, friends, publishedRecipes] = await Promise.all([
+      this.serverActionsService.users.getVisibleUserProfileItems({
+        userId: profileResponse.id,
+      }),
+      loggedIn
+        ? this.serverActionsService.users.getMyFriends()
+        : Promise.resolve(undefined),
+      this.enableDiscover
+        ? this.serverActionsService.discover.getDiscoverRecipesByAuthor({
+            authorId: profileResponse.id,
+          })
+        : Promise.resolve(undefined),
+    ]);
 
     loading.dismiss();
 
-    if (profileResponse.success) this.profile = profileResponse.data;
-    if (myProfileResponse.success) this.myProfile = myProfileResponse.data;
+    this.profile = profileResponse;
+    this.profileItems = items ?? [];
+    this.publishedRecipes = publishedRecipes?.recipes ?? [];
+
+    this.incomingFriendship = false;
+    this.outgoingFriendship = false;
+    if (friends) {
+      const isFriend = friends.friends.some(
+        (friend) => friend.id === profileResponse.id,
+      );
+      this.incomingFriendship =
+        isFriend ||
+        friends.incomingRequests.some(
+          (friend) => friend.id === profileResponse.id,
+        );
+      this.outgoingFriendship =
+        isFriend ||
+        friends.outgoingRequests.some(
+          (friend) => friend.id === profileResponse.id,
+        );
+    }
+  }
+
+  isMyProfile(): boolean {
+    return !!this.profile && this.me()?.id === this.profile.id;
   }
 
   async openImageViewer() {
@@ -163,27 +237,37 @@ export class ProfilePage {
     const imageViewerModal = await this.modalCtrl.create({
       component: ImageViewerComponent,
       componentProps: {
-        imageUrls: this.profile.profileImages.map((image) => image.location),
+        imageUrls: this.profile.profileImages.map(
+          (profileImage) => profileImage.image.location,
+        ),
       },
     });
     imageViewerModal.present();
   }
 
-  open(item: any) {
+  open(item: RouterOutputs["users"]["getVisibleUserProfileItems"][number]) {
     if (item.type === "all-recipes") {
       this.navCtrl.navigateForward(
         RouteMap.HomePage.getPath("main", { userId: item.userId }),
       );
-    } else if (item.type === "label") {
+    } else if (item.type === "label" && item.label) {
       this.navCtrl.navigateForward(
         RouteMap.HomePage.getPath("main", {
           userId: item.userId,
           selectedLabels: [item.label.title],
         }),
       );
-    } else if (item.type === "recipe") {
+    } else if (item.type === "recipe" && item.recipe) {
       this.navCtrl.navigateForward(RouteMap.RecipePage.getPath(item.recipe.id));
     }
+  }
+
+  openDiscoverRecipe(
+    discoverRecipe: RouterOutputs["discover"]["getDiscoverRecipesByAuthor"]["recipes"][number],
+  ) {
+    this.navCtrl.navigateForward(
+      RouteMap.DiscoverRecipePage.getPath(discoverRecipe.id),
+    );
   }
 
   async addFriend() {
@@ -191,7 +275,9 @@ export class ProfilePage {
 
     const loading = this.loadingService.start();
 
-    await this.userService.addFriend(this.profile.id);
+    await this.serverActionsService.users.createFriendship({
+      friendId: this.profile.id,
+    });
     loading.dismiss();
 
     const message = await this.translate
@@ -220,7 +306,9 @@ export class ProfilePage {
 
     const loading = this.loadingService.start();
 
-    await this.userService.deleteFriend(this.profile.id);
+    await this.serverActionsService.users.deleteFriendship({
+      friendId: this.profile.id,
+    });
     loading.dismiss();
 
     const message = await this.translate
@@ -307,11 +395,6 @@ export class ProfilePage {
     await alert.onDidDismiss();
   }
 
-  async refresh(refresher: any) {
-    refresher.target.complete();
-    this.load();
-  }
-
   async auth() {
     const authModal = await this.modalCtrl.create({
       component: AuthPage,
@@ -325,9 +408,9 @@ export class ProfilePage {
 
   async authAndAddFriend() {
     await this.auth();
-    await this.load();
+    await Promise.all([this.meQuery.refresh(), this.load()]);
 
-    if (this.profile?.incomingFriendship || this.profile?.outgoingFriendship) {
+    if (this.incomingFriendship || this.outgoingFriendship) {
       const message = await this.translate
         .get("pages.profile.alreadyRequested")
         .toPromise();
@@ -340,7 +423,7 @@ export class ProfilePage {
       return;
     }
 
-    if (!this.myProfile?.enableProfile) {
+    if (!this.me()?.enableProfile) {
       this.setupMyProfileAlert();
       return;
     }

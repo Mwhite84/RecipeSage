@@ -16,8 +16,8 @@
       "options": {
         "cwd": "packages/frontend",
         "commands": [
-          "webpack -c sw-webpack.config.js --watch",
-          "webpack -c sw-webpack.config.js && ng serve --host 0.0.0.0 --disable-host-check --no-live-reload --port 8100 --serve-path=/app/"
+          "tsx build-service-worker.ts --watch",
+          "tsx build-service-worker.ts && ng serve --host 0.0.0.0 --port 8100 --serve-path=/app/"
         ],
         "parallel": true
       }
@@ -29,7 +29,7 @@
         "cwd": "packages/frontend",
         "commands": [
           "ng build --configuration=production",
-          "webpack -c sw-webpack.config.js",
+          "tsx build-service-worker.ts",
           "workbox injectManifest",
           "tsx upload-sourcemaps.ts"
         ],
@@ -41,8 +41,21 @@
       "options": {
         "cwd": "packages/frontend",
         "commands": [
-          "webpack -c sw-webpack.config.js",
+          "tsx build-service-worker.ts",
           "ng build --configuration=selfhost",
+          "workbox injectManifest"
+        ],
+        "parallel": false
+      }
+    },
+    "build:desktop": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["util-shared:build"],
+      "options": {
+        "cwd": "packages/frontend",
+        "commands": [
+          "ng build --configuration=desktop",
+          "IS_DESKTOP=true tsx build-service-worker.ts",
           "workbox injectManifest"
         ],
         "parallel": false
@@ -61,8 +74,15 @@
         "cwd": "packages/frontend",
         "commands": [
           "ng lint",
-          "npx --yes @julianpoy/ngx-translate-lint --config ./ngx-translate-lint.config.json"
+          "pnpm dlx @julianpoy/ngx-translate-lint --config ./ngx-translate-lint.config.json"
         ]
+      }
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../../coverage/packages/frontend"
       }
     }
   }

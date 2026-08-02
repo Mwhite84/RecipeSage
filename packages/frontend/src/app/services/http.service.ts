@@ -6,7 +6,8 @@ import {
   ErrorHandlers,
 } from "./http-error-handler.service";
 import { UtilService } from "./util.service";
-import { getBase } from "../utils/getBase";
+import { TranslateService } from "@ngx-translate/core";
+import { serverConfig } from "../utils/serverConfig";
 
 export interface HttpResponse<ResponseType> {
   success: boolean;
@@ -45,6 +46,7 @@ const REQUEST_TIMEOUT_FALLBACK = 10 * 60 * 1000; // 10 minutes
 export class HttpService {
   private httpErrorHandlerService = inject(HttpErrorHandlerService);
   private utilService = inject(UtilService);
+  private translate = inject(TranslateService);
 
   axiosClient: AxiosInstance;
 
@@ -55,6 +57,14 @@ export class HttpService {
         "X-Initialized-At": Date.now().toString(),
         "Content-Type": "application/json",
       },
+    });
+
+    this.axiosClient.interceptors.request.use((config) => {
+      config.headers.set(
+        "X-RecipeSage-Language",
+        this.translate.getCurrentLang(),
+      );
+      return config;
     });
   }
 
@@ -120,7 +130,7 @@ export class HttpService {
     const { axiosOverrides, path, method, payload, query, errorHandlers } =
       opts;
 
-    let url = getBase() + path + this.utilService.getTokenQuery();
+    let url = serverConfig.apiBase + path + this.utilService.getTokenQuery();
 
     if (query) {
       const params = Object.entries(query)

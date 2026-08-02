@@ -55,3 +55,8 @@ ion-item {
     padding: 3px 10px;
   }
 }
+
+.page-wrapper {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+}

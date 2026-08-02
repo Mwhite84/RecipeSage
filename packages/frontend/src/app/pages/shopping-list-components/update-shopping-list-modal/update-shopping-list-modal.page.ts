@@ -4,11 +4,11 @@ import {
   ToastController,
   NavController,
 } from "@ionic/angular/standalone";
+import type { ShoppingListSummary } from "@recipesage/prisma";
 
-import { LoadingService } from "~/services/loading.service";
-import { MessagingService } from "~/services/messaging.service";
-import { UserService } from "~/services/user.service";
-import { UtilService } from "~/services/util.service";
+import { LoadingService } from "../../../services/loading.service";
+import { MessagingService } from "../../../services/messaging.service";
+import { UtilService } from "../../../services/util.service";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { SelectCollaboratorsComponent } from "../../../components/select-collaborators/select-collaborators.component";
@@ -25,7 +25,7 @@ import {
   IonFooter,
   IonLabel,
 } from "@ionic/angular/standalone";
-import { close, list } from "ionicons/icons";
+import { closeOutline, listOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -51,7 +51,7 @@ import { addIcons } from "ionicons";
 })
 export class UpdateShoppingListModalPage {
   constructor() {
-    addIcons({ close, list });
+    addIcons({ closeOutline, listOutline });
   }
 
   modalCtrl = inject(ModalController);
@@ -60,51 +60,31 @@ export class UpdateShoppingListModalPage {
   loadingService = inject(LoadingService);
   serverActionsService = inject(ServerActionsService);
   messagingService = inject(MessagingService);
-  userService = inject(UserService);
   toastCtrl = inject(ToastController);
 
   @Input({
     required: true,
   })
-  shoppingListId: string = "";
+  shoppingList!: Readonly<ShoppingListSummary>;
 
   loaded = false;
   listTitle = "";
   selectedCollaboratorIds: string[] = [];
 
-  async load() {
-    this.loaded = false;
-    if (!this.shoppingListId) throw new Error("Shopping list ID not present");
-
-    const loading = this.loadingService.start();
-
-    const response =
-      await this.serverActionsService.shoppingLists.getShoppingList({
-        id: this.shoppingListId,
-      });
-
-    loading.dismiss();
-    if (!response) return;
-
-    this.listTitle = response.title;
-    this.selectedCollaboratorIds = response.collaboratorUsers.map(
+  ionViewWillEnter() {
+    this.listTitle = this.shoppingList.title;
+    this.selectedCollaboratorIds = this.shoppingList.collaboratorUsers.map(
       (collaboratorUser) => collaboratorUser.user.id,
     );
     this.loaded = true;
   }
 
-  ionViewWillEnter() {
-    this.load();
-  }
-
   async save() {
-    if (!this.shoppingListId) throw new Error("Shopping list ID not present");
-
     const loading = this.loadingService.start();
 
     const response =
       await this.serverActionsService.shoppingLists.updateShoppingList({
-        id: this.shoppingListId,
+        id: this.shoppingList.id,
         title: this.listTitle,
         collaboratorUserIds: this.selectedCollaboratorIds,
       });

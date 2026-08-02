@@ -1,11 +1,12 @@
-export const FREE_DAILY_CREDITS = 12;
-export const CONTRIBUTOR_DAILY_CREDITS = 120;
+export const FREE_DAILY_CREDITS = 14;
+export const CONTRIBUTOR_DAILY_CREDITS = 140;
 
 export const CreditOperations = {
   MlTextRecipe: "mlTextRecipe",
   MlTextNutrition: "mlTextNutrition",
   MlOcr: "mlOcr",
   MlPdf: "mlPdf",
+  MlDocument: "mlDocument",
   ClipHtml: "clipHtml",
   ClipUrl: "clipUrl",
   ImportUrls: "importUrls",
@@ -21,6 +22,7 @@ export const CREDIT_COSTS: Record<CreditOperation, number> = {
   mlTextNutrition: 1,
   mlOcr: 2,
   mlPdf: 2,
+  mlDocument: 2,
   clipHtml: 1,
   clipUrl: 2,
   importUrls: 5,

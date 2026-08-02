@@ -1,5 +1,5 @@
 <div class="container">
-  <ion-icon name="pin" class="pin"></ion-icon>
+  <ion-icon name="pin-outline" class="pin"></ion-icon>
   <div class="item-container">
     @for (
       pinnedRecipe of cookingToolbarService.pinnedRecipes;
@@ -7,7 +7,7 @@
     ) {
       <button
         class="item ion-activatable"
-        (click)="openRecipe(pinnedRecipe.id)"
+        (click)="openRecipe(pinnedRecipe)"
         [attr.aria-label]="'Open ' + pinnedRecipe.title"
         type="button"
       >
@@ -38,6 +38,6 @@
     type="button"
     aria-label="Clear pinned recipes"
   >
-    <ion-icon name="close" size="large" aria-hidden="true"></ion-icon>
+    <ion-icon name="close-outline" size="large" aria-hidden="true"></ion-icon>
   </button>
 </div>

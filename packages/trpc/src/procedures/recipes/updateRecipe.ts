@@ -1,17 +1,24 @@
 import { prisma } from "@recipesage/prisma";
-import { publicProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { validateTrpcSession } from "@recipesage/util/server/general";
 import {
   MULTIPLE_IMAGES_UNLOCKED_LIMIT,
   userHasCapability,
 } from "@recipesage/util/server/capabilities";
 import { Capabilities } from "@recipesage/util/shared";
-import { indexRecipes } from "@recipesage/util/server/search";
 import { getFriendshipIds } from "@recipesage/util/server/db";
 
-export const updateRecipe = publicProcedure
+export const updateRecipe = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/recipes/updateRecipe",
+      tags: ["recipes"],
+      summary: "Update a recipe",
+      protect: true,
+    },
+  })
   .input(
     z.object({
       id: z.uuid(),
@@ -56,14 +63,16 @@ export const updateRecipe = publicProcedure
       nutritionOtherDetails: z.string().nullable().optional(),
     }),
   )
+  .output(
+    z.object({
+      id: z.uuid(),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    validateTrpcSession(session);
-
     const initialRecipe = await prisma.recipe.findUnique({
       where: {
         id: input.id,
-        userId: session.userId,
+        userId: ctx.session.userId,
       },
       include: {
         recipeImages: true,
@@ -95,7 +104,7 @@ export const updateRecipe = publicProcedure
           in: input.labelIds,
         },
         userId: {
-          not: session.userId,
+          not: ctx.session.userId,
         },
       },
     }));
@@ -113,8 +122,8 @@ export const updateRecipe = publicProcedure
       );
 
       if (newLinkedRecipeIds.length > 0) {
-        const friendshipIds = await getFriendshipIds(session.userId);
-        const allowedUserIds = [session.userId, ...friendshipIds.friends];
+        const friendshipIds = await getFriendshipIds(ctx.session.userId);
+        const allowedUserIds = [ctx.session.userId, ...friendshipIds.friends];
 
         const linkedRecipes = await prisma.recipe.findMany({
           where: {
@@ -163,7 +172,7 @@ export const updateRecipe = publicProcedure
     }));
 
     const multipleImagesEnabled = await userHasCapability(
-      session.userId,
+      ctx.session.userId,
       Capabilities.MultipleImages,
     );
     if (multipleImagesEnabled) {
@@ -243,7 +252,7 @@ export const updateRecipe = publicProcedure
         },
         data: {
           title: input.title,
-          userId: session.userId,
+          userId: ctx.session.userId,
           description: input.description,
           yield: input.yield,
           activeTime: input.activeTime,
@@ -254,27 +263,25 @@ export const updateRecipe = publicProcedure
           ingredients: input.ingredients,
           instructions: input.instructions,
           rating: input.rating,
-          nutritionServingSize: input.nutritionServingSize ?? undefined,
-          nutritionCalories: input.nutritionCalories ?? undefined,
-          nutritionTotalFat: input.nutritionTotalFat ?? undefined,
-          nutritionSaturatedFat: input.nutritionSaturatedFat ?? undefined,
-          nutritionTransFat: input.nutritionTransFat ?? undefined,
-          nutritionPolyunsaturatedFat:
-            input.nutritionPolyunsaturatedFat ?? undefined,
-          nutritionMonounsaturatedFat:
-            input.nutritionMonounsaturatedFat ?? undefined,
-          nutritionCholesterol: input.nutritionCholesterol ?? undefined,
-          nutritionSodium: input.nutritionSodium ?? undefined,
-          nutritionTotalCarbs: input.nutritionTotalCarbs ?? undefined,
-          nutritionDietaryFiber: input.nutritionDietaryFiber ?? undefined,
-          nutritionTotalSugars: input.nutritionTotalSugars ?? undefined,
-          nutritionAddedSugars: input.nutritionAddedSugars ?? undefined,
-          nutritionProtein: input.nutritionProtein ?? undefined,
-          nutritionVitaminD: input.nutritionVitaminD ?? undefined,
-          nutritionCalcium: input.nutritionCalcium ?? undefined,
-          nutritionIron: input.nutritionIron ?? undefined,
-          nutritionPotassium: input.nutritionPotassium ?? undefined,
-          nutritionOtherDetails: input.nutritionOtherDetails ?? undefined,
+          nutritionServingSize: input.nutritionServingSize,
+          nutritionCalories: input.nutritionCalories,
+          nutritionTotalFat: input.nutritionTotalFat,
+          nutritionSaturatedFat: input.nutritionSaturatedFat,
+          nutritionTransFat: input.nutritionTransFat,
+          nutritionPolyunsaturatedFat: input.nutritionPolyunsaturatedFat,
+          nutritionMonounsaturatedFat: input.nutritionMonounsaturatedFat,
+          nutritionCholesterol: input.nutritionCholesterol,
+          nutritionSodium: input.nutritionSodium,
+          nutritionTotalCarbs: input.nutritionTotalCarbs,
+          nutritionDietaryFiber: input.nutritionDietaryFiber,
+          nutritionTotalSugars: input.nutritionTotalSugars,
+          nutritionAddedSugars: input.nutritionAddedSugars,
+          nutritionProtein: input.nutritionProtein,
+          nutritionVitaminD: input.nutritionVitaminD,
+          nutritionCalcium: input.nutritionCalcium,
+          nutritionIron: input.nutritionIron,
+          nutritionPotassium: input.nutritionPotassium,
+          nutritionOtherDetails: input.nutritionOtherDetails,
           folder: input.folder,
           lastMadeAt: input.lastMadeAt ? new Date(input.lastMadeAt) : null,
           recipeLabels: {
@@ -289,8 +296,6 @@ export const updateRecipe = publicProcedure
           },
         },
       });
-
-      await indexRecipes([recipe]);
 
       return {
         id: recipe.id,

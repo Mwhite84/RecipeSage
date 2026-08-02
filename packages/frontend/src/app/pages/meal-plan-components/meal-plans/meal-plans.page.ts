@@ -1,12 +1,11 @@
-import { Component, inject } from "@angular/core";
+import { Component, computed, inject } from "@angular/core";
 import { NavController, ModalController } from "@ionic/angular/standalone";
 
-import { WebsocketService } from "~/services/websocket.service";
-import { LoadingService } from "~/services/loading.service";
-import { UtilService, RouteMap } from "~/services/util.service";
-import { NewMealPlanModalPage } from "~/pages/meal-plan-components/new-meal-plan-modal/new-meal-plan-modal.page";
+import { WebsocketService } from "../../../services/websocket.service";
+import { LoadingService } from "../../../services/loading.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
+import { NewMealPlanModalPage } from "../new-meal-plan-modal/new-meal-plan-modal.page";
 import { ServerActionsService } from "../../../services/server-actions.service";
-import type { MealPlanSummary, UserPublic } from "@recipesage/prisma";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { NullStateComponent } from "../../../components/null-state/null-state.component";
 import {
@@ -16,17 +15,15 @@ import {
   IonMenuButton,
   IonTitle,
   IonContent,
-  IonRefresher,
-  IonRefresherContent,
   IonList,
   IonItem,
   IonIcon,
   IonLabel,
-  IonBadge,
   IonFab,
   IonFabButton,
+  IonSpinner,
 } from "@ionic/angular/standalone";
-import { add, calendar } from "ionicons/icons";
+import { addOutline, calendarOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -43,20 +40,18 @@ import { addIcons } from "ionicons";
     IonMenuButton,
     IonTitle,
     IonContent,
-    IonRefresher,
-    IonRefresherContent,
     IonList,
     IonItem,
     IonIcon,
     IonLabel,
-    IonBadge,
     IonFab,
     IonFabButton,
+    IonSpinner,
   ],
 })
 export class MealPlansPage {
   constructor() {
-    addIcons({ add, calendar });
+    addIcons({ addOutline, calendarOutline });
   }
 
   private navCtrl = inject(NavController);
@@ -66,56 +61,31 @@ export class MealPlansPage {
   private loadingService = inject(LoadingService);
   private utilService = inject(UtilService);
 
-  me?: UserPublic;
-  mealPlans?: MealPlanSummary[] = [];
+  private meQuery = this.serverActionsService.users.getMe();
+  me = this.meQuery.value;
+  private mealPlansQuery = this.serverActionsService.mealPlans.getMealPlans();
+  mealPlans = computed(() => {
+    const plans = this.mealPlansQuery.value();
+    if (!plans) return plans;
+    return [...plans].sort((a, b) => a.title.localeCompare(b.title));
+  });
 
   ionViewWillEnter() {
-    const loading = this.loadingService.start();
+    this.loadPlans();
 
-    this.mealPlans = undefined;
-
-    Promise.all([this.loadPlans(), this.loadMe()]).finally(() => {
-      loading.dismiss();
-    });
-
-    this.websocketService.on("mealPlan:received", this.onWSEvent);
-    this.websocketService.on("mealPlan:removed", this.onWSEvent);
+    this.websocketService.on("mealplan:updated", this.onWSEvent);
   }
 
   ionViewWillLeave() {
-    this.websocketService.off("mealPlan:received", this.onWSEvent);
-    this.websocketService.off("mealPlan:removed", this.onWSEvent);
+    this.websocketService.off("mealplan:updated", this.onWSEvent);
   }
 
   onWSEvent = () => {
     this.loadPlans();
   };
 
-  refresh(refresher: any) {
-    this.loadPlans().then(
-      () => {
-        refresher.target.complete();
-      },
-      () => {
-        refresher.target.complete();
-      },
-    );
-  }
-
-  async loadMe() {
-    const me = await this.serverActionsService.users.getMe();
-    if (!me) return;
-
-    this.me = me;
-  }
-
-  async loadPlans() {
-    const mealPlans = await this.serverActionsService.mealPlans.getMealPlans();
-    if (!mealPlans) return;
-
-    this.mealPlans = mealPlans.sort((a, b) => {
-      return a.title.localeCompare(b.title);
-    });
+  loadPlans() {
+    this.mealPlansQuery.refresh();
   }
 
   async newMealPlan() {

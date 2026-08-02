@@ -1,6 +1,6 @@
 import { Component } from "@angular/core";
 
-import { RouteMap } from "~/services/util.service";
+import { RouteMap } from "../../../services/util.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { SocialLinksComponent } from "../../../components/social-links/social-links.component";
 import {
@@ -30,6 +30,11 @@ import {
 })
 export class ContactPage {
   defaultBackHref: string = RouteMap.AboutPage.getPath();
+  showEmail = false;
 
   constructor() {}
+
+  revealEmail() {
+    this.showEmail = true;
+  }
 }

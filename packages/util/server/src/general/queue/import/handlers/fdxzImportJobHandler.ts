@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { JobSummary } from "@recipesage/prisma";
-import { type JobMeta } from "@recipesage/prisma";
+import type { ImportJobSummary } from "@recipesage/prisma";
+
 import type { StandardizedRecipeImportEntry } from "../../../../db/index";
 import { importJobFinishCommon } from "../../../index";
 import { userHasCapability } from "../../../../capabilities/index";
 import { cleanLabelTitle, Capabilities } from "@recipesage/util/shared";
 import { downloadS3ToTemp } from "./shared/s3Download";
 import { readdir, readFile, mkdtempDisposable, stat } from "fs/promises";
-import extract from "extract-zip";
+import { safeExtractZip, ZipMalformedError } from "../../../safeExtractZip";
 import xmljs from "xml-js";
 import path from "path";
-import type { JobQueueItem } from "../../JobQueueItem";
+import type { StandardJobQueueItem } from "../../JobQueueItem";
 import { ImportBadFormatError } from "../../../jobs/jobErrors";
 import { debounceJobUpdateProgress } from "../../../jobs/updateJobProgress";
 import { IMPORT_JOB_STEP_COUNT } from "../processImportJob";
@@ -59,10 +59,10 @@ async function findFilesByRegex(
 }
 
 export async function fdxzImportJobHandler(
-  job: JobSummary,
-  queueItem: JobQueueItem,
+  job: ImportJobSummary,
+  queueItem: StandardJobQueueItem,
 ): Promise<void> {
-  const jobMeta = job.meta as JobMeta;
+  const jobMeta = job.meta;
   const importLabels = jobMeta.importLabels || [];
 
   if (!queueItem.storageKey) {
@@ -78,14 +78,12 @@ export async function fdxzImportJobHandler(
   const tempExtractPath = extractDir.path;
 
   try {
-    await extract(downloaded.filePath, { dir: tempExtractPath });
+    await safeExtractZip(downloaded.filePath, tempExtractPath);
 
-    // Was compressed, therefore was likely FDXZ
     xmlPath = path.join(tempExtractPath, "Data.xml");
     extractPath = tempExtractPath;
-  } catch (e: any) {
-    if (e.message === "end of central directory record signature not found") {
-      // Was not compressed - likely just FDX instead of FDXZ
+  } catch (e) {
+    if (e instanceof ZipMalformedError) {
       xmlPath = downloaded.filePath;
       extractPath = undefined;
     } else {
@@ -239,7 +237,7 @@ export async function fdxzImportJobHandler(
 
     standardizedRecipeImportInput.push({
       recipe: {
-        title: attrs.Name || "Untitled",
+        title: attrs.Name || "",
         description,
         notes: notes.filter((n) => n).join("\r\n\r\n"),
         ingredients,

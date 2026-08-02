@@ -9,12 +9,21 @@ import {
 } from "@recipesage/util/server/general";
 
 export const forgotPassword = publicProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/users/forgotPassword",
+      tags: ["users"],
+      summary: "Send a password-reset email to the given address",
+    },
+  })
   .input(
     z.object({
       email: z.string(),
     }),
   )
-  .mutation(async ({ input }) => {
+  .output(z.string())
+  .mutation(async ({ input, ctx }) => {
     const user = await prisma.user.findFirst({
       where: {
         email: input.email.toLowerCase(),
@@ -31,12 +40,13 @@ export const forgotPassword = publicProcedure
     const session = await generateSession(user.id, SessionType.User);
 
     const appuiOrigin = process.env.APP_UI_BASE_URL || "https://recipesage.com";
-    const resetLink = `${appuiOrigin}/#/settings/account?token=${session.token}`;
+    const resetLink = `${appuiOrigin}/app/settings/account?token=${session.token}`;
 
     await sendPasswordResetEmail({
       toAddresses: [user.email],
       ccAddresses: [],
       resetLink,
+      language: ctx.language,
     });
 
     return "Email sent";

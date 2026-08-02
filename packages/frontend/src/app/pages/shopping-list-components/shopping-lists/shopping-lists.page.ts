@@ -1,18 +1,17 @@
-import { Component, inject } from "@angular/core";
+import { Component, computed, inject } from "@angular/core";
 import {
   NavController,
   ModalController,
   ToastController,
 } from "@ionic/angular/standalone";
-import { WebsocketService } from "~/services/websocket.service";
-import { LoadingService } from "~/services/loading.service";
-import { UtilService, RouteMap } from "~/services/util.service";
+import { WebsocketService } from "../../../services/websocket.service";
+import { LoadingService } from "../../../services/loading.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
 
 import { NewShoppingListModalPage } from "../new-shopping-list-modal/new-shopping-list-modal.page";
 import { ShoppingListIgnoreModalPage } from "../shopping-list-ignore-modal/shopping-list-ignore-modal.page";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { NullStateComponent } from "../../../components/null-state/null-state.component";
-import { ShoppingListSummary, UserPublic } from "@recipesage/prisma";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import {
   IonHeader,
@@ -23,8 +22,6 @@ import {
   IonButton,
   IonIcon,
   IonContent,
-  IonRefresher,
-  IonRefresherContent,
   IonPopover,
   IonListHeader,
   IonList,
@@ -33,8 +30,15 @@ import {
   IonBadge,
   IonFab,
   IonFabButton,
+  IonSpinner,
 } from "@ionic/angular/standalone";
-import { add, ban, cart, list, options } from "ionicons/icons";
+import {
+  addOutline,
+  banOutline,
+  cartOutline,
+  listOutline,
+  optionsOutline,
+} from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -53,8 +57,6 @@ import { addIcons } from "ionicons";
     IonButton,
     IonIcon,
     IonContent,
-    IonRefresher,
-    IonRefresherContent,
     IonPopover,
     IonListHeader,
     IonList,
@@ -63,6 +65,7 @@ import { addIcons } from "ionicons";
     IonBadge,
     IonFab,
     IonFabButton,
+    IonSpinner,
   ],
 })
 export class ShoppingListsPage {
@@ -74,50 +77,41 @@ export class ShoppingListsPage {
   loadingService = inject(LoadingService);
   utilService = inject(UtilService);
 
-  me?: UserPublic;
-  shoppingLists?: ShoppingListSummary[] = [];
+  private meQuery = this.serverActionsService.users.getMe();
+  me = this.meQuery.value;
+  private shoppingListsQuery =
+    this.serverActionsService.shoppingLists.getShoppingLists();
+  shoppingLists = computed(() => {
+    const lists = this.shoppingListsQuery.value();
+    if (!lists) return lists;
+    return [...lists].sort((a, b) => a.title.localeCompare(b.title));
+  });
 
   constructor() {
-    addIcons({ add, ban, cart, list, options });
+    addIcons({
+      addOutline,
+      banOutline,
+      cartOutline,
+      listOutline,
+      optionsOutline,
+    });
   }
 
   ionViewWillEnter() {
-    const loading = this.loadingService.start();
+    this.shoppingListsQuery.refresh();
 
-    Promise.all([this.loadLists(), this.loadMe()]).finally(() => {
-      loading.dismiss();
-    });
-
-    this.websocketService.on("shoppingList:received", this.loadLists);
-    this.websocketService.on("shoppingList:removed", this.loadLists);
+    this.websocketService.on(
+      "shoppinglist:updated",
+      this.shoppingListsQuery.refresh,
+    );
   }
 
   ionViewWillLeave() {
-    this.websocketService.off("shoppingList:received", this.loadLists);
-    this.websocketService.off("shoppingList:removed", this.loadLists);
+    this.websocketService.off(
+      "shoppinglist:updated",
+      this.shoppingListsQuery.refresh,
+    );
   }
-
-  async refresh(refresher: any) {
-    await this.loadLists();
-    refresher.target.complete();
-  }
-
-  async loadMe() {
-    const me = await this.serverActionsService.users.getMe();
-    if (!me) return;
-
-    this.me = me;
-  }
-
-  loadLists = async () => {
-    const response =
-      await this.serverActionsService.shoppingLists.getShoppingLists();
-    if (!response) return;
-
-    this.shoppingLists = response.sort((a, b) => {
-      return a.title.localeCompare(b.title);
-    });
-  };
 
   async newShoppingList() {
     const modal = await this.modalCtrl.create({

@@ -1,8 +1,10 @@
 import { ocrFormatRecipeSchema } from "../ml/chatFunctionsVercel";
 import { StandardizedRecipeImportEntry } from "../db";
 import { generateText, Output } from "ai";
-import { AI_MODEL_HIGH, aiProvider } from "./vercel";
+import { aiProvider } from "./vercel";
+import { config } from "../general/config";
 import { metrics } from "../general/metrics";
+import { withLLMRetry } from "./withLLMRetry";
 
 export enum VisionToRecipeInputType {
   Photo,
@@ -23,32 +25,35 @@ export const visionToRecipe = async (
   imageB64: (Uint8Array | ArrayBuffer | Buffer)[],
   inputType: VisionToRecipeInputType,
 ) => {
-  const llmResponse = await generateText({
-    system:
-      "You are a data processor utility. Do not summarize or add information, just format and process into the correct shape. Do not insert your own editorial voice, just clean the text and get it into the correct shape. Leave fields that are not present blank. A header can be denoted in the ingredients, instructions, or notes by prefixing the line with a # sign.",
-    model: aiProvider(AI_MODEL_HIGH),
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: prompts[inputType],
-          },
-          ...imageB64.map(
-            (el) =>
-              ({
-                type: "image",
-                image: el,
-              }) as const,
-          ),
-        ],
-      },
-    ],
-    output: Output.object({
-      schema: ocrFormatRecipeSchema,
+  const llmResponse = await withLLMRetry("vision_to_recipe", () =>
+    generateText({
+      system:
+        "You are a data processor utility. Do not summarize or add information, just format and process into the correct shape. Do not insert your own editorial voice, just clean the text and get it into the correct shape. Leave fields that are not present blank. A header can be denoted in the ingredients, instructions, or notes by prefixing the line with a # sign.",
+      model: aiProvider(config.ai.model.vision),
+      temperature: 0,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompts[inputType],
+            },
+            ...imageB64.map(
+              (el) =>
+                ({
+                  type: "image",
+                  image: el,
+                }) as const,
+            ),
+          ],
+        },
+      ],
+      output: Output.object({
+        schema: ocrFormatRecipeSchema,
+      }),
     }),
-  });
+  );
 
   if (llmResponse.totalUsage.totalTokens !== undefined) {
     metrics.llmTokensConsumed.observe(

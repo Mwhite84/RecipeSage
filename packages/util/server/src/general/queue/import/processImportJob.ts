@@ -1,5 +1,5 @@
 import type { JobSummary } from "@recipesage/prisma";
-import type { JobQueueItem } from "../JobQueueItem";
+import type { StandardJobQueueItem } from "../JobQueueItem";
 import { JobType } from "@recipesage/prisma";
 import { urlsImportJobHandler } from "./handlers/urlsImportJobHandler";
 import { pepperplateImportJobHandler } from "./handlers/pepperplateImportJobHandler";
@@ -15,17 +15,17 @@ import { cookmateImportJobHandler } from "./handlers/cookmateImportJobHandler";
 import { copymethatImportJobHandler } from "./handlers/copymethatImportJobHandler";
 import { fdxzImportJobHandler } from "./handlers/fdxzImportJobHandler";
 import { lcbImportJobHandler } from "./handlers/lcbImportJobHandler";
+import { melaImportJobHandler } from "./handlers/melaImportJobHandler";
+import { croutonImportJobHandler } from "./handlers/croutonImportJobHandler";
 
 export const IMPORT_JOB_STEP_COUNT = 3;
 
 export const processImportJob = async (
   job: JobSummary,
-  jobQueueItem: JobQueueItem,
+  jobQueueItem: StandardJobQueueItem,
 ) => {
-  if (!job.meta || job.type !== JobType.IMPORT) {
-    throw new Error(
-      "Import processor received a non-import job or job without meta",
-    );
+  if (job.type !== JobType.IMPORT) {
+    throw new Error("Import processor received a non-import job");
   }
 
   switch (job.meta.importType) {
@@ -70,6 +70,12 @@ export const processImportJob = async (
       break;
     case "lcb":
       await lcbImportJobHandler(job, jobQueueItem);
+      break;
+    case "mela":
+      await melaImportJobHandler(job, jobQueueItem);
+      break;
+    case "crouton":
+      await croutonImportJobHandler(job, jobQueueItem);
       break;
     default:
       throw new Error(`Unsupported import type: ${job.meta.importType}`);

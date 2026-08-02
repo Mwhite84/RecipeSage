@@ -1,7 +1,8 @@
 import { Component, Input, inject } from "@angular/core";
 import { ModalController } from "@ionic/angular/standalone";
+import type { MealPlanSummary } from "@recipesage/prisma";
 
-import { LoadingService } from "~/services/loading.service";
+import { LoadingService } from "../../../services/loading.service";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { SelectCollaboratorsComponent } from "../../../components/select-collaborators/select-collaborators.component";
@@ -19,7 +20,7 @@ import {
   IonLabel,
   IonFooter,
 } from "@ionic/angular/standalone";
-import { close, list, reorderThree } from "ionicons/icons";
+import { closeOutline, listOutline, reorderThreeOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -45,7 +46,7 @@ import { addIcons } from "ionicons";
 })
 export class UpdateMealPlanModalPage {
   constructor() {
-    addIcons({ close, list, reorderThree });
+    addIcons({ closeOutline, listOutline, reorderThreeOutline });
   }
 
   private modalCtrl = inject(ModalController);
@@ -55,7 +56,7 @@ export class UpdateMealPlanModalPage {
   @Input({
     required: true,
   })
-  mealPlanId!: string;
+  mealPlan!: Readonly<MealPlanSummary>;
 
   mealPlanTitle = "";
   customMealOptions: string | null = null;
@@ -63,24 +64,11 @@ export class UpdateMealPlanModalPage {
   loaded = false;
 
   ionViewWillEnter() {
-    this.load();
-  }
-
-  async load() {
-    const loading = this.loadingService.start();
-
-    const result = await this.serverActionsService.mealPlans.getMealPlan({
-      id: this.mealPlanId,
-    });
-    loading.dismiss();
-    if (!result) return;
-
-    this.mealPlanTitle = result.title;
-    this.customMealOptions = result.customMealOptions;
-    this.selectedCollaboratorIds = result.collaboratorUsers.map(
+    this.mealPlanTitle = this.mealPlan.title;
+    this.customMealOptions = this.mealPlan.customMealOptions;
+    this.selectedCollaboratorIds = this.mealPlan.collaboratorUsers.map(
       (collaboratorUser) => collaboratorUser.user.id,
     );
-
     this.loaded = true;
   }
 
@@ -104,7 +92,7 @@ export class UpdateMealPlanModalPage {
     const loading = this.loadingService.start();
 
     const result = await this.serverActionsService.mealPlans.updateMealPlan({
-      id: this.mealPlanId,
+      id: this.mealPlan.id,
       title: this.mealPlanTitle,
       collaboratorUserIds: this.selectedCollaboratorIds,
       customMealOptions: this.customMealOptions,

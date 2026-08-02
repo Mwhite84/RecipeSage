@@ -1,18 +1,19 @@
-import { Component, ViewChild, inject } from "@angular/core";
+import { Component, ViewChild, effect, inject } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import {
   NavController,
   ModalController,
   PopoverController,
   AlertController,
+  ToastController,
 } from "@ionic/angular/standalone";
 import dayjs from "dayjs";
 import { TranslateService } from "@ngx-translate/core";
 
-import { LoadingService } from "~/services/loading.service";
-import { WebsocketService } from "~/services/websocket.service";
-import { RouteMap } from "~/services/util.service";
-import { PreferencesService } from "~/services/preferences.service";
+import { LoadingService } from "../../../services/loading.service";
+import { WebsocketService } from "../../../services/websocket.service";
+import { RouteMap } from "../../../services/util.service";
+import { PreferencesService } from "../../../services/preferences.service";
 import {
   MealPlanPreferenceKey,
   MealPlanViewTypeOptions,
@@ -20,20 +21,17 @@ import {
   getMealColors,
   DEFAULT_MEAL_COLORS,
 } from "@recipesage/util/shared";
+import type { MealPlanItemDraft } from "../new-meal-plan-item-modal/new-meal-plan-item-modal.page";
 
-import { MealCalendarComponent } from "~/components/meal-calendar/meal-calendar.component";
-import { NullStateComponent } from "~/components/null-state/null-state.component";
+import { MealCalendarComponent } from "../../../components/meal-calendar/meal-calendar.component";
+import { NullStateComponent } from "../../../components/null-state/null-state.component";
 import { NewMealPlanItemModalPage } from "../new-meal-plan-item-modal/new-meal-plan-item-modal.page";
-import { MealPlanPopoverPage } from "~/pages/meal-plan-components/meal-plan-popover/meal-plan-popover.page";
-import { MealPlanItemDetailsModalPage } from "~/pages/meal-plan-components/meal-plan-item-details-modal/meal-plan-item-details-modal.page";
+import { MealPlanPopoverPage } from "../meal-plan-popover/meal-plan-popover.page";
+import { MealPlanItemDetailsModalPage } from "../meal-plan-item-details-modal/meal-plan-item-details-modal.page";
 import { MealPlanBulkPinModalPage } from "@recipesage/frontend/src/app/pages/meal-plan-components/meal-plan-bulk-pin-modal/meal-plan-bulk-pin-modal.page";
-import { AddRecipeToShoppingListModalPage } from "~/pages/recipe-components/add-recipe-to-shopping-list-modal/add-recipe-to-shopping-list-modal.page";
+import { AddRecipeToShoppingListModalPage } from "../../recipe-components/add-recipe-to-shopping-list-modal/add-recipe-to-shopping-list-modal.page";
 import { ServerActionsService } from "../../../services/server-actions.service";
-import type {
-  MealPlanItemSummary,
-  MealPlanSummary,
-  UserPublic,
-} from "@recipesage/prisma";
+import type { MealPlanItemSummary } from "@recipesage/prisma";
 import { Title } from "@angular/platform-browser";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import {
@@ -52,8 +50,15 @@ import {
   IonItem,
   IonFab,
   IonFabButton,
+  IonSpinner,
 } from "@ionic/angular/standalone";
-import { add, calendar, chevronDown, chevronUp, options } from "ionicons/icons";
+import {
+  addOutline,
+  calendarOutline,
+  chevronDownOutline,
+  chevronUpOutline,
+  optionsOutline,
+} from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -80,6 +85,7 @@ import { addIcons } from "ionicons";
     IonItem,
     IonFab,
     IonFabButton,
+    IonSpinner,
   ],
 })
 export class MealPlanPage {
@@ -93,6 +99,7 @@ export class MealPlanPage {
   private modalCtrl = inject(ModalController);
   private popoverCtrl = inject(PopoverController);
   private alertCtrl = inject(AlertController);
+  private toastCtrl = inject(ToastController);
   private titleService = inject(Title);
 
   defaultBackHref: string = RouteMap.MealPlansPage.getPath();
@@ -102,10 +109,35 @@ export class MealPlanPage {
   dayMoveInProgress = false;
   selectedDaysInProgress?: string[];
 
-  me?: UserPublic;
-  mealPlanId: string; // From nav params
-  mealPlan?: MealPlanSummary;
-  mealPlanItems?: MealPlanItemSummary[];
+  private meQuery = this.serverActionsService.users.getMe();
+  me = this.meQuery.value;
+  mealPlanId: string = (() => {
+    const id = this.route.snapshot.paramMap.get("mealPlanId");
+    if (!id) {
+      this.navCtrl.navigateBack(this.defaultBackHref);
+      throw new Error("mealPlanId not provided");
+    }
+    return id;
+  })();
+  private mealPlanQuery = this.serverActionsService.mealPlans.getMealPlan(
+    {
+      id: this.mealPlanId,
+    },
+    {
+      404: () => this.handlePlanNoLongerAvailable(),
+    },
+  );
+  private mealPlanItemsQuery =
+    this.serverActionsService.mealPlans.getMealPlanItems(
+      {
+        mealPlanId: this.mealPlanId,
+      },
+      {
+        404: () => this.handlePlanNoLongerAvailable(),
+      },
+    );
+  mealPlan = this.mealPlanQuery.value;
+  mealPlanItems = this.mealPlanItemsQuery.value;
 
   mealsByDate: {
     [year: number]: {
@@ -134,112 +166,100 @@ export class MealPlanPage {
   listFormattedDates = new Map<string, string>();
   listFormattedWeekdays = new Map<string, string>();
 
-  @ViewChild(MealCalendarComponent, { static: true })
+  reference = "0";
+
+  private handlingPlanNoLongerAvailable = false;
+
+  @ViewChild(MealCalendarComponent, { static: false })
   mealPlanCalendar?: MealCalendarComponent;
 
   constructor() {
-    addIcons({ add, calendar, chevronDown, chevronUp, options });
-    const mealPlanId = this.route.snapshot.paramMap.get("mealPlanId");
-    if (!mealPlanId) {
-      this.navCtrl.navigateBack(this.defaultBackHref);
-      throw new Error("mealPlanId not provided");
-    }
-    this.mealPlanId = mealPlanId;
+    addIcons({
+      addOutline,
+      calendarOutline,
+      chevronDownOutline,
+      chevronUpOutline,
+      optionsOutline,
+    });
+    effect(() => {
+      const mealPlan = this.mealPlan();
+      const mealPlanItems = this.mealPlanItems();
+      if (!mealPlan || !mealPlanItems) return;
+      this.mealColors = getMealColors(mealPlan.customMealOptions);
+      if (
+        this.preferences[MealPlanPreferenceKey.ViewType] ===
+        MealPlanViewTypeOptions.List
+      ) {
+        this.processItemsForListView();
+      }
+      void this.translate
+        .get("generic.labeledPageTitle", { title: mealPlan.title })
+        .toPromise()
+        .then((title) => this.titleService.setTitle(title));
+    });
   }
 
   ionViewWillEnter() {
     this.loadWithProgress();
 
-    this.websocketService.on("mealPlan:itemsUpdated", this.onWSEvent);
+    this.websocketService.on("mealplan:updated", this.onWSEvent);
   }
 
   ionViewWillLeave() {
-    this.websocketService.off("mealPlan:itemsUpdated", this.onWSEvent);
+    this.websocketService.off("mealplan:updated", this.onWSEvent);
   }
 
   onWSEvent = (data: Record<string, string>) => {
-    if (data.mealPlanId === this.mealPlanId) {
+    if (
+      data.mealPlanId === this.mealPlanId &&
+      data.reference !== this.reference
+    ) {
+      this.reference = data.reference;
       this.loadMealPlan();
     }
   };
 
-  refresh(loader: any) {
-    this.loadMealPlan().then(
-      () => {
-        loader.target.complete();
-      },
-      () => {
-        loader.target.complete();
-      },
-    );
+  loadWithProgress() {
+    this.loadMealPlan();
   }
 
-  async loadWithProgress() {
-    const loading = this.loadingService.start();
-    await Promise.all([this.loadMealPlan(), this.loadMe()]).finally(() => {
-      loading.dismiss();
-    });
+  loadMealPlan() {
+    this.mealPlanQuery.refresh();
+    this.mealPlanItemsQuery.refresh();
   }
 
-  async loadMe() {
-    const me = await this.serverActionsService.users.getMe();
-    if (!me) return;
+  async handlePlanNoLongerAvailable() {
+    if (this.handlingPlanNoLongerAvailable) return;
+    this.handlingPlanNoLongerAvailable = true;
 
-    this.me = me;
-  }
-
-  async loadMealPlan() {
-    const [mealPlan, mealPlanItems] = await Promise.all([
-      this.serverActionsService.mealPlans.getMealPlan({
-        id: this.mealPlanId,
-      }),
-      this.serverActionsService.mealPlans.getMealPlanItems({
-        mealPlanId: this.mealPlanId,
-      }),
-    ]);
-    if (!mealPlan || !mealPlanItems) return;
-    this.mealPlan = mealPlan;
-    this.mealPlanItems = mealPlanItems;
-    this.mealColors = getMealColors(this.mealPlan.customMealOptions);
-
-    if (
-      this.preferences[MealPlanPreferenceKey.ViewType] ===
-      MealPlanViewTypeOptions.List
-    ) {
-      this.processItemsForListView();
-    }
-
-    const title = await this.translate
-      .get("generic.labeledPageTitle", {
-        title: this.mealPlan.title,
-      })
+    const message = await this.translate
+      .get("pages.mealPlan.noLongerAvailable")
       .toPromise();
-    this.titleService.setTitle(title);
+
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 5000,
+    });
+    toast.present();
+
+    this.navCtrl.navigateBack(RouteMap.MealPlansPage.getPath());
   }
 
-  async _addItem(item: {
-    title: string;
-    recipeId?: string;
-    meal: string;
-    notes?: string;
-    scheduledDate: string;
-  }) {
+  async _addItems(items: MealPlanItemDraft[]) {
+    if (items.length === 0) return;
+
     const loading = this.loadingService.start();
+
+    const reference = crypto.randomUUID();
+    this.reference = reference;
 
     await this.serverActionsService.mealPlans.createMealPlanItems({
       mealPlanId: this.mealPlanId,
-      items: [
-        {
-          title: item.title,
-          recipeId: item.recipeId || null,
-          meal: item.meal,
-          notes: item.notes,
-          scheduledDate: item.scheduledDate,
-        },
-      ],
+      items,
+      reference,
     });
 
-    await this.loadMealPlan();
+    this.loadMealPlan();
 
     loading.dismiss();
   }
@@ -249,13 +269,13 @@ export class MealPlanPage {
       component: NewMealPlanItemModalPage,
       componentProps: {
         scheduledDate: this.selectedDays[0],
-        customMealOptions: this.mealPlan?.customMealOptions ?? null,
+        customMealOptions: this.mealPlan()?.customMealOptions ?? null,
       },
     });
     modal.present();
     modal.onDidDismiss().then(({ data }) => {
-      if (!data || !data.item) return;
-      this._addItem(data.item);
+      if (!data?.items) return;
+      this._addItems(data.items);
     });
   }
 
@@ -264,8 +284,11 @@ export class MealPlanPage {
       component: MealPlanPopoverPage,
       componentProps: {
         mealPlanId: this.mealPlanId,
-        mealPlan: this.mealPlan,
-        isOwner: this.me?.id === this.mealPlan?.user.id,
+        mealPlan: this.mealPlan(),
+        isOwner: this.me()?.id === this.mealPlan()?.user.id,
+        setReference: (reference: string) => {
+          this.reference = reference;
+        },
         calendarCenter: this.mealPlanCalendar?.center,
         viewType: this.preferences[MealPlanPreferenceKey.ViewType],
       },
@@ -277,7 +300,7 @@ export class MealPlanPage {
     const { data } = await popover.onDidDismiss();
 
     if (data?.reload) {
-      await this.loadWithProgress();
+      this.loadWithProgress();
       this.mealPlanCalendar?.generateCalendar();
     }
     if (data?.copy) this.startBulkCopy();
@@ -285,6 +308,7 @@ export class MealPlanPage {
     if (data?.delete) this.bulkDelete();
     if (data?.pinRecipes) this.bulkPinRecipes();
     if (data?.bulkAddToShoppingList) this.bulkAddToShoppingList();
+    if (data?.calculateNutrition) this.calculateDaysNutrition();
   }
 
   async itemClicked(mealItem: MealPlanItemSummary) {
@@ -293,7 +317,7 @@ export class MealPlanPage {
       componentProps: {
         mealItem,
         mealPlanId: this.mealPlanId,
-        customMealOptions: this.mealPlan?.customMealOptions ?? null,
+        customMealOptions: this.mealPlan()?.customMealOptions ?? null,
       },
     });
     modal.present();
@@ -319,28 +343,22 @@ export class MealPlanPage {
         scheduledDate: dateStamp,
         meal: mealItem.meal,
         notes: mealItem.notes,
-        customMealOptions: this.mealPlan?.customMealOptions ?? null,
+        customMealOptions: this.mealPlan()?.customMealOptions ?? null,
       },
     });
     modal.present();
 
     const { data } = await modal.onDidDismiss();
-    if (!data || !data.item) return;
-    const item = data.item;
+    const item = data?.items?.[0];
+    if (!item) return;
 
     const loading = this.loadingService.start();
+    const reference = crypto.randomUUID();
+    this.reference = reference;
     await this.serverActionsService.mealPlans.updateMealPlanItems({
       mealPlanId: this.mealPlanId,
-      items: [
-        {
-          id: mealItem.id,
-          title: item.title,
-          recipeId: item.recipeId,
-          scheduledDate: item.scheduledDate,
-          meal: item.meal,
-          notes: item.notes,
-        },
-      ],
+      items: [{ id: mealItem.id, ...item }],
+      reference,
     });
     loading.dismiss();
     this.loadWithProgress();
@@ -553,11 +571,83 @@ export class MealPlanPage {
       component: AddRecipeToShoppingListModalPage,
       componentProps: {
         recipes: selectedRecipes,
-        scale: 1,
+        scale: "1",
       },
     });
 
     modal.present();
+  }
+
+  async calculateDaysNutrition() {
+    if (this.getSelectedMealItemCount() === 0) {
+      this.emptyDaysSelectedAlert();
+      return;
+    }
+
+    const selectedItems = this.selectedDays
+      .map((selectedDay) => this.getItemsOnDay(selectedDay))
+      .flat();
+
+    const recipeIds: string[] = [];
+    let manualEntryCount = 0;
+    for (const item of selectedItems) {
+      if (item.recipe) {
+        recipeIds.push(item.recipe.id);
+      } else {
+        manualEntryCount += 1;
+      }
+    }
+
+    if (recipeIds.length === 0) {
+      const header = await this.translate
+        .get("pages.mealPlan.modal.noRecipesNutrition.header")
+        .toPromise();
+      const message = await this.translate
+        .get("pages.mealPlan.modal.noRecipesNutrition.message")
+        .toPromise();
+      const okay = await this.translate.get("generic.okay").toPromise();
+
+      const noRecipesAlert = await this.alertCtrl.create({
+        header,
+        message,
+        buttons: [{ text: okay }],
+      });
+      await noRecipesAlert.present();
+      return;
+    }
+
+    if (manualEntryCount > 0) {
+      const header = await this.translate
+        .get("pages.mealPlan.modal.manualEntriesNutrition.header")
+        .toPromise();
+      const message = await this.translate
+        .get("pages.mealPlan.modal.manualEntriesNutrition.message")
+        .toPromise();
+      const cancel = await this.translate.get("generic.cancel").toPromise();
+      const proceed = await this.translate.get("generic.confirm").toPromise();
+
+      const alert = await this.alertCtrl.create({
+        header,
+        message,
+        buttons: [
+          { text: cancel, role: "cancel" },
+          {
+            text: proceed,
+            handler: () => this.launchNutritionCalculator(recipeIds),
+          },
+        ],
+      });
+      await alert.present();
+      return;
+    }
+
+    this.launchNutritionCalculator(recipeIds);
+  }
+
+  private launchNutritionCalculator(recipeIds: string[]) {
+    this.navCtrl.navigateForward(RouteMap.NutritionCalculatorPage.getPath(), {
+      state: { recipeIds },
+    });
   }
 
   async dayClicked(date: Date) {
@@ -697,9 +787,12 @@ export class MealPlanPage {
       .flat();
 
     const loading = this.loadingService.start();
+    const reference = crypto.randomUUID();
+    this.reference = reference;
     await this.serverActionsService.mealPlans.updateMealPlanItems({
       mealPlanId: this.mealPlanId,
       items: updatedItems,
+      reference,
     });
     loading.dismiss();
     this.loadWithProgress();
@@ -729,9 +822,12 @@ export class MealPlanPage {
       .flat();
 
     const loading = this.loadingService.start();
+    const reference = crypto.randomUUID();
+    this.reference = reference;
     await this.serverActionsService.mealPlans.createMealPlanItems({
       mealPlanId: this.mealPlanId,
       items: newItems,
+      reference,
     });
     loading.dismiss();
     this.loadWithProgress();
@@ -743,9 +839,12 @@ export class MealPlanPage {
       .flat();
 
     const loading = this.loadingService.start();
+    const reference = crypto.randomUUID();
+    this.reference = reference;
     await this.serverActionsService.mealPlans.deleteMealPlanItems({
       mealPlanId: this.mealPlanId,
       ids: itemIds,
+      reference,
     });
     loading.dismiss();
     this.loadWithProgress();
@@ -769,13 +868,14 @@ export class MealPlanPage {
   }
 
   processItemsForListView() {
-    if (!this.mealPlanItems) return;
+    const mealPlanItems = this.mealPlanItems();
+    if (!mealPlanItems) return;
 
-    const sortOrder = getMealSortOrder(this.mealPlan?.customMealOptions);
+    const sortOrder = getMealSortOrder(this.mealPlan()?.customMealOptions);
 
     this.mealsByDate = {};
 
-    [...this.mealPlanItems]
+    [...mealPlanItems]
       .sort((a, b) => {
         const comp =
           (sortOrder.get(a.meal.toLowerCase()) ?? 999) -

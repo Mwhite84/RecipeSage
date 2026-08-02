@@ -1,7 +1,7 @@
 import { Component, inject } from "@angular/core";
 import { NavController } from "@ionic/angular/standalone";
 
-import { RouteMap } from "~/services/util.service";
+import { RouteMap } from "../../../services/util.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { SocialLinksComponent } from "../../../components/social-links/social-links.component";
 import {
@@ -15,7 +15,14 @@ import {
   IonItem,
   IonIcon,
 } from "@ionic/angular/standalone";
-import { archive, heart, help, list, person, send } from "ionicons/icons";
+import {
+  archiveOutline,
+  heartOutline,
+  helpOutline,
+  listOutline,
+  personOutline,
+  sendOutline,
+} from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -39,7 +46,14 @@ import { addIcons } from "ionicons";
 })
 export class AboutPage {
   constructor() {
-    addIcons({ archive, heart, help, list, person, send });
+    addIcons({
+      archiveOutline,
+      heartOutline,
+      helpOutline,
+      listOutline,
+      personOutline,
+      sendOutline,
+    });
   }
 
   navCtrl = inject(NavController);

@@ -1,8 +1,7 @@
-import { publicProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import {
-  WSBoardcastEventType,
+  WSBroadcastEventType,
   broadcastWSEventIgnoringErrors,
-  validateTrpcSession,
 } from "@recipesage/util/server/general";
 import { prisma } from "@recipesage/prisma";
 import { TRPCError } from "@trpc/server";
@@ -11,14 +10,29 @@ import {
   getAccessToMealPlan,
 } from "@recipesage/util/server/db";
 import { createMealPlanItemsInput } from "@recipesage/util/shared";
+import { z } from "zod";
 
-export const createMealPlanItems = publicProcedure
+export const createMealPlanItems = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/mealPlans/createMealPlanItems",
+      tags: ["mealPlans"],
+      summary: "Create multiple meal plan items",
+      protect: true,
+    },
+  })
   .input(createMealPlanItemsInput)
+  .output(
+    z.object({
+      reference: z.uuid(),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    validateTrpcSession(session);
-
-    const access = await getAccessToMealPlan(session.userId, input.mealPlanId);
+    const access = await getAccessToMealPlan(
+      ctx.session.userId,
+      input.mealPlanId,
+    );
 
     if (access.level === MealPlanAccessLevel.None) {
       throw new TRPCError({
@@ -32,7 +46,7 @@ export const createMealPlanItems = publicProcedure
       data: input.items.map((el) => ({
         mealPlanId: input.mealPlanId,
         title: el.title,
-        userId: session.userId,
+        userId: ctx.session.userId,
         scheduledDate: new Date(el.scheduledDate),
         meal: el.meal,
         recipeId: el.recipeId,
@@ -40,11 +54,11 @@ export const createMealPlanItems = publicProcedure
       })),
     });
 
-    const reference = crypto.randomUUID();
+    const reference = input.reference ?? crypto.randomUUID();
     for (const subscriberId of access.subscriberIds) {
       broadcastWSEventIgnoringErrors(
         subscriberId,
-        WSBoardcastEventType.MealPlanUpdated,
+        WSBroadcastEventType.MealPlanUpdated,
         {
           reference,
           mealPlanId: input.mealPlanId,

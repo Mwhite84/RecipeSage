@@ -4,7 +4,7 @@ import {
 } from "@recipesage/prisma";
 import { Prisma } from "@recipesage/prisma";
 import pLimit from "p-limit";
-import { cleanLabelTitle } from "@recipesage/util/shared";
+import { cleanLabelTitle, stripBlankLines } from "@recipesage/util/shared";
 import { userHasCapability } from "../capabilities";
 import { Capabilities } from "@recipesage/util/shared";
 import {
@@ -13,6 +13,7 @@ import {
   writeImageURL,
   ObjectTypes,
 } from "../storage";
+import { translate } from "../general";
 
 export class ImportStandardizedRecipesTooManyRecipesError extends Error {
   constructor(message?: string) {
@@ -40,8 +41,14 @@ const MAX_IMPORT_LIMIT = 35000; // A reasonable cutoff to make sure we don't kil
 export const importStandardizedRecipes = async (
   userId: string,
   entries: StandardizedRecipeImportEntry[],
-  importTempDirectory?: string,
+  language: string,
+  importTempDirectory: string | undefined,
 ) => {
+  const untitledFallback = await translate(
+    language,
+    "pages.recipeDetails.untitled",
+  );
+
   const highResConversion = await userHasCapability(
     userId,
     Capabilities.HighResImages,
@@ -116,7 +123,7 @@ export const importStandardizedRecipes = async (
     async (tx) => {
       const recipes = await tx.recipe.createManyAndReturn({
         data: entries.map((entry) => ({
-          title: (entry.recipe.title || "Untitled").slice(0, 254),
+          title: (entry.recipe.title || untitledFallback).slice(0, 254),
           description: entry.recipe.description || "",
           yield: entry.recipe.yield || "",
           activeTime: entry.recipe.activeTime || "",
@@ -124,8 +131,8 @@ export const importStandardizedRecipes = async (
           source: entry.recipe.source || "",
           url: entry.recipe.url || "",
           notes: entry.recipe.notes || "",
-          ingredients: entry.recipe.ingredients || "",
-          instructions: entry.recipe.instructions || "",
+          ingredients: stripBlankLines(entry.recipe.ingredients || ""),
+          instructions: stripBlankLines(entry.recipe.instructions || ""),
           rating: entry.recipe.rating,
           nutritionServingSize: entry.recipe.nutritionServingSize ?? undefined,
           nutritionCalories: entry.recipe.nutritionCalories ?? undefined,

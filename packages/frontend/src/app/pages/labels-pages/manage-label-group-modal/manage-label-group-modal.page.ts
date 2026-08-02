@@ -4,7 +4,7 @@ import {
   AlertController,
   ToggleCustomEvent,
 } from "@ionic/angular/standalone";
-import { LoadingService } from "~/services/loading.service";
+import { LoadingService } from "../../../services/loading.service";
 import { TranslateService } from "@ngx-translate/core";
 import type { LabelGroupSummary, LabelSummary } from "@recipesage/prisma";
 import { ServerActionsService } from "../../../services/server-actions.service";
@@ -27,7 +27,7 @@ import {
   IonLabel,
   IonFooter,
 } from "@ionic/angular/standalone";
-import { close } from "ionicons/icons";
+import { closeOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -54,7 +54,7 @@ import { addIcons } from "ionicons";
 })
 export class ManageLabelGroupModalPage {
   constructor() {
-    addIcons({ close });
+    addIcons({ closeOutline });
   }
 
   private translate = inject(TranslateService);
@@ -106,7 +106,7 @@ export class ManageLabelGroupModalPage {
     const mapped = labels.map((label) => ({
       id: label.id,
       title: label.title,
-      icon: "pricetag",
+      icon: "pricetag-outline",
     }));
 
     return mapped;

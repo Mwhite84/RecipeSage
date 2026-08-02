@@ -1,27 +1,39 @@
-import type { JobSummary } from "@recipesage/prisma";
-import { type JobMeta } from "@recipesage/prisma";
+import type { ImportJobSummary } from "@recipesage/prisma";
+
 import type { StandardizedRecipeImportEntry } from "../../../../db/index";
 import { importJobFinishCommon } from "../../../index";
 import { ocrImagesToRecipe } from "../../../../ml/index";
 import { downloadS3ToTemp } from "./shared/s3Download";
 import { readdir, readFile, mkdtempDisposable } from "fs/promises";
-import extract from "extract-zip";
+import { safeExtractZip } from "../../../safeExtractZip";
 import path from "path";
-import type { JobQueueItem } from "../../JobQueueItem";
+import type { StandardJobQueueItem } from "../../JobQueueItem";
 import { debounceJobUpdateProgress } from "../../../jobs/updateJobProgress";
 import { IMPORT_JOB_STEP_COUNT } from "../processImportJob";
 import { ImportTooManyRecipesError } from "../../../jobs/jobErrors";
+import * as Sentry from "@sentry/node";
 
 /**
  * A sanity limit so that we don't overload the service or run up a huge bill.
  */
 const MAX_COUNT_LIMIT = 100;
 
+const SUPPORTED_EXTENSIONS = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".heic",
+  ".heif",
+  ".avif",
+]);
+
 export async function imagesImportJobHandler(
-  job: JobSummary,
-  queueItem: JobQueueItem,
+  job: ImportJobSummary,
+  queueItem: StandardJobQueueItem,
 ): Promise<void> {
-  const jobMeta = job.meta as JobMeta;
+  const jobMeta = job.meta;
   const importLabels = jobMeta.importLabels || [];
 
   if (!queueItem.storageKey) {
@@ -33,9 +45,13 @@ export async function imagesImportJobHandler(
 
   await using extractDir = await mkdtempDisposable("/tmp/");
   const extractPath = extractDir.path;
-  await extract(zipPath, { dir: extractPath });
+  await safeExtractZip(zipPath, extractPath);
 
   const fileNames = await readdir(extractPath);
+
+  const imageFileNames = fileNames.filter((fileName) =>
+    SUPPORTED_EXTENSIONS.has(path.extname(fileName).toLowerCase()),
+  );
 
   const standardizedRecipeImportInput: StandardizedRecipeImportEntry[] = [];
 
@@ -44,37 +60,34 @@ export async function imagesImportJobHandler(
     userId: job.userId,
   });
 
-  const totalCount = fileNames.length;
+  const totalCount = imageFileNames.length;
   if (totalCount > MAX_COUNT_LIMIT) {
     throw new ImportTooManyRecipesError();
   }
 
   let processedCount = 0;
-  for (const fileName of fileNames) {
-    const filePath = path.join(extractPath, fileName);
+  let failedCount = 0;
+  for (const fileName of imageFileNames) {
+    try {
+      const filePath = path.join(extractPath, fileName);
 
-    if (
-      !filePath.endsWith(".jpg") &&
-      !filePath.endsWith(".jpeg") &&
-      !filePath.endsWith(".png")
-    ) {
-      continue;
+      const recipeImageBuffer = await readFile(filePath);
+      const images = [filePath];
+
+      const recipe = await ocrImagesToRecipe([recipeImageBuffer]);
+      if (!recipe) {
+        failedCount++;
+      } else {
+        standardizedRecipeImportInput.push({
+          ...recipe,
+          images,
+          labels: [...importLabels],
+        });
+      }
+    } catch (e) {
+      Sentry.captureException(e, { extra: { jobId: job.id } });
+      failedCount++;
     }
-
-    const recipeImageBuffer = await readFile(filePath);
-    const images = [];
-    images.push(filePath);
-
-    const recipe = await ocrImagesToRecipe([recipeImageBuffer]);
-    if (!recipe) {
-      continue;
-    }
-
-    standardizedRecipeImportInput.push({
-      ...recipe,
-      images,
-      labels: importLabels,
-    });
 
     processedCount++;
     onProgress({
@@ -90,5 +103,6 @@ export async function imagesImportJobHandler(
     userId: job.userId,
     standardizedRecipeImportInput,
     importTempDirectory: extractPath,
+    failedCount,
   });
 }

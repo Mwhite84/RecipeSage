@@ -1,15 +1,15 @@
 import { Component, Input, Output, EventEmitter, inject } from "@angular/core";
-import { LoadingService } from "~/services/loading.service";
+import { LoadingService } from "../../services/loading.service";
 import { SHARED_UI_IMPORTS } from "../../providers/shared-ui.provider";
 import { ServerActionsService } from "../../services/server-actions.service";
-import { LabelSummary } from "@recipesage/prisma";
+import type { LabelSummary } from "@recipesage/prisma";
 import {
   IonItem,
   IonIcon,
   IonLabel,
   IonSearchbar,
 } from "@ionic/angular/standalone";
-import { folderOpen, pricetag } from "ionicons/icons";
+import { folderOpenOutline, pricetagOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -42,7 +42,7 @@ export class SelectLabelComponent {
   results: LabelSummary[] = [];
 
   constructor() {
-    addIcons({ folderOpen, pricetag });
+    addIcons({ folderOpenOutline, pricetagOutline });
     this.load();
   }
 

@@ -30,7 +30,10 @@
       }
       <br />
       <a class="scale" (click)="changeScale()">
-        {{ "components.selectIngredients.scale" | translate: { scale: scale } }}
+        {{
+          "components.selectIngredients.scale"
+            | translate: { scale: scaleDisplay }
+        }}
       </a>
     </div>
   }

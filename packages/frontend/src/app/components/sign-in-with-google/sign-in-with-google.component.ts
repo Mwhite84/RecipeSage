@@ -6,6 +6,7 @@ import {
   ElementRef,
   ViewChild,
   type AfterViewInit,
+  type OnDestroy,
   inject,
 } from "@angular/core";
 import { ServerActionsService } from "../../services/server-actions.service";
@@ -15,6 +16,9 @@ import {
 } from "@recipesage/frontend/src/environments/environment";
 import type { SessionDTO } from "@recipesage/prisma";
 import { SHARED_UI_IMPORTS } from "../../providers/shared-ui.provider";
+import { IonButton } from "@ionic/angular/standalone";
+import { getElectronAPI, getIsElectron } from "../../utils/electron";
+import { serverConfig } from "../../utils/serverConfig";
 
 const getGoogleRef = () => {
   return (window as any).google;
@@ -25,22 +29,35 @@ const getGoogleRef = () => {
   selector: "sign-in-with-google",
   templateUrl: "sign-in-with-google.component.html",
   styleUrls: ["./sign-in-with-google.component.scss"],
-  imports: [...SHARED_UI_IMPORTS],
+  imports: [...SHARED_UI_IMPORTS, IonButton],
 })
-export class SignInWithGoogleComponent implements AfterViewInit {
+export class SignInWithGoogleComponent implements AfterViewInit, OnDestroy {
   private serverActionsService = inject(ServerActionsService);
 
   // Can be use to hide the button and only use for prompting
   @Input() showButton = true;
   @Input() autoPrompt = false;
+  @Input() allowRegistration = false;
 
   @Output() signInComplete = new EventEmitter<SessionDTO>();
+  @Output() accountNotFound = new EventEmitter<void>();
 
   @ViewChild("googleButtonContainer", { static: true })
   googleButtonContainer!: ElementRef<HTMLDivElement>;
 
+  isElectron = getIsElectron();
+
+  private removeAuthCodeListener?: () => void;
+
   ngAfterViewInit() {
     if (IS_SELFHOST) return;
+
+    if (this.isElectron) {
+      this.removeAuthCodeListener = getElectronAPI()?.onAuthCode((code) =>
+        this.afterDesktopSignInComplete(code),
+      );
+      return;
+    }
 
     const googleScriptNodeId = "google-auth-script";
     const existingNode = document.getElementById(googleScriptNodeId);
@@ -61,9 +78,42 @@ export class SignInWithGoogleComponent implements AfterViewInit {
     }
   }
 
-  async afterSignInComplete(args: any) {
+  ngOnDestroy() {
+    this.removeAuthCodeListener?.();
+  }
+
+  startDesktopGoogleSignIn() {
+    window.open(
+      `${serverConfig.apiBase}auth/desktop-google?allowRegistration=${this.allowRegistration}`,
+    );
+  }
+
+  async afterDesktopSignInComplete(code: string) {
     const session =
-      await this.serverActionsService.users.signInWithGoogle(args);
+      await this.serverActionsService.users.signInWithDesktopGoogle(
+        {
+          code,
+        },
+        {
+          404: () => this.accountNotFound.emit(),
+        },
+      );
+
+    if (session) {
+      this.signInComplete.emit(session);
+    }
+  }
+
+  async afterSignInComplete(args: any) {
+    const session = await this.serverActionsService.users.signInWithGoogle(
+      {
+        ...args,
+        allowRegistration: this.allowRegistration,
+      },
+      {
+        404: () => this.accountNotFound.emit(),
+      },
+    );
 
     if (session) {
       this.signInComplete.emit(session);

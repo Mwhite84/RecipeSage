@@ -11,6 +11,7 @@ import {
 import { NotFoundError } from "../../errors";
 import { AuthenticationEnforcement, defineHandler } from "../../defineHandler";
 import {
+  getRequestLanguage,
   getShoppingListItemGroupTitles,
   translate,
 } from "@recipesage/util/server/general";
@@ -56,56 +57,29 @@ export const printShoppingListHandler = defineHandler(
       );
     }
 
+    const language = getRequestLanguage(req);
+
     const itemSummaries = getShoppingListItemGroupTitles(
       shoppingList.items,
+      language,
     ) satisfies ShoppingListItemSummary[];
-
-    const languageHeader =
-      req.query.preferredLanguage || req.headers["accept-language"] || "en-us";
     const categoryTitlesToi18n: Record<string, string> = {
       uncategorized: await translate(
-        languageHeader,
+        language,
         "pages.shoppingList.category.uncategorized",
       ),
-      produce: await translate(
-        languageHeader,
-        "pages.shoppingList.category.produce",
-      ),
-      dairy: await translate(
-        languageHeader,
-        "pages.shoppingList.category.dairy",
-      ),
-      meat: await translate(languageHeader, "pages.shoppingList.category.meat"),
-      bakery: await translate(
-        languageHeader,
-        "pages.shoppingList.category.bakery",
-      ),
-      grocery: await translate(
-        languageHeader,
-        "pages.shoppingList.category.grocery",
-      ),
-      liquor: await translate(
-        languageHeader,
-        "pages.shoppingList.category.liquor",
-      ),
-      seafood: await translate(
-        languageHeader,
-        "pages.shoppingList.category.seafood",
-      ),
-      nonfood: await translate(
-        languageHeader,
-        "pages.shoppingList.category.nonfood",
-      ),
-      frozen: await translate(
-        languageHeader,
-        "pages.shoppingList.category.frozen",
-      ),
-      canned: await translate(
-        languageHeader,
-        "pages.shoppingList.category.canned",
-      ),
+      produce: await translate(language, "pages.shoppingList.category.produce"),
+      dairy: await translate(language, "pages.shoppingList.category.dairy"),
+      meat: await translate(language, "pages.shoppingList.category.meat"),
+      bakery: await translate(language, "pages.shoppingList.category.bakery"),
+      grocery: await translate(language, "pages.shoppingList.category.grocery"),
+      liquor: await translate(language, "pages.shoppingList.category.liquor"),
+      seafood: await translate(language, "pages.shoppingList.category.seafood"),
+      nonfood: await translate(language, "pages.shoppingList.category.nonfood"),
+      frozen: await translate(language, "pages.shoppingList.category.frozen"),
+      canned: await translate(language, "pages.shoppingList.category.canned"),
       beverages: await translate(
-        languageHeader,
+        language,
         "pages.shoppingList.category.beverages",
       ),
     };

@@ -7,21 +7,22 @@ import {
 } from "@ionic/angular/standalone";
 import { TranslateService } from "@ngx-translate/core";
 
-import { LoadingService } from "~/services/loading.service";
-import { UtilService, RouteMap } from "~/services/util.service";
-import { PreferencesService } from "~/services/preferences.service";
+import { LoadingService } from "../../../services/loading.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
+import { PreferencesService } from "../../../services/preferences.service";
 import {
   GlobalPreferenceKey,
   ShoppingListPreferenceKey,
 } from "@recipesage/util/shared";
 import { UpdateShoppingListModalPage } from "../update-shopping-list-modal/update-shopping-list-modal.page";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
-import {
+import type {
   ShoppingListItemSummary,
   ShoppingListSummary,
 } from "@recipesage/prisma";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import { ShoppingListCategoryOrderModalPage } from "../shopping-list-category-order-modal/shopping-list-category-order-modal.page";
+import { ShoppingListIgnoreModalPage } from "../shopping-list-ignore-modal/shopping-list-ignore-modal.page";
 import {
   IonList,
   IonListHeader,
@@ -33,11 +34,12 @@ import {
   IonIcon,
 } from "@ionic/angular/standalone";
 import {
-  pencil,
-  print,
-  removeCircle,
-  reorderThree,
-  trash,
+  banOutline,
+  pencilOutline,
+  printOutline,
+  removeCircleOutline,
+  reorderThreeOutline,
+  trashOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -60,7 +62,14 @@ import { addIcons } from "ionicons";
 })
 export class ShoppingListPopoverPage {
   constructor() {
-    addIcons({ pencil, print, removeCircle, reorderThree, trash });
+    addIcons({
+      banOutline,
+      pencilOutline,
+      printOutline,
+      removeCircleOutline,
+      reorderThreeOutline,
+      trashOutline,
+    });
   }
 
   private navCtrl = inject(NavController);
@@ -89,6 +98,7 @@ export class ShoppingListPopoverPage {
     required: true,
   })
   isOwner!: boolean;
+  @Input() setReference?: (reference: string) => void;
 
   preferences = this.preferencesService.preferences;
   preferenceKeys = ShoppingListPreferenceKey;
@@ -96,7 +106,9 @@ export class ShoppingListPopoverPage {
   savePreferences() {
     this.preferencesService.save();
 
-    this.dismiss();
+    this.popoverCtrl.dismiss({
+      reprocessOnly: true,
+    });
   }
 
   dismiss() {
@@ -210,10 +222,18 @@ export class ShoppingListPopoverPage {
   async _deleteList() {
     const loading = this.loadingService.start();
 
-    const response =
-      await this.serverActionsService.shoppingLists.deleteShoppingList({
-        id: this.shoppingListId,
-      });
+    const reference = crypto.randomUUID();
+    this.setReference?.(reference);
+
+    const response = this.isOwner
+      ? await this.serverActionsService.shoppingLists.deleteShoppingList({
+          id: this.shoppingListId,
+          reference,
+        })
+      : await this.serverActionsService.shoppingLists.detachShoppingList({
+          id: this.shoppingListId,
+          reference,
+        });
     loading.dismiss();
     if (!response) return;
 
@@ -228,10 +248,20 @@ export class ShoppingListPopoverPage {
     const modal = await this.modalCtrl.create({
       component: UpdateShoppingListModalPage,
       componentProps: {
-        shoppingListId: this.shoppingListId,
+        shoppingList: this.shoppingList,
       },
     });
 
+    await modal.present();
+    await modal.onDidDismiss();
+
+    this.dismiss();
+  }
+
+  async showIgnoreModal() {
+    const modal = await this.modalCtrl.create({
+      component: ShoppingListIgnoreModalPage,
+    });
     await modal.present();
     await modal.onDidDismiss();
 

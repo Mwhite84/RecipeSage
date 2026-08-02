@@ -205,16 +205,33 @@ ion-badge {
 }
 
 .recipe-group {
+  // Keep aligned with TILE_WIDTH / MOBILE_TWO_COLUMN_MIN_WIDTH in home.page.ts
+  --tile-width: 200px;
+
   display: flex;
   flex-wrap: wrap;
   gap: var(--rs-space-3);
   padding: var(--rs-space-3) var(--rs-space-4);
   justify-content: center;
+
+  // Two columns on narrow phones: reserve row padding plus gap between tiles.
+  @media only screen and (min-width: 375px) and (max-width: 439px) {
+    --tile-width: min(200px, calc((100vw - 32px) / 2));
+    flex-wrap: nowrap;
+  }
+
+  &.single-col .recipe-card {
+    width: 100%;
+
+    img {
+      width: 100%;
+    }
+  }
 }
 
 .recipe-card {
   position: relative;
-  width: 160px;
+  width: var(--tile-width, 160px);
   border-radius: var(--rs-radius-md);
   overflow: hidden;
   background: var(--rs-surface-elevated);
@@ -361,4 +378,12 @@ ion-badge {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+// Upstream: rating control on recipe cards
+rating {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  font-size: 0.875rem;
 }

@@ -10,8 +10,10 @@ import { logError } from "./logError";
 import {
   validateSession,
   extendSession,
+  RateLimitTier,
 } from "@recipesage/util/server/general";
 import { Session } from "@recipesage/prisma";
+import { rateLimitHandler } from "./rateLimitHandler";
 
 const handleServerError = (e: unknown, res: Response) => {
   if (e instanceof ServerError) {
@@ -64,6 +66,7 @@ export const defineHandler = <
   opts: {
     schema: Zodifiable<GParams, GQuery, GBody, GResponse>;
     authentication: GAuthentication;
+    rateLimit?: RateLimitTier;
     beforeHandlers?: Handler[];
     afterHandlers?: Handler[];
   },
@@ -81,6 +84,7 @@ export const defineHandler = <
   ) => Promise<HandlerResult | void>,
 ) => {
   return [
+    ...(opts.rateLimit ? [rateLimitHandler(opts.rateLimit)] : []),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         try {

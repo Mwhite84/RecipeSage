@@ -1,11 +1,12 @@
 import { Component, inject } from "@angular/core";
 import { NavController, ModalController } from "@ionic/angular/standalone";
 
-import { LoadingService } from "~/services/loading.service";
-import { RouteMap } from "~/services/util.service";
+import { LoadingService } from "../../../services/loading.service";
+import { RouteMap } from "../../../services/util.service";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { SelectCollaboratorsComponent } from "../../../components/select-collaborators/select-collaborators.component";
+import { TextInputComponent } from "../../../components/forms/text-input/text-input.component";
 import { MealPlanMealOrderModalPage } from "../meal-plan-meal-order-modal/meal-plan-meal-order-modal.page";
 import {
   IonHeader,
@@ -16,11 +17,10 @@ import {
   IonIcon,
   IonContent,
   IonItem,
-  IonInput,
   IonLabel,
   IonFooter,
 } from "@ionic/angular/standalone";
-import { close, list, reorderThree } from "ionicons/icons";
+import { closeOutline, listOutline, reorderThreeOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -31,6 +31,7 @@ import { addIcons } from "ionicons";
   imports: [
     ...SHARED_UI_IMPORTS,
     SelectCollaboratorsComponent,
+    TextInputComponent,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -39,14 +40,13 @@ import { addIcons } from "ionicons";
     IonIcon,
     IonContent,
     IonItem,
-    IonInput,
     IonLabel,
     IonFooter,
   ],
 })
 export class NewMealPlanModalPage {
   constructor() {
-    addIcons({ close, list, reorderThree });
+    addIcons({ closeOutline, listOutline, reorderThreeOutline });
   }
 
   private navCtrl = inject(NavController);
@@ -87,6 +87,7 @@ export class NewMealPlanModalPage {
 
     this.modalCtrl.dismiss({
       success: true,
+      id: result.id,
     });
     this.navCtrl.navigateForward(RouteMap.MealPlanPage.getPath(result.id));
   }

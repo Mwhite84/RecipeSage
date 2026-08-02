@@ -4,7 +4,7 @@ import {
   AlertController,
   ToggleCustomEvent,
 } from "@ionic/angular/standalone";
-import { LoadingService } from "~/services/loading.service";
+import { LoadingService } from "../../../services/loading.service";
 import { TranslateService } from "@ngx-translate/core";
 import type { LabelGroupSummary, LabelSummary } from "@recipesage/prisma";
 import { ServerActionsService } from "../../../services/server-actions.service";
@@ -13,6 +13,7 @@ import {
   SelectMultipleItemsComponent,
 } from "../../../components/select-multiple-items/select-multiple-items.component";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
+import { TextInputComponent } from "../../../components/forms/text-input/text-input.component";
 import {
   IonHeader,
   IonToolbar,
@@ -23,11 +24,15 @@ import {
   IonContent,
   IonItem,
   IonLabel,
-  IonInput,
   IonToggle,
   IonFooter,
 } from "@ionic/angular/standalone";
-import { arrowBack, close, pricetag, pricetags } from "ionicons/icons";
+import {
+  arrowBackOutline,
+  closeOutline,
+  pricetagOutline,
+  pricetagsOutline,
+} from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -38,6 +43,7 @@ import { addIcons } from "ionicons";
   imports: [
     ...SHARED_UI_IMPORTS,
     SelectMultipleItemsComponent,
+    TextInputComponent,
     IonHeader,
     IonToolbar,
     IonButtons,
@@ -47,14 +53,18 @@ import { addIcons } from "ionicons";
     IonContent,
     IonItem,
     IonLabel,
-    IonInput,
     IonToggle,
     IonFooter,
   ],
 })
 export class NewLabelItemModalPage {
   constructor() {
-    addIcons({ arrowBack, close, pricetag, pricetags });
+    addIcons({
+      arrowBackOutline,
+      closeOutline,
+      pricetagOutline,
+      pricetagsOutline,
+    });
   }
 
   private translate = inject(TranslateService);
@@ -112,7 +122,7 @@ export class NewLabelItemModalPage {
     const mapped = labels.map((label) => ({
       id: label.id,
       title: label.title,
-      icon: "pricetag",
+      icon: "pricetag-outline",
     }));
 
     return mapped;

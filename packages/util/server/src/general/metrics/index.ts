@@ -70,11 +70,18 @@ export const metrics = {
       "form", // Either 'html' or 'url'
     ],
   }),
+  clipCacheLookup: new client.Counter({
+    name: "clip_cache_lookup",
+    help: "A lookup against the clip cache during a url clip",
+    labelNames: [
+      "result", // One of: 'hit' | 'miss'
+    ],
+  }),
   clipStartedProcessing: new client.Counter({
     name: "clip_started_processing",
     help: "A clip started with a given processor. This can happen multiple times for a single clip",
     labelNames: [
-      "method", // One of: 'jsdom' | 'gpt'
+      "method", // One of: 'jsonld' | 'microdata' | 'llm'
     ],
   }),
   clipSuccess: new client.Counter({
@@ -82,7 +89,7 @@ export const metrics = {
     help: "A clip request succeeded",
     labelNames: [
       "form", // Either 'html' or 'url'
-      "method", // One of: 'jsdom' | 'gpt' | 'merged' | 'pdf' | 'image' | 'cached'
+      "method", // One of: 'jsonld' | 'microdata' | 'llm' | 'merged' | 'pdf' | 'image' | 'cached'
     ],
   }),
   clipError: new client.Counter({
@@ -90,7 +97,7 @@ export const metrics = {
     help: "A clip request failed",
     labelNames: [
       "form", // Either 'html' or 'url'
-      "method", // One of: 'jsdom' | 'gpt' | 'pdf' | 'image' | 'timeout' | 'fetch'
+      "method", // One of: 'structured-parse' | 'jsonld' | 'microdata' | 'llm' | 'ungrounded' | 'pdf' | 'image' | 'timeout' | 'fetch' | 'empty'
     ],
   }),
 
@@ -109,6 +116,11 @@ export const metrics = {
     help: "PDF was converted to a recipe",
     labelNames: [],
   }),
+  convertDocumentToRecipe: new client.Counter({
+    name: "convert_document_to_recipe",
+    help: "A document was converted to a recipe",
+    labelNames: [],
+  }),
   convertImageToText: new client.Counter({
     name: "convert_image_to_text",
     help: "Image was converted to text",
@@ -121,11 +133,28 @@ export const metrics = {
     labelNames: ["eventType"],
   }),
 
+  llmRetryAttempt: new client.Counter({
+    name: "llm_retry_attempt",
+    help: "An LLM call returned an unusable response and is being retried. A sustained rise means a model or prompt is producing malformed output",
+    labelNames: ["category", "reason"],
+  }),
+  llmRetryExhausted: new client.Counter({
+    name: "llm_retry_exhausted",
+    help: "An LLM call was still returning an unusable response on the final attempt and the error was rethrown to the caller",
+    labelNames: ["category", "reason"],
+  }),
+
   llmTokensConsumed: new client.Histogram({
     name: "llm_tokens_consumed",
     help: "Every time a request hits the app",
     labelNames: ["category"],
     buckets: [50, 500, 1000, 10_000, 50_000, 200_000, 500_000, 1_000_000],
+  }),
+
+  rateLimitClientIpUnresolved: new client.Counter({
+    name: "rate_limit_client_ip_unresolved",
+    help: "Rate limiting is enabled but the client IP could not be resolved, so the request was allowed through unlimited. A sustained nonzero rate indicates a trust proxy or client IP header misconfiguration",
+    labelNames: [],
   }),
 };
 

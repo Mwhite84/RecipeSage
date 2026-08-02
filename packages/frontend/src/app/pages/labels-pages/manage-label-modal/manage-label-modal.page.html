@@ -6,7 +6,7 @@
 
     <ion-buttons slot="end">
       <ion-button (click)="cancel()">
-        <ion-icon name="close" slot="icon-only"></ion-icon>
+        <ion-icon name="close-outline" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -14,7 +14,7 @@
 
 <ion-content class="ion-padding">
   <ion-item lines="none">
-    <ion-icon name="pricetag" slot="start"></ion-icon>
+    <ion-icon name="pricetag-outline" slot="start"></ion-icon>
     <ion-label>
       <h2 class="ion-text-capitalize">{{ label.title }}</h2>
       <p>
@@ -47,37 +47,107 @@
       </p>
     </ion-label>
   </ion-item>
-
-  <br /><br />
-
-  {{ "pages.manageLabelModal.warning" | translate }}
 </ion-content>
 
 <ion-footer class="ion-padding">
   <ion-button expand="block" (click)="view()">
-    <ion-icon name="folder-open" slot="start"></ion-icon>
+    <ion-icon name="folder-open-outline" slot="start"></ion-icon>
     <ion-label>{{ "pages.manageLabelModal.view" | translate }}</ion-label>
   </ion-button>
 
   <ion-button expand="block" (click)="rename()">
-    <ion-icon name="create" slot="start"></ion-icon>
+    <ion-icon name="create-outline" slot="start"></ion-icon>
     <ion-label>{{ "pages.manageLabelModal.rename" | translate }}</ion-label>
   </ion-button>
 
   <ion-button expand="block" (click)="merge()">
-    <ion-icon name="git-network" slot="start"></ion-icon>
+    <ion-icon name="git-network-outline" slot="start"></ion-icon>
     <ion-label>{{ "pages.manageLabelModal.merge" | translate }}</ion-label>
   </ion-button>
 
   <ion-button expand="block" color="danger" (click)="delete()">
-    <ion-icon name="trash" slot="start"></ion-icon>
+    <ion-icon name="trash-outline" slot="start"></ion-icon>
     <ion-label>{{ "pages.manageLabelModal.delete" | translate }}</ion-label>
   </ion-button>
 
   <ion-button expand="block" color="danger" (click)="deleteWithRecipes()">
-    <ion-icon name="trash" slot="start"></ion-icon>
+    <ion-icon name="trash-outline" slot="start"></ion-icon>
     <ion-label>{{
       "pages.manageLabelModal.deleteWithRecipes" | translate
     }}</ion-label>
   </ion-button>
 </ion-footer>
+
+<ion-modal
+  cssClass="alert-modal"
+  [isOpen]="isRenameModalOpen"
+  (didDismiss)="isRenameModalOpen = false"
+>
+  <ng-template>
+    <div class="alert-modal-inner">
+      <h2>
+        {{
+          "pages.manageLabelModal.rename.header"
+            | translate: { name: label.title }
+        }}
+      </h2>
+      <text-input
+        [(ngModel)]="renameInput"
+        placeholder="{{
+          'pages.manageLabelModal.rename.placeholder' | translate
+        }}"
+      ></text-input>
+      <div class="alert-modal-buttons">
+        <button (click)="isRenameModalOpen = false">
+          {{ "generic.cancel" | translate }}
+        </button>
+        <button (click)="submitRename()">
+          {{ "generic.okay" | translate }}
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<ion-modal
+  cssClass="alert-modal"
+  [isOpen]="isMergeModalOpen"
+  (didDismiss)="isMergeModalOpen = false"
+>
+  <ng-template>
+    <div class="alert-modal-inner">
+      <h2>
+        {{
+          "pages.manageLabelModal.merge.header"
+            | translate: { title: label.title }
+        }}
+      </h2>
+      <p>
+        {{
+          "pages.manageLabelModal.merge.subHeader"
+            | translate: { title: label.title }
+        }}
+      </p>
+      <p>
+        {{
+          "pages.manageLabelModal.merge.message"
+            | translate: { title: label.title }
+        }}
+      </p>
+      <text-input
+        [(ngModel)]="mergeInput"
+        placeholder="{{
+          'pages.manageLabelModal.merge.placeholder' | translate
+        }}"
+      ></text-input>
+      <div class="alert-modal-buttons">
+        <button (click)="isMergeModalOpen = false">
+          {{ "generic.cancel" | translate }}
+        </button>
+        <button (click)="submitMerge()">
+          {{ "generic.confirm" | translate }}
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>

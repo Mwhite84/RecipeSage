@@ -2,8 +2,11 @@ import { Component, Input, inject } from "@angular/core";
 import { ModalController } from "@ionic/angular/standalone";
 import { TranslateService } from "@ngx-translate/core";
 
-import { Recipe } from "~/services/recipe.service";
-import { UtilService, RecipeTemplateModifiers } from "~/services/util.service";
+import type { RecipeSummary } from "@recipesage/prisma";
+import {
+  UtilService,
+  RecipeTemplateModifiers,
+} from "../../../services/util.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { RecipePreviewComponent } from "../../../components/recipe-preview/recipe-preview.component";
 import {
@@ -17,7 +20,7 @@ import {
   IonFooter,
   IonLabel,
 } from "@ionic/angular/standalone";
-import { close, print } from "ionicons/icons";
+import { closeOutline, printOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 export interface PrintOption {
@@ -48,7 +51,7 @@ export interface PrintOption {
 })
 export class PrintRecipeModalPage {
   constructor() {
-    addIcons({ close, print });
+    addIcons({ closeOutline, printOutline });
   }
 
   private translate = inject(TranslateService);
@@ -58,11 +61,11 @@ export class PrintRecipeModalPage {
   @Input({
     required: true,
   })
-  recipe!: Recipe;
+  recipe!: RecipeSummary;
   @Input({
     required: true,
   })
-  scale!: number;
+  scale!: string;
 
   selectedTemplate = -1;
   templates: PrintOption[] = [];
@@ -141,6 +144,7 @@ export class PrintRecipeModalPage {
     const token = this.utilService.getToken();
     for (const template of this.templates) {
       template.modifiers.scale = this.scale;
+      template.modifiers.preferredLanguage = this.translate.getCurrentLang();
       template.url = this.utilService.generateRecipeTemplateURL(
         this.recipe.id,
         template.modifiers,

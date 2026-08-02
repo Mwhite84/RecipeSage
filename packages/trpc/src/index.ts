@@ -1,10 +1,10 @@
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { CreditLimitExceededError } from "@recipesage/util/server/general";
+import {
+  generateOpenApiDocument,
+  createOpenApiExpressMiddleware,
+} from "trpc-to-openapi";
 import { router } from "./trpc";
 import { createContext } from "./context";
-import { getRecipes } from "./procedures/recipes/getRecipes";
-import { searchRecipes } from "./procedures/recipes/searchRecipes";
-import { getSimilarRecipes } from "./procedures/recipes/getSimilarRecipes";
 import { usersRouter } from "./procedures/users/usersRouter";
 import { shoppingListsRouter } from "./procedures/shoppingLists/shoppingListsRouter";
 import { recipesRouter } from "./procedures/recipes/recipesRouter";
@@ -16,8 +16,11 @@ import { mlRouter } from "./procedures/ml/mlRouter";
 import { assistantRouter } from "./procedures/assistant/assistantRouter";
 import { paymentsRouter } from "./procedures/payments/paymentsRouter";
 import { imagesRouter } from "./procedures/images/imagesRouter";
+import { messagesRouter } from "./procedures/messages/messagesRouter";
+import { discoverRouter } from "./procedures/discover/discoverRouter";
 
-const appRouter = router({
+export const appRouter = router({
+  discover: discoverRouter,
   labelGroups: labelGroupsRouter,
   labels: labelsRouter,
   payments: paymentsRouter,
@@ -29,21 +32,25 @@ const appRouter = router({
   ml: mlRouter,
   jobs: jobsRouter,
   images: imagesRouter,
-
-  getRecipes,
-  searchRecipes,
-  getSimilarRecipes,
+  messages: messagesRouter,
 });
 
 export const trpcExpressMiddleware = createExpressMiddleware({
   router: appRouter,
   createContext,
-  responseMeta({ errors }) {
-    if (errors.some((err) => err.cause instanceof CreditLimitExceededError)) {
-      return { status: 420 };
-    }
-    return {};
-  },
+});
+
+export const openApiDocument = generateOpenApiDocument(appRouter, {
+  title: "RecipeSage API",
+  description:
+    "Public REST surface generated from RecipeSage's tRPC router. Procedures are grouped by tRPC sub-router (tag).",
+  version: "1.0.0",
+  baseUrl: "/compat/v2",
+});
+
+export const openApiExpressMiddleware = createOpenApiExpressMiddleware({
+  router: appRouter,
+  createContext,
 });
 
 export type AppRouter = typeof appRouter;

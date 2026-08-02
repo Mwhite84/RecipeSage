@@ -1,5 +1,9 @@
 ---
+import { Picture } from "astro:assets";
 import type { Translator } from "../i18n/translations";
+
+const heroBg =
+  "https://static.recipesage.com/assets/art/chicken-salad-2025-05-03.jpg";
 
 interface Props {
   t: Translator;
@@ -12,6 +16,18 @@ const bookmarklet =
 ---
 
 <section class="download-hero">
+  <Picture
+    src={heroBg}
+    widths={[640, 1280, 1920]}
+    sizes="100vw"
+    formats={["avif", "webp"]}
+    fallbackFormat="jpg"
+    alt=""
+    class="download-hero-bg"
+    loading="eager"
+    decoding="async"
+    inferSize
+  />
   <div class="download-hero-inner">
     <h1>{t("pages.downloadAndInstall.title")}</h1>
     <p class="lead">{t("pages.downloadAndInstall.subtitle")}</p>
@@ -46,7 +62,7 @@ const bookmarklet =
       <li>{t("pages.downloadAndInstall.android.step.1")}</li>
       <li>
         {t("pages.downloadAndInstall.android.step.2")}
-        <span class="icon-hint" aria-label="three vertical dots icon">⋮</span>
+        <span class="icon-hint" aria-label={t("pages.downloadAndInstall.icon.menuDots")}>⋮</span>
       </li>
       <li>{t("pages.downloadAndInstall.android.step.3")}</li>
     </ol>
@@ -79,7 +95,7 @@ const bookmarklet =
       <li>{t("pages.downloadAndInstall.ios.step.1")}</li>
       <li>
         {t("pages.downloadAndInstall.ios.step.2")}
-        <span class="icon-hint" aria-label="share icon">
+        <span class="icon-hint" aria-label={t("pages.downloadAndInstall.icon.share")}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -129,7 +145,7 @@ const bookmarklet =
       <li>{t("pages.downloadAndInstall.desktop.step.1")}</li>
       <li>
         {t("pages.downloadAndInstall.desktop.step.2")}
-        <span class="icon-hint" aria-label="three vertical dots icon">⋮</span>
+        <span class="icon-hint" aria-label={t("pages.downloadAndInstall.icon.menuDots")}>⋮</span>
       </li>
       <li>{t("pages.downloadAndInstall.desktop.step.3")}</li>
     </ol>
@@ -146,13 +162,13 @@ const bookmarklet =
           class="store-link"
           href="https://addons.mozilla.org/en-US/firefox/addon/recipesage/"
           target="_blank"
-          rel="noopener">Install for Firefox</a
+          rel="noopener">{t("pages.downloadAndInstall.extension.installFirefox")}</a
         >
         <a
           class="store-link"
           href="https://chrome.google.com/webstore/detail/oepplnnfceidfaaacjpdpobnjkcpgcpo"
           target="_blank"
-          rel="noopener">Install for Chrome</a
+          rel="noopener">{t("pages.downloadAndInstall.extension.installChrome")}</a
         >
       </p>
     </div>
@@ -177,11 +193,26 @@ const bookmarklet =
 <style>
   .download-hero {
     position: relative;
+    isolation: isolate;
     color: var(--hero-text);
-    background-image: url("/app/assets/stockphotos/chicken-salad-1280.jpg");
-    background-position: center;
-    background-size: cover;
+    overflow: hidden;
     padding: 140px 24px 60px;
+  }
+
+  .download-hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: -1;
+  }
+
+  @media (max-width: 800px) {
+    .download-hero {
+      padding: 50px 24px 50px;
+    }
   }
 
   .download-hero::before {
@@ -313,12 +344,12 @@ const bookmarklet =
   }
 
   .store-link {
-    color: var(--btn-primary-bg);
+    color: var(--accent-text);
     text-shadow: none;
   }
 
   .bookmarklet {
-    color: var(--btn-primary-bg);
+    color: var(--accent-text);
     cursor: grab;
   }
 </style>

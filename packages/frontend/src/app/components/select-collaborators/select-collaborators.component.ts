@@ -12,13 +12,12 @@ import { LoadingService } from "../../services/loading.service";
 import { MessagingService } from "../../services/messaging.service";
 import { ToastController, ModalController } from "@ionic/angular/standalone";
 import { UtilService } from "../../services/util.service";
-import { UserService } from "../../services/user.service";
 import { ServerActionsService } from "../../services/server-actions.service";
 import type { UserPublic } from "@recipesage/prisma";
 import { SHARED_UI_IMPORTS } from "../../providers/shared-ui.provider";
 import { SelectUserComponent } from "../select-user/select-user.component";
 import { IonIcon } from "@ionic/angular/standalone";
-import { trash } from "ionicons/icons";
+import { trashOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -30,12 +29,11 @@ import { addIcons } from "ionicons";
 })
 export class SelectCollaboratorsComponent implements AfterViewInit {
   constructor() {
-    addIcons({ trash });
+    addIcons({ trashOutline });
   }
 
   toastCtrl = inject(ToastController);
   modalCtrl = inject(ModalController);
-  userService = inject(UserService);
   serverActionsService = inject(ServerActionsService);
   utilService = inject(UtilService);
   loadingService = inject(LoadingService);
@@ -65,7 +63,10 @@ export class SelectCollaboratorsComponent implements AfterViewInit {
     }
   }
 
-  async addCollaborator(userProfile: UserPublic) {
+  async addCollaborator(userProfile: UserPublic | undefined) {
+    if (!userProfile) return;
+    if (this.selectedCollaboratorIds.includes(userProfile.id)) return;
+
     this.userProfilesById.set(userProfile.id, userProfile);
     this.selectedCollaboratorIds.push(userProfile.id);
     this.selectedCollaboratorIdsChanged.emit(this.selectedCollaboratorIds);

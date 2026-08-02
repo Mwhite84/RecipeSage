@@ -1,17 +1,24 @@
 import { prisma } from "@recipesage/prisma";
-import { publicProcedure } from "../../trpc";
-import { indexRecipes } from "@recipesage/util/server/search";
+import { authenticatedProcedure } from "../../trpc";
 import {
   MULTIPLE_IMAGES_UNLOCKED_LIMIT,
   userHasCapability,
 } from "@recipesage/util/server/capabilities";
 import { Capabilities } from "@recipesage/util/shared";
-import { validateTrpcSession } from "@recipesage/util/server/general";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getFriendshipIds } from "@recipesage/util/server/db";
 
-export const createRecipe = publicProcedure
+export const createRecipe = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/recipes/createRecipe",
+      tags: ["recipes"],
+      summary: "Create a recipe",
+      protect: true,
+    },
+  })
   .input(
     z.object({
       title: z.string().min(1).max(254),
@@ -55,10 +62,12 @@ export const createRecipe = publicProcedure
       nutritionOtherDetails: z.string().nullable().optional(),
     }),
   )
+  .output(
+    z.object({
+      id: z.uuid(),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    validateTrpcSession(session);
-
     const labelIds = input.labelIds || [];
     const doesNotOwnAssignedLabel = !!(await prisma.label.findFirst({
       where: {
@@ -66,7 +75,7 @@ export const createRecipe = publicProcedure
           in: input.labelIds,
         },
         userId: {
-          not: session.userId,
+          not: ctx.session.userId,
         },
       },
     }));
@@ -79,8 +88,8 @@ export const createRecipe = publicProcedure
     }
 
     if (input.linkedRecipeIds && input.linkedRecipeIds.length > 0) {
-      const friendshipIds = await getFriendshipIds(session.userId);
-      const allowedUserIds = [session.userId, ...friendshipIds.friends];
+      const friendshipIds = await getFriendshipIds(ctx.session.userId);
+      const allowedUserIds = [ctx.session.userId, ...friendshipIds.friends];
 
       const linkedRecipes = await prisma.recipe.findMany({
         where: {
@@ -128,7 +137,7 @@ export const createRecipe = publicProcedure
     }));
 
     const multipleImagesEnabled = await userHasCapability(
-      session.userId,
+      ctx.session.userId,
       Capabilities.MultipleImages,
     );
     if (multipleImagesEnabled) {
@@ -141,7 +150,7 @@ export const createRecipe = publicProcedure
       const recipe = await tx.recipe.create({
         data: {
           title: input.title,
-          userId: session.userId,
+          userId: ctx.session.userId,
           description: input.description,
           yield: input.yield,
           activeTime: input.activeTime,
@@ -205,8 +214,6 @@ export const createRecipe = publicProcedure
           skipDuplicates: true,
         });
       }
-
-      await indexRecipes([recipe]);
 
       return {
         id: recipe.id,

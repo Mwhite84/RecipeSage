@@ -6,27 +6,30 @@ import {
   isRecipeRecognitionSuccess,
   recordCreditsSpent,
 } from "@recipesage/util/server/general";
-import { publicProcedure } from "../../trpc";
-import { assertCreditsAvailableTrpc } from "../../util/assertCreditsAvailableTrpc";
+import { authenticatedProcedure } from "../../trpc";
+import { assertCreditsAvailableTrpc } from "@recipesage/util/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { standardizedRecipeImportEntryForWebSchema } from "@recipesage/prisma";
 
-export const getRecipeFromText = publicProcedure
+export const getRecipeFromText = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/ml/getRecipeFromText",
+      tags: ["ml"],
+      summary: "Extract a recipe from a block of text",
+      protect: true,
+    },
+  })
   .input(
     z.object({
       text: z.string().min(1).max(10000),
     }),
   )
+  .output(standardizedRecipeImportEntryForWebSchema)
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    if (!session) {
-      throw new TRPCError({
-        message: "Must be logged in",
-        code: "UNAUTHORIZED",
-      });
-    }
-
-    await assertCreditsAvailableTrpc(session.userId, "mlTextRecipe");
+    await assertCreditsAvailableTrpc(ctx.session.userId, "mlTextRecipe");
 
     const recognizedRecipe = await textToRecipe(
       input.text,
@@ -40,8 +43,13 @@ export const getRecipeFromText = publicProcedure
     }
 
     if (isRecipeRecognitionSuccess(recognizedRecipe.recipe)) {
-      await recordCreditsSpent(session.userId, "mlTextRecipe");
+      await recordCreditsSpent(ctx.session.userId, "mlTextRecipe");
     }
 
-    return recognizedRecipe;
+    return {
+      ...recognizedRecipe,
+      images: recognizedRecipe.images.filter(
+        (img): img is string => typeof img === "string",
+      ),
+    };
   });

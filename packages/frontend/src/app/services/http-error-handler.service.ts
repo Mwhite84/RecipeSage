@@ -6,7 +6,7 @@ import { TRPCClientError } from "@trpc/client";
 import { AxiosError } from "axios";
 import * as Sentry from "@sentry/browser";
 
-import { AuthPage } from "~/pages/auth/auth.page";
+import { AuthPage } from "../pages/auth/auth.page";
 import { IS_SELFHOST } from "../../environments/environment";
 
 export interface ErrorHandlers {
@@ -30,7 +30,15 @@ export class HttpErrorHandlerService {
         "errors.resourceNotFound",
         "errors.resourceNotFound.message",
       ),
-    420: () => this.presentSimpleAlert("pages.credits.limitReached"),
+    420: () => this.presentCreditLimitNotice(),
+    429: (error) => {
+      // A little brittle, but tRPC doesn't support custom error codes for 420
+      if (error.message === "Daily credit limit reached") {
+        this.presentCreditLimitNotice();
+      } else {
+        this.presentAlert("generic.error", "errors.unexpected");
+      }
+    },
     500: (error) => {
       Sentry.captureException(error);
       this.presentAlert(
@@ -59,17 +67,40 @@ export class HttpErrorHandlerService {
     window.location.reload();
   }
 
-  async presentSimpleAlert(messageKey: string) {
+  async presentCreditLimitNotice() {
     if (this.isErrorAlertOpen) return;
     this.isErrorAlertOpen = true;
 
     try {
-      const message = await this.translate.get(messageKey).toPromise();
+      const header = await this.translate
+        .get("errors.creditsLimitReached.title")
+        .toPromise();
+      const message = await this.translate
+        .get("errors.creditsLimitReached")
+        .toPromise();
+      const moreInfo = await this.translate.get("generic.moreInfo").toPromise();
       const close = await this.translate.get("generic.close").toPromise();
 
       const toast = await this.alertCtrl.create({
+        header,
         message,
-        buttons: [{ text: close, role: "cancel" }],
+        cssClass: "alert-preline",
+        buttons: [
+          {
+            text: moreInfo,
+            handler: () => {
+              window.open(
+                "https://docs.recipesage.com/docs/tutorials/contributing/#usage-limits",
+                "_blank",
+                'rel="noopener"',
+              );
+            },
+          },
+          {
+            text: close,
+            role: "cancel",
+          },
+        ],
       });
 
       await toast.present();

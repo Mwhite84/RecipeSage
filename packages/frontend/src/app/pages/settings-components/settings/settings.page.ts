@@ -14,13 +14,16 @@ import {
 import { PreferencesService } from "../../../services/preferences.service";
 import {
   AppTheme,
+  CookModePreferenceKey,
   encryptUtf8WithRSAKey,
   GlobalPreferenceKey,
+  OfflineModePromptOptions,
   PreferencesSync,
   RecipeDetailsPreferenceKey,
   StartPageOptions,
   SupportedLanguages,
 } from "@recipesage/util/shared";
+import { OfflineModeService } from "../../../services/offline-mode.service";
 import {
   FeatureFlagService,
   FeatureFlagKeys,
@@ -31,11 +34,9 @@ import {
 } from "../../../services/quick-tutorial.service";
 import { SwCommunicationService } from "../../../services/sw-communication.service";
 import { FontSizeModalComponent } from "../../../components/font-size-modal/font-size-modal.component";
-import { MessagingService } from "../../../services/messaging.service";
-import { UserService } from "../../../services/user.service";
+import { LogoutService } from "../../../services/logout.service";
 import { EventName, EventService } from "../../../services/event.service";
 import { RecipeCompletionTrackerService } from "../../../services/recipe-completion-tracker.service";
-import { appIdbStorageManager } from "../../../utils/appIdbStorageManager";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { DebugStoreService } from "../../../services/debugStore.service";
 import { DEBUG_DUMP_PUBLIC_KEY } from "../../../utils/localDb/DEBUG_DUMP_PUBLIC_KEY";
@@ -57,21 +58,26 @@ import {
   IonSelectOption,
 } from "@ionic/angular/standalone";
 import {
-  brush,
-  bug,
+  brushOutline,
+  bugOutline,
   caretDownSharp,
-  close,
-  cloudDownload,
-  cloudUpload,
-  fitness,
+  closeOutline,
+  cloudDownloadOutline,
+  cloudOfflineOutline,
+  cloudUploadOutline,
+  fitnessOutline,
   homeOutline,
   languageOutline,
-  logOut,
-  person,
-  sync,
-  tabletLandscape,
+  listOutline,
+  logOutOutline,
+  notificationsOutline,
+  personOutline,
+  restaurantOutline,
+  serverOutline,
+  syncOutline,
+  tabletLandscapeOutline,
   textOutline,
-  trashBin,
+  trashBinOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -109,21 +115,32 @@ export class SettingsPage {
   private preferencesService = inject(PreferencesService);
   private featureFlagService = inject(FeatureFlagService);
   private quickTutorialService = inject(QuickTutorialService);
-  private messagingService = inject(MessagingService);
-  private userService = inject(UserService);
+  private logoutService = inject(LogoutService);
   private recipeCompletionTrackerService = inject(
     RecipeCompletionTrackerService,
   );
   private debugStoreService = inject(DebugStoreService);
+  private offlineModeService = inject(OfflineModeService);
 
   preferences = this.preferencesService.preferences;
   preferenceKeys = GlobalPreferenceKey;
+  offlineModePromptOptions = OfflineModePromptOptions;
   recipeDetailsPreferenceKeys = RecipeDetailsPreferenceKey;
+
+  get offlineModeEnabled(): boolean {
+    return this.offlineModeService.enabled;
+  }
+
+  set offlineModeEnabled(value: boolean) {
+    this.offlineModeService.setEnabled(value);
+  }
 
   featureFlags = this.featureFlagService.flags;
   featureFlagKeys = FeatureFlagKeys;
 
   showSplitPaneOption = false;
+  showServerSettings =
+    this.featureFlagService.flags[FeatureFlagKeys.EnableServerSettings];
 
   language: SupportedLanguages | "navigator" =
     this.preferences[GlobalPreferenceKey.Language] || "navigator";
@@ -131,26 +148,32 @@ export class SettingsPage {
   languageSelectInterfaceOptions = {};
 
   fontSize = this.preferences[GlobalPreferenceKey.FontSize];
+  cookModeFontSize = this.preferences[CookModePreferenceKey.FontSize];
   startPageOptions = StartPageOptions;
   isLoggedIn: boolean = false;
 
   constructor() {
     addIcons({
-      brush,
-      bug,
+      brushOutline,
+      bugOutline,
       caretDownSharp,
-      close,
-      cloudDownload,
-      cloudUpload,
-      fitness,
+      closeOutline,
+      cloudDownloadOutline,
+      cloudOfflineOutline,
+      cloudUploadOutline,
+      fitnessOutline,
       homeOutline,
       languageOutline,
-      logOut,
-      person,
-      sync,
-      tabletLandscape,
+      listOutline,
+      logOutOutline,
+      notificationsOutline,
+      personOutline,
+      restaurantOutline,
+      serverOutline,
+      syncOutline,
+      tabletLandscapeOutline,
       textOutline,
-      trashBin,
+      trashBinOutline,
     });
     try {
       this.showSplitPaneOption = screen.width >= 1200;
@@ -194,22 +217,10 @@ export class SettingsPage {
     this.isLoggedIn = this.utilService.isLoggedIn();
   }
 
-  async _logout() {
-    localStorage.removeItem("token");
-    this.events.publish(EventName.Auth);
-    await appIdbStorageManager.deleteAllData();
+  async logout() {
+    await this.logoutService.logout();
 
     this.navCtrl.navigateRoot(RouteMap.AuthPage.getPath(AuthType.Login));
-  }
-
-  logout() {
-    this.messagingService.disableNotifications();
-
-    this.userService.logout({
-      "*": () => {},
-    });
-
-    this._logout();
   }
 
   savePreferences() {
@@ -421,6 +432,29 @@ export class SettingsPage {
     this.fontSizeChanged();
   }
 
+  cookModeFontSizeChanged() {
+    this.preferences[CookModePreferenceKey.FontSize] = this.cookModeFontSize;
+    this.preferencesService.save();
+  }
+
+  async showCookModeFontSizePopover() {
+    const fontSizeModal = await this.modalCtrl.create({
+      component: FontSizeModalComponent,
+      componentProps: {
+        fontSize: this.cookModeFontSize,
+      },
+    });
+
+    await fontSizeModal.present();
+
+    const { data } = await fontSizeModal.onDidDismiss();
+    if (!data) return;
+
+    this.cookModeFontSize = data.fontSize;
+
+    this.cookModeFontSizeChanged();
+  }
+
   themeChanged() {
     this.preferencesService.save();
 
@@ -476,7 +510,15 @@ export class SettingsPage {
     this.navCtrl.navigateForward(RouteMap.ExportPage.getPath());
   }
 
+  goToJobs() {
+    this.navCtrl.navigateForward(RouteMap.JobsPage.getPath());
+  }
+
   goToAccount() {
     this.navCtrl.navigateForward(RouteMap.AccountPage.getPath());
+  }
+
+  goToServerSettings() {
+    this.navCtrl.navigateForward(RouteMap.ServerSettingsPage.getPath());
   }
 }

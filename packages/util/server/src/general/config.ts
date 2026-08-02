@@ -4,10 +4,14 @@ enum Environment {
   Test = "test",
   Development = "development",
   All = "all",
+  AllRuntime = "all-runtime",
 }
 
 const getEnvString = <
-  T extends Exclude<Environment, Environment.All>[] | Environment.All,
+  T extends
+    | Exclude<Environment, Environment.All | Environment.AllRuntime>[]
+    | Environment.All
+    | Environment.AllRuntime,
   R extends T extends Environment.All ? string : string | undefined,
 >(
   name: string,
@@ -18,6 +22,8 @@ const getEnvString = <
   let isRequired;
   if (requiredEnvironments === Environment.All) {
     isRequired = true;
+  } else if (requiredEnvironments === Environment.AllRuntime) {
+    isRequired = (process.env.NODE_ENV || "production") !== Environment.Test;
   } else {
     const _requiredEnvironments = requiredEnvironments as Environment[];
     const nodeEnv = process.env.NODE_ENV || "production";
@@ -31,7 +37,27 @@ const getEnvString = <
   return value as R;
 };
 
+const rateLimitRedisHost = getEnvString("RATE_LIMIT_REDIS_HOST", []);
+
 export const config = {
+  api: {
+    publicUrl: getEnvString("API_PUBLIC_BASE_URL", Environment.All),
+  },
+  rateLimit: {
+    enabled:
+      getEnvString("RATE_LIMIT_ENABLED", []) !== "false" &&
+      !!rateLimitRedisHost,
+    redisHost: rateLimitRedisHost,
+    redisPort: parseInt(
+      getEnvString("RATE_LIMIT_REDIS_PORT", []) || "6379",
+      10,
+    ),
+    clientIpHeader: getEnvString(
+      "RATE_LIMIT_CLIENT_IP_HEADER",
+      [],
+    )?.toLowerCase(),
+    trustProxyHops: parseInt(getEnvString("TRUST_PROXY_HOPS", []) || "0", 10),
+  },
   google: {
     gsi: {
       clientId: getEnvString("GOOGLE_GSI_CLIENT_ID", [Environment.Prod]),
@@ -44,4 +70,47 @@ export const config = {
     url: getEnvString("GRIP_URL", Environment.All),
     key: getEnvString("GRIP_KEY", Environment.All),
   },
+  ai: {
+    provider:
+      getEnvString("AI_PROVIDER", Environment.AllRuntime) || "openrouter",
+    model: {
+      webpage:
+        getEnvString("AI_MODEL_WEBPAGE", Environment.AllRuntime) ||
+        "google/gemini-2.5-flash-lite",
+      text:
+        getEnvString("AI_MODEL_TEXT", Environment.AllRuntime) ||
+        "google/gemini-2.5-flash-lite",
+      ocr:
+        getEnvString("AI_MODEL_OCR", Environment.AllRuntime) ||
+        "google/gemini-2.5-flash",
+      document:
+        getEnvString("AI_MODEL_DOCUMENT", Environment.AllRuntime) ||
+        "google/gemini-2.5-flash",
+      vision:
+        getEnvString("AI_MODEL_VISION", Environment.AllRuntime) ||
+        "anthropic/claude-sonnet-4.6",
+      moderation:
+        getEnvString("AI_MODEL_MODERATION", Environment.AllRuntime) ||
+        "google/gemini-2.5-flash",
+      nutrition:
+        getEnvString("AI_MODEL_NUTRITION", Environment.AllRuntime) ||
+        "google/gemini-2.5-flash-lite",
+      assistant:
+        getEnvString("AI_MODEL_ASSISTANT", Environment.AllRuntime) ||
+        "anthropic/claude-sonnet-4.6",
+      assistantLow:
+        getEnvString("AI_MODEL_ASSISTANT_LOW", Environment.AllRuntime) ||
+        "google/gemini-2.5-flash",
+    },
+  },
 };
+
+if (
+  config.rateLimit.enabled &&
+  !config.rateLimit.clientIpHeader &&
+  !config.rateLimit.trustProxyHops
+) {
+  throw new Error(
+    "Rate limiting is enabled (RATE_LIMIT_REDIS_HOST is set) but no trusted client IP source is configured. Set RATE_LIMIT_CLIENT_IP_HEADER (e.g. x-envoy-external-address) or TRUST_PROXY_HOPS, otherwise all clients collapse into a single rate limit bucket.",
+  );
+}

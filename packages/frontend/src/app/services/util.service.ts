@@ -6,7 +6,7 @@ import {
   SupportedLanguages,
 } from "@recipesage/util/shared";
 import { NavController } from "@ionic/angular/standalone";
-import { getBase } from "../utils/getBase";
+import { serverConfig } from "../utils/serverConfig";
 
 export interface RecipeTemplateModifiers {
   version?: string;
@@ -19,7 +19,8 @@ export interface RecipeTemplateModifiers {
   printPreview?: boolean;
   showPrintButton?: boolean;
   print?: boolean; // Triggers immediate print
-  scale?: number;
+  scale?: string;
+  preferredLanguage?: string;
 }
 
 // TODO: Create more types for various page getPath methods
@@ -156,6 +157,48 @@ export const RouteMap = {
     },
     path: "recipe/:recipeId",
   },
+  RecipePageCook: {
+    getPath(recipeId: string) {
+      return `/recipe/${recipeId}/cook`;
+    },
+    path: "recipe/:recipeId/cook",
+  },
+  DiscoverPage: {
+    getPath(filters?: { categories?: string[] }) {
+      let url = `/discover`;
+      if (filters?.categories?.length) {
+        url += `?categories=${filters.categories
+          .map((category) => encodeURIComponent(category))
+          .join(",")}`;
+      }
+      return url;
+    },
+    path: "discover",
+  },
+  DiscoverRecipePage: {
+    getPath(discoverRecipeId: string) {
+      return `/discover/${discoverRecipeId}`;
+    },
+    path: "discover/:discoverRecipeId",
+  },
+  PublishDiscoverRecipePage: {
+    getPath(recipeId: string) {
+      return `/recipe/${recipeId}/publish`;
+    },
+    path: "recipe/:recipeId/publish",
+  },
+  EditDiscoverRecipePage: {
+    getPath(discoverRecipeId: string) {
+      return `/discover/${discoverRecipeId}/edit`;
+    },
+    path: "discover/:discoverRecipeId/edit",
+  },
+  DiscoverRecipePageCook: {
+    getPath(discoverRecipeId: string) {
+      return `/discover/${discoverRecipeId}/cook`;
+    },
+    path: "discover/:discoverRecipeId/cook",
+  },
   SettingsPage: {
     getPath() {
       return `/settings`;
@@ -192,6 +235,60 @@ export const RouteMap = {
     },
     path: "settings/export",
   },
+  JobsPage: {
+    getPath() {
+      return `/settings/jobs`;
+    },
+    path: "settings/jobs",
+  },
+  ServerSettingsPage: {
+    getPath() {
+      return `/settings/server`;
+    },
+    path: "settings/server",
+  },
+  ToolsPage: {
+    getPath() {
+      return `/tools`;
+    },
+    path: "tools",
+  },
+  CookbookGeneratorPage: {
+    getPath() {
+      return `/tools/cookbook`;
+    },
+    path: "tools/cookbook",
+  },
+  NutritionCalculatorPage: {
+    getPath() {
+      return `/tools/nutrition`;
+    },
+    path: "tools/nutrition",
+  },
+  MeasurementConverterPage: {
+    getPath() {
+      return `/tools/conversions`;
+    },
+    path: "tools/conversions",
+  },
+  CookingTemperaturesPage: {
+    getPath() {
+      return `/tools/cooking-temperatures`;
+    },
+    path: "tools/cooking-temperatures",
+  },
+  PanBakewareConverterPage: {
+    getPath() {
+      return `/tools/pan-bakeware-converter`;
+    },
+    path: "tools/pan-bakeware-converter",
+  },
+  SearchByIngredientsPage: {
+    getPath() {
+      return `/tools/search-by-ingredients`;
+    },
+    path: "tools/search-by-ingredients",
+  },
   ImportPage: {
     getPath() {
       return `/settings/import`;
@@ -209,6 +306,18 @@ export const RouteMap = {
       return `/settings/import/paprika`;
     },
     path: "settings/import/paprika",
+  },
+  ImportMelaPage: {
+    getPath() {
+      return `/settings/import/mela`;
+    },
+    path: "settings/import/mela",
+  },
+  ImportCroutonPage: {
+    getPath() {
+      return `/settings/import/crouton`;
+    },
+    path: "settings/import/crouton",
   },
   ImportJSONLDPage: {
     getPath() {
@@ -315,9 +424,17 @@ const defaultLocality = {
   sv: SupportedLanguages.SV,
   ro: SupportedLanguages.RO,
   cs: SupportedLanguages.CS,
+  ar: SupportedLanguages.AR_SA,
+  hi: SupportedLanguages.HI,
+  ko: SupportedLanguages.KO,
+  nb: SupportedLanguages.NB_NO,
+  tr: SupportedLanguages.TR,
+  "zh-tw": SupportedLanguages.ZH_HANT,
+  "zh-hk": SupportedLanguages.ZH_HANT,
+  "zh-mo": SupportedLanguages.ZH_HANT,
 };
 
-const rtlLanguages = [SupportedLanguages.HE];
+const rtlLanguages = [SupportedLanguages.HE, SupportedLanguages.AR_SA];
 
 @Injectable({
   providedIn: "root",
@@ -346,19 +463,24 @@ export class UtilService {
     // Navigator language can be in the form 'en', or 'en-us' for any given language
     const navLang = window.navigator.language.toLowerCase();
     const navLangNoRegion = navLang.split("-")[0];
-    const defaultLocalized =
-      navLangNoRegion in defaultLocality
-        ? defaultLocality[navLangNoRegion as keyof typeof defaultLocality]
+    const lookup = (key: string) =>
+      key in defaultLocality
+        ? defaultLocality[key as keyof typeof defaultLocality]
         : undefined;
 
     // We always prefer to return the exact language the navigator requested if we have it
     if (isSupported(navLang)) return navLang;
 
+    // Look for a region-specific default mapping (e.g. zh-tw -> zh-hant)
+    const regionDefault = lookup(navLang);
+    if (isSupported(regionDefault)) return regionDefault;
+
     // Look for a language with no locality ('en')
     if (isSupported(navLangNoRegion)) return navLangNoRegion;
 
     // Look for a language with a locality we have a 'default locality' mapping for as a last resort
-    if (isSupported(defaultLocalized)) return defaultLocalized;
+    const baseDefault = lookup(navLangNoRegion);
+    if (isSupported(baseDefault)) return baseDefault;
 
     return SupportedLanguages.EN_US;
   }
@@ -370,10 +492,6 @@ export class UtilService {
     } else {
       document.documentElement.dir = "ltr";
     }
-  }
-
-  getBase() {
-    return getBase();
   }
 
   setFontSize(fontSize: SupportedFontSize) {
@@ -417,7 +535,7 @@ export class UtilService {
       query += `&preferredLanguage=${options.preferredLanguage}`;
     if (options.sortBy) query += `&sortBy=${options.sortBy}`;
 
-    return `${this.getBase()}print/shoppingList/${shoppingListId}${query}`;
+    return `${serverConfig.apiBase}print/shoppingList/${shoppingListId}${query}`;
   }
 
   generatePrintMealPlanURL(
@@ -443,7 +561,7 @@ export class UtilService {
     if (options.preferredLanguage)
       query += `&preferredLanguage=${options.preferredLanguage}`;
 
-    return `${this.getBase()}print/mealPlan/${mealPlanId}${query}`;
+    return `${serverConfig.apiBase}print/mealPlan/${mealPlanId}${query}`;
   }
 
   generateRecipeTemplateURL(
@@ -456,7 +574,7 @@ export class UtilService {
       .map(([key, value]) => `${key}=${value}`)
       .join("&");
 
-    const url = `${this.getBase()}print/recipe/${recipeId}?${modifierQuery}`;
+    const url = `${serverConfig.apiBase}print/recipe/${recipeId}?${modifierQuery}`;
 
     return url;
   }

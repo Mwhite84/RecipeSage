@@ -1,12 +1,16 @@
 ---
+import { Image } from "astro:assets";
 import {
   DEFAULT_LOCALE,
   LOCALE_NAMES,
-  SUPPORTED_LOCALES,
+  WWW_SUPPORTED_LOCALES,
   localePath,
   toBcp47,
   type Translator,
 } from "../i18n/translations";
+
+const brandLogo =
+  "https://static.recipesage.com/assets/icons/logo-white-trimmed-2025-05-03.png";
 
 interface Props {
   t: Translator;
@@ -25,11 +29,14 @@ const downloadHref = localePath(locale, "/download");
 
 <nav class="site-nav">
   <a class="brand" href={homeHref}>
-    <img
-      src="/app/assets/recipesage-white-trimmed.png"
+    <Image
+      src={brandLogo}
       alt="RecipeSage"
-      height="32"
-      width="auto"
+      width={87}
+      height={32}
+      densities={[1, 2]}
+      loading="eager"
+      decoding="async"
     />
   </a>
 
@@ -49,7 +56,7 @@ const downloadHref = localePath(locale, "/download");
     <details class="lang-switcher">
       <summary
         aria-haspopup="menu"
-        aria-label={`Language: ${currentName}`}
+        aria-label={`${t("pages.www.nav.language")}: ${currentName}`}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -72,7 +79,7 @@ const downloadHref = localePath(locale, "/download");
       </summary>
       <ul class="lang-menu" role="menu">
         {
-          SUPPORTED_LOCALES.map((loc) => (
+          WWW_SUPPORTED_LOCALES.map((loc) => (
             <li role="none">
               <a
                 role="menuitem"
@@ -212,7 +219,7 @@ const downloadHref = localePath(locale, "/download");
     padding: 6px 0;
     position: absolute;
     top: 100%;
-    right: 0;
+    inset-inline-end: 0;
     min-width: 220px;
     max-height: min(60vh, 480px);
     overflow: auto;
@@ -245,7 +252,7 @@ const downloadHref = localePath(locale, "/download");
 
   .lang-menu a[aria-current="true"] {
     font-weight: 600;
-    color: var(--btn-primary-bg);
+    color: var(--accent-text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -254,14 +261,35 @@ const downloadHref = localePath(locale, "/download");
     }
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 800px) {
     .site-nav {
-      padding: 16px 20px;
-      gap: 8px 16px;
+      justify-content: flex-start;
+      gap: 10px 18px;
     }
 
     .site-nav .links {
-      gap: 16px;
+      display: contents;
+    }
+
+    .lang-switcher {
+      margin-inline-start: auto;
+    }
+
+    .lang-menu {
+      max-width: calc(100vw - 32px);
+    }
+  }
+
+  @media all and (display-mode: standalone) {
+    .site-nav .links > a {
+      display: none;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .site-nav {
+      padding: 16px 20px;
+      gap: 8px 14px;
     }
 
     .site-nav .links > a {

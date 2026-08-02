@@ -2,12 +2,19 @@
 import Nav from "./Nav.astro";
 import {
   DEFAULT_LOCALE,
-  SUPPORTED_LOCALES,
+  WWW_SUPPORTED_LOCALES,
+  isRtl,
   localePath,
   makeTranslator,
   toBcp47,
+  toOgLocale,
   type Translator,
 } from "../i18n/translations";
+
+interface Breadcrumb {
+  name: string;
+  url: string;
+}
 
 interface Props {
   locale?: string;
@@ -18,7 +25,9 @@ interface Props {
   ogType?: string;
   noindex?: boolean;
   structuredData?: unknown;
+  breadcrumbs?: Breadcrumb[];
   redirectLoggedIn?: boolean;
+  availableLocales?: string[];
 }
 
 const {
@@ -26,18 +35,20 @@ const {
   t = makeTranslator(DEFAULT_LOCALE),
   title = "RecipeSage - Free Recipe Keeper, Meal Planner, and Shopping List",
   description = "Save, organize, and share recipes with RecipeSage. Auto-import recipes from any website, plan meals, generate smart shopping lists, and sync across Web, iOS, and Android. Free and open source.",
-  image = "https://recipesage.com/assets/recipesage-black-trimmed.png",
+  image = "https://static.recipesage.com/assets/icons/logo-black-trimmed-2025-05-03.png",
   ogType = "website",
   noindex = false,
   structuredData = null,
+  breadcrumbs,
   redirectLoggedIn = false,
+  availableLocales = WWW_SUPPORTED_LOCALES,
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const homeHref = locale === DEFAULT_LOCALE ? "/" : `/${locale}/`;
 
 const stripLocalePrefix = (pathname: string): string => {
-  for (const loc of SUPPORTED_LOCALES) {
+  for (const loc of WWW_SUPPORTED_LOCALES) {
     if (loc === DEFAULT_LOCALE) continue;
     if (pathname === `/${loc}` || pathname === `/${loc}/`) return "/";
     if (pathname.startsWith(`/${loc}/`)) return pathname.slice(loc.length + 1);
@@ -56,7 +67,27 @@ const alternateUrlFor = (loc: string) => {
 const localeHomeURL = new URL(homeHref, Astro.site).toString();
 
 const htmlLang = toBcp47(locale);
+const htmlDir = isRtl(locale) ? "rtl" : "ltr";
+const ogLocale = toOgLocale(locale);
+const ogLocaleAlternates = availableLocales
+  .filter((loc) => loc !== locale)
+  .map((loc) => toOgLocale(loc));
 const aboutHref = localePath(locale, "/about");
+
+const withTrailingSlash = (url: string) =>
+  url.endsWith("/") ? url : `${url}/`;
+
+const breadcrumbGraphItem = breadcrumbs?.length
+  ? {
+      "@type": "BreadcrumbList",
+      "itemListElement": breadcrumbs.map((crumb, idx) => ({
+        "@type": "ListItem",
+        "position": idx + 1,
+        "name": crumb.name,
+        "item": new URL(withTrailingSlash(crumb.url), Astro.site).toString(),
+      })),
+    }
+  : null;
 
 const defaultStructuredData = {
   "@context": "https://schema.org",
@@ -68,9 +99,13 @@ const defaultStructuredData = {
       "url": "https://recipesage.com/",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://recipesage.com/assets/recipesage-black-trimmed.png",
+        "url": "https://static.recipesage.com/assets/icons/logo-black-trimmed-2025-05-03.png",
       },
-      "sameAs": ["https://github.com/julianpoy/recipesage"],
+      "sameAs": [
+        "https://github.com/julianpoy/recipesage",
+        "https://discord.gg/yCfzBft",
+        "https://www.facebook.com/recipesageofficial/",
+      ],
     },
     {
       "@type": "WebSite",
@@ -87,14 +122,14 @@ const defaultStructuredData = {
       "operatingSystem": ["Web", "iOS", "Android"],
       "url": localeHomeURL,
       "inLanguage": htmlLang,
-      "description":
-        "A free recipe keeper, meal planner, and shopping list organizer for Web, iOS, and Android. Auto-import recipes from any website, plan meals, and generate smart shopping lists.",
+      "description": t("pages.welcome.subtitle"),
       "offers": {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD",
       },
     },
+    ...(breadcrumbGraphItem ? [breadcrumbGraphItem] : []),
   ],
 };
 
@@ -102,8 +137,9 @@ const finalStructuredData = structuredData ?? defaultStructuredData;
 ---
 
 <!doctype html>
-<html lang={htmlLang} dir="ltr">
+<html lang={htmlLang} dir={htmlDir}>
   <head>
+    <slot name="head" />
     <script is:inline define:vars={{ redirectLoggedIn }}>
       (function () {
         if (location.hash.startsWith("#/")) {
@@ -111,6 +147,14 @@ const finalStructuredData = structuredData ?? defaultStructuredData;
           return;
         }
         if (!redirectLoggedIn) return;
+        const shareParams = new URLSearchParams(location.search);
+        if (
+          shareParams.has("sharetarget-title") ||
+          shareParams.has("sharetarget-text") ||
+          shareParams.has("autofill-url")
+        ) {
+          return;
+        }
         let token = null;
         try {
           token = localStorage.getItem("token");
@@ -141,7 +185,7 @@ const finalStructuredData = structuredData ?? defaultStructuredData;
 
     <link rel="canonical" href={canonicalURL} />
     {
-      SUPPORTED_LOCALES.map((loc) => (
+      availableLocales.map((loc) => (
         <link
           rel="alternate"
           hreflang={toBcp47(loc)}
@@ -162,7 +206,12 @@ const finalStructuredData = structuredData ?? defaultStructuredData;
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:image" content={image} />
     <meta property="og:image:alt" content="RecipeSage logo" />
-    <meta property="og:locale" content={toBcp47(locale).replace("-", "_")} />
+    <meta property="og:locale" content={ogLocale} />
+    {
+      ogLocaleAlternates.map((altLocale) => (
+        <meta property="og:locale:alternate" content={altLocale} />
+      ))
+    }
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
@@ -207,6 +256,32 @@ const finalStructuredData = structuredData ?? defaultStructuredData;
     />
 
     <script is:inline>
+      // eslint-disable-next-line prefer-const -- matomo.js reassigns _paq; const breaks it
+      let _paq = window._paq = window._paq || [];
+      _paq.push(['trackPageView']);
+      _paq.push(['enableLinkTracking']);
+      _paq.push(['setTrackerUrl', 'https://a.recipesage.com/matomo.php']);
+      _paq.push(['setSiteId', '1']);
+      const loadMatomo = function() {
+        const d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+        g.async=true; g.src='https://a.recipesage.com/matomo.js'; s.parentNode.insertBefore(g,s);
+      };
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(loadMatomo, { timeout: 1500 });
+      } else {
+        loadMatomo();
+      }
+    </script>
+    <noscript>
+      <img
+        referrerpolicy="no-referrer-when-downgrade"
+        src={`https://a.recipesage.com/matomo.php?idsite=1&rec=1&action_name=${encodeURIComponent(title)}`}
+        style="border:0"
+        alt=""
+      />
+    </noscript>
+
+    <script is:inline>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
@@ -225,10 +300,11 @@ const finalStructuredData = structuredData ?? defaultStructuredData;
         --surface: #ffffff;
         --text: #1b1d1f;
         --text-muted: #555;
-        --hero-overlay: rgba(0, 0, 0, 0.55);
+        --hero-overlay: rgba(0, 0, 0, 0.625);
         --btn-border: rgba(255, 255, 255, 0.7);
         --btn-primary-bg: #5e8b56;
         --btn-primary-text: #ffffff;
+        --accent-text: #4a6f43;
         --hero-text: #ffffff;
         --footer-bg: #2c313b;
         --footer-text: #cfd6e4;
@@ -241,6 +317,7 @@ const finalStructuredData = structuredData ?? defaultStructuredData;
           --text: #e7eaef;
           --text-muted: #a8b0bd;
           --hero-overlay: rgba(0, 0, 0, 0.7);
+          --accent-text: #a3c79b;
           --footer-bg: #0f1218;
           --footer-text: #a8b0bd;
         }
@@ -288,14 +365,16 @@ const finalStructuredData = structuredData ?? defaultStructuredData;
         right: 0;
         z-index: 10;
       }
+
+      @media (max-width: 800px) {
+        header.site-header {
+          position: static;
+          background: var(--footer-bg);
+        }
+      }
     </style>
   </head>
   <body>
-    <noscript>
-      <h1>You don't have javascript enabled.</h1>
-      <p>This application requires javascript.</p>
-    </noscript>
-
     <header class="site-header">
       <Nav t={t} locale={locale} homeHref={homeHref} />
     </header>

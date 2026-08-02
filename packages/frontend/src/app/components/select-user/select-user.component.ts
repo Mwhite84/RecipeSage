@@ -1,6 +1,13 @@
-import { Component, Output, EventEmitter, Input, inject } from "@angular/core";
+import {
+  Component,
+  Output,
+  EventEmitter,
+  Input,
+  inject,
+  type OnInit,
+} from "@angular/core";
 
-import { LoadingService } from "~/services/loading.service";
+import { LoadingService } from "../../services/loading.service";
 import { ServerActionsService } from "../../services/server-actions.service";
 import type { UserPublic } from "@recipesage/prisma";
 import { SHARED_UI_IMPORTS } from "../../providers/shared-ui.provider";
@@ -11,8 +18,9 @@ import {
   IonSearchbar,
   IonSpinner,
   IonIcon,
+  type SearchbarCustomEvent,
 } from "@ionic/angular/standalone";
-import { folderOpen } from "ionicons/icons";
+import { folderOpenOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 const PAUSE_BEFORE_SEARCH = 500; // Ms
@@ -32,9 +40,9 @@ const PAUSE_BEFORE_SEARCH = 500; // Ms
     IonIcon,
   ],
 })
-export class SelectUserComponent {
+export class SelectUserComponent implements OnInit {
   constructor() {
-    addIcons({ folderOpen });
+    addIcons({ folderOpenOutline });
   }
 
   private serverActionsService = inject(ServerActionsService);
@@ -42,12 +50,28 @@ export class SelectUserComponent {
 
   @Input() selectedUser?: UserPublic;
   @Input() enableSelectedMode = true;
-  @Output() selectedUserChange = new EventEmitter<UserPublic>();
+  @Input() suggestKnownUsers = true;
+  @Input() excludeUserIds: string[] = [];
+  @Output() selectedUserChange = new EventEmitter<UserPublic | undefined>();
   @Output() searchInputChange = new EventEmitter<string>();
 
   results: UserPublic[] = [];
+  knownUsers: UserPublic[] = [];
   searchTimeout?: NodeJS.Timeout;
   searching = false;
+
+  ngOnInit() {
+    if (this.suggestKnownUsers) {
+      this.loadKnownUsers();
+    }
+  }
+
+  async loadKnownUsers() {
+    const response = await this.serverActionsService.users.getMyFriends();
+    if (!response) return;
+
+    this.knownUsers = response.friends;
+  }
 
   _searchText: string = "";
   get searchText() {
@@ -58,7 +82,7 @@ export class SelectUserComponent {
     this.searchInputChange.emit(val);
   }
 
-  onSearchInputChange(event: any) {
+  onSearchInputChange(event: SearchbarCustomEvent) {
     this.searchText = event.detail.value || "";
     if (!this.searchText) return;
 
@@ -108,7 +132,26 @@ export class SelectUserComponent {
 
     if (userResponse) results.push(userResponse);
 
-    this.results = results;
+    let merged = results;
+    if (this.suggestKnownUsers) {
+      const query = handle.toLowerCase();
+      const knownUserMatches = this.knownUsers.filter(
+        (knownUser) =>
+          knownUser.name.toLowerCase().includes(query) ||
+          knownUser.handle?.toLowerCase().includes(query),
+      );
+      const knownUserIds = new Set(
+        knownUserMatches.map((knownUser) => knownUser.id),
+      );
+      merged = [
+        ...knownUserMatches,
+        ...results.filter((result) => !knownUserIds.has(result.id)),
+      ];
+    }
+
+    this.results = merged.filter(
+      (user) => !this.excludeUserIds.includes(user.id),
+    );
 
     loading.dismiss();
   }

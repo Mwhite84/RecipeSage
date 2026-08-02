@@ -6,17 +6,17 @@ import {
 } from "@ionic/angular/standalone";
 import { TranslateService } from "@ngx-translate/core";
 
-import { RecipeService } from "~/services/recipe.service";
-import { LoadingService } from "~/services/loading.service";
-import { CookingToolbarService } from "~/services/cooking-toolbar.service";
-import { RouteMap } from "~/services/util.service";
+import { LoadingService } from "../../../services/loading.service";
+import { CookingToolbarService } from "../../../services/cooking-toolbar.service";
+import { RouteMap } from "../../../services/util.service";
 
 import { NewMealPlanItemModalPage } from "../new-meal-plan-item-modal/new-meal-plan-item-modal.page";
-import { AddRecipeToShoppingListModalPage } from "~/pages/recipe-components/add-recipe-to-shopping-list-modal/add-recipe-to-shopping-list-modal.page";
+import { AddRecipeToShoppingListModalPage } from "../../recipe-components/add-recipe-to-shopping-list-modal/add-recipe-to-shopping-list-modal.page";
 
 import dayjs from "dayjs";
 import type { MealPlanItemSummary } from "@recipesage/prisma";
-import { parseNotes } from "@recipesage/util/shared";
+import { parseNotes, inferRecipeNotation } from "@recipesage/util/shared";
+import { linkifyHtml } from "../../../utils/linkify";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import {
@@ -33,15 +33,15 @@ import {
   IonFooter,
 } from "@ionic/angular/standalone";
 import {
-  calendar,
-  cart,
-  close,
-  copy,
-  create,
-  documentText,
-  person,
-  pin,
-  trash,
+  calendarOutline,
+  cartOutline,
+  closeOutline,
+  copyOutline,
+  createOutline,
+  documentTextOutline,
+  personOutline,
+  pinOutline,
+  trashOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -68,15 +68,15 @@ import { addIcons } from "ionicons";
 export class MealPlanItemDetailsModalPage {
   constructor() {
     addIcons({
-      calendar,
-      cart,
-      close,
-      copy,
-      create,
-      documentText,
-      person,
-      pin,
-      trash,
+      calendarOutline,
+      cartOutline,
+      closeOutline,
+      copyOutline,
+      createOutline,
+      documentTextOutline,
+      personOutline,
+      pinOutline,
+      trashOutline,
     });
   }
 
@@ -86,7 +86,6 @@ export class MealPlanItemDetailsModalPage {
   private alertCtrl = inject(AlertController);
   private serverActionsService = inject(ServerActionsService);
   cookingToolbarService = inject(CookingToolbarService);
-  private recipeService = inject(RecipeService);
   private loadingService = inject(LoadingService);
 
   @Input({
@@ -103,7 +102,15 @@ export class MealPlanItemDetailsModalPage {
 
   ngOnInit() {
     if (this.mealItem.notes) {
-      this.parsedNotes = parseNotes(this.mealItem.notes);
+      this.parsedNotes = parseNotes(this.mealItem.notes, "1", {
+        decimalNotationMode: inferRecipeNotation(
+          { notes: this.mealItem.notes },
+          this.translate.getCurrentLang(),
+        ),
+      }).map((note) => ({
+        ...note,
+        htmlContent: linkifyHtml(note.htmlContent),
+      }));
     }
   }
 
@@ -135,24 +142,15 @@ export class MealPlanItemDetailsModalPage {
     modal.present();
 
     const { data } = await modal.onDidDismiss();
-    if (!data || !data.item) return;
-    const item = data.item;
+    const item = data?.items?.[0];
+    if (!item) return;
 
     const loading = this.loadingService.start();
 
     const result =
       await this.serverActionsService.mealPlans.updateMealPlanItems({
         mealPlanId: this.mealPlanId,
-        items: [
-          {
-            id: this.mealItem.id,
-            title: item.title,
-            recipeId: item.recipeId,
-            scheduledDate: item.scheduledDate,
-            meal: item.meal,
-            notes: item.notes,
-          },
-        ],
+        items: [{ id: this.mealItem.id, ...item }],
       });
     loading.dismiss();
     if (!result) return;
@@ -179,23 +177,14 @@ export class MealPlanItemDetailsModalPage {
     modal.present();
 
     const { data } = await modal.onDidDismiss();
-    if (!data || !data.item) return;
-    const item = data.item;
+    if (!data?.items?.length) return;
 
     const loading = this.loadingService.start();
 
     const result =
       await this.serverActionsService.mealPlans.createMealPlanItems({
         mealPlanId: this.mealPlanId,
-        items: [
-          {
-            title: item.title,
-            recipeId: item.recipeId,
-            scheduledDate: item.scheduledDate,
-            meal: item.meal,
-            notes: item.notes,
-          },
-        ],
+        items: data.items,
       });
 
     loading.dismiss();
@@ -258,16 +247,16 @@ export class MealPlanItemDetailsModalPage {
 
     const loading = this.loadingService.start();
     // Fetch complete recipe (this page is provided with only topical recipe details)
-    const response = await this.recipeService.getRecipeById(
-      this.mealItem.recipe.id,
-    );
+    const response = await this.serverActionsService.recipes.getRecipe({
+      id: this.mealItem.recipe.id,
+    });
     loading.dismiss();
 
-    if (response.success) {
+    if (response) {
       const addRecipeToShoppingListModal = await this.modalCtrl.create({
         component: AddRecipeToShoppingListModalPage,
         componentProps: {
-          recipes: [response.data],
+          recipes: [response],
         },
       });
       addRecipeToShoppingListModal.present();

@@ -1,8 +1,7 @@
-import { publicProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import {
-  WSBoardcastEventType,
+  WSBroadcastEventType,
   broadcastWSEventIgnoringErrors,
-  validateTrpcSession,
 } from "@recipesage/util/server/general";
 import { prisma } from "@recipesage/prisma";
 import { z } from "zod";
@@ -14,7 +13,16 @@ import {
 import { SHOPPING_LIST_ITEMS_TITLE_LENGTH_LIMIT } from "@recipesage/util/shared";
 
 /** @deprecated Use updateShoppingListItems instead */
-export const updateShoppingListItem = publicProcedure
+export const updateShoppingListItem = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/shoppingLists/updateShoppingListItem",
+      tags: ["shoppingLists"],
+      summary: "Update a single shopping list item (deprecated)",
+      protect: true,
+    },
+  })
   .input(
     z.object({
       id: z.uuid(),
@@ -28,10 +36,13 @@ export const updateShoppingListItem = publicProcedure
       categoryTitle: z.string().optional(),
     }),
   )
+  .output(
+    z.object({
+      reference: z.uuid(),
+      id: z.uuid(),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    validateTrpcSession(session);
-
     if (
       input.title === undefined &&
       input.recipeId === undefined &&
@@ -60,7 +71,7 @@ export const updateShoppingListItem = publicProcedure
     }
 
     const access = await getAccessToShoppingList(
-      session.userId,
+      ctx.session.userId,
       shoppingListItem.shoppingListId,
     );
 
@@ -88,7 +99,7 @@ export const updateShoppingListItem = publicProcedure
     for (const subscriberId of access.subscriberIds) {
       broadcastWSEventIgnoringErrors(
         subscriberId,
-        WSBoardcastEventType.ShoppingListUpdated,
+        WSBroadcastEventType.ShoppingListUpdated,
         {
           reference,
           shoppingListId: shoppingListItem.shoppingListId,

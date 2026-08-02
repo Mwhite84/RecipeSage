@@ -119,14 +119,15 @@ Below are some notes for getting setup to contribute code.
 1. Install [Docker](https://docs.docker.com/get-docker/) and [Node](https://nodejs.org/en/)
 2. Clone this repo
 3. Create a `.env` file in the root of the repository using `example.env` as a template. These can be left as placeholders, but the dependent functionality will not work without a real key in place.
-4. Install dependencies by running `npm install` at the root of the repo.
-5. Start the Docker containers by running `docker compose up -d` in the cloned repo
-6. Run database migrations `docker compose exec backend npx prisma migrate dev`
-7. RecipeSage should be running on `localhost` on port `80`
+4. Enable corepack so the pinned pnpm version is picked up: `corepack enable`
+5. Install dependencies by running `pnpm install` at the root of the repo.
+6. Start the Docker containers by running `docker compose up -d` in the cloned repo
+7. Run database migrations `docker compose exec backend pnpm exec prisma migrate dev`
+8. RecipeSage should be running on `localhost` on port `80`
 
 #### Notes about the repo
 
 1. The repo uses the monorepo management tool [nx](https://nx.dev/nx-api). You'll find things divided up in the `packages` directory.
 2. I'm currently migrating to Prisma & TRPC, so any new functionality should be added within the `trpc` package rather than the `backend` package, unless it's an update to an existing behavior that does not merit moving.
 
-Backend API tests can be run via `docker compose exec backend env NODE_ENV=test POSTGRES_LOGGING=false npx nx test backend`.
+Backend API tests can be run via `docker compose exec backend env NODE_ENV=test POSTGRES_LOGGING=false pnpm exec nx test backend`.

@@ -1,11 +1,16 @@
 import { Component, Input, inject } from "@angular/core";
 import { PopoverController } from "@ionic/angular/standalone";
-import { PreferencesService } from "~/services/preferences.service";
+import { PreferencesService } from "../../../services/preferences.service";
 import { RecipeDetailsPreferenceKey } from "@recipesage/util/shared";
-import { WakeLockService } from "~/services/wakelock.service";
-import { CookingToolbarService } from "~/services/cooking-toolbar.service";
+import { WakeLockService } from "../../../services/wakelock.service";
+import { CookingToolbarService } from "../../../services/cooking-toolbar.service";
+import { CapabilitiesService } from "../../../services/capabilities.service";
 import type { RecipeSummary, UserPublic } from "@recipesage/prisma";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
+import {
+  FeatureFlagService,
+  FeatureFlagKeys,
+} from "../../../services/feature-flag.service";
 import {
   IonList,
   IonListHeader,
@@ -16,16 +21,18 @@ import {
   IonLabel,
 } from "@ionic/angular/standalone";
 import {
-  calendar,
-  cloudDownload,
-  copy,
-  create,
-  eye,
-  list,
-  pin,
-  print,
-  share,
-  trash,
+  calendarOutline,
+  cloudDownloadOutline,
+  compassOutline,
+  copyOutline,
+  createOutline,
+  eyeOutline,
+  listOutline,
+  pinOutline,
+  printOutline,
+  restaurantOutline,
+  shareOutline,
+  trashOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -42,7 +49,9 @@ export type RecipeDetailsPopoverActionTypes =
   | "unpin"
   | "edit"
   | "updateWakeLock"
-  | "setLastMadeToday";
+  | "enterCookMode"
+  | "setLastMadeToday"
+  | "publishToDiscover";
 
 @Component({
   standalone: true,
@@ -64,6 +73,8 @@ export class RecipeDetailsPopoverPage {
   private preferencesService = inject(PreferencesService);
   private wakeLockService = inject(WakeLockService);
   cookingToolbarService = inject(CookingToolbarService);
+  capabilitiesService = inject(CapabilitiesService);
+  private featureFlagService = inject(FeatureFlagService);
   private popoverCtrl = inject(PopoverController);
 
   @Input({
@@ -81,21 +92,25 @@ export class RecipeDetailsPopoverPage {
 
   preferences = this.preferencesService.preferences;
   preferenceKeys = RecipeDetailsPreferenceKey;
+  enableDiscover =
+    this.featureFlagService.flags[FeatureFlagKeys.EnableDiscover];
 
   wakeLockCapable: boolean;
 
   constructor() {
     addIcons({
-      calendar,
-      cloudDownload,
-      copy,
-      create,
-      eye,
-      list,
-      pin,
-      print,
-      share,
-      trash,
+      calendarOutline,
+      cloudDownloadOutline,
+      compassOutline,
+      copyOutline,
+      createOutline,
+      eyeOutline,
+      listOutline,
+      pinOutline,
+      printOutline,
+      restaurantOutline,
+      shareOutline,
+      trashOutline,
     });
     this.wakeLockCapable = this.wakeLockService.isCapable;
   }

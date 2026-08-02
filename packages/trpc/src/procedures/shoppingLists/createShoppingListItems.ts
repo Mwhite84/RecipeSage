@@ -1,9 +1,8 @@
-import { publicProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import {
-  WSBoardcastEventType,
+  WSBroadcastEventType,
   broadcastWSEventIgnoringErrors,
   getShoppingListItemCategories,
-  validateTrpcSession,
 } from "@recipesage/util/server/general";
 import { prisma } from "@recipesage/prisma";
 import { TRPCError } from "@trpc/server";
@@ -12,15 +11,27 @@ import {
   getAccessToShoppingList,
 } from "@recipesage/util/server/db";
 import { createShoppingListItemsInput } from "@recipesage/util/shared";
+import { z } from "zod";
 
-export const createShoppingListItems = publicProcedure
+export const createShoppingListItems = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/shoppingLists/createShoppingListItems",
+      tags: ["shoppingLists"],
+      summary: "Create multiple shopping list items",
+      protect: true,
+    },
+  })
   .input(createShoppingListItemsInput)
+  .output(
+    z.object({
+      reference: z.uuid(),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    validateTrpcSession(session);
-
     const access = await getAccessToShoppingList(
-      session.userId,
+      ctx.session.userId,
       input.shoppingListId,
     );
 
@@ -39,7 +50,7 @@ export const createShoppingListItems = publicProcedure
       ...item,
       completed: item.completed ?? false,
       categoryTitle: item.categoryTitle ?? `::${autoCategories[idx]}`,
-      userId: session.userId,
+      userId: ctx.session.userId,
       shoppingListId: input.shoppingListId,
     }));
 
@@ -47,11 +58,11 @@ export const createShoppingListItems = publicProcedure
       data: itemsWithCategoryTitles,
     });
 
-    const reference = crypto.randomUUID();
+    const reference = input.reference ?? crypto.randomUUID();
     for (const subscriberId of access.subscriberIds) {
       broadcastWSEventIgnoringErrors(
         subscriberId,
-        WSBoardcastEventType.ShoppingListUpdated,
+        WSBroadcastEventType.ShoppingListUpdated,
         {
           reference,
           shoppingListId: input.shoppingListId,

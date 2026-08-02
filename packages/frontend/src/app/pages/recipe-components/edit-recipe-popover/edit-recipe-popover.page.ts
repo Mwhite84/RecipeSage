@@ -1,6 +1,6 @@
 import { Component, Input, inject } from "@angular/core";
 import { PopoverController } from "@ionic/angular/standalone";
-import { PreferencesService } from "~/services/preferences.service";
+import { PreferencesService } from "../../../services/preferences.service";
 import { RecipeDetailsPreferenceKey } from "@recipesage/util/shared";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import {
@@ -9,7 +9,7 @@ import {
   IonButton,
   IonIcon,
 } from "@ionic/angular/standalone";
-import { image } from "ionicons/icons";
+import { imageOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -21,7 +21,7 @@ import { addIcons } from "ionicons";
 })
 export class EditRecipePopoverPage {
   constructor() {
-    addIcons({ image });
+    addIcons({ imageOutline });
   }
 
   private preferencesService = inject(PreferencesService);

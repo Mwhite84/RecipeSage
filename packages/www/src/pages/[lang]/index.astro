@@ -3,12 +3,12 @@ import RootLayout from "../../components/RootLayout.astro";
 import Landing from "../../components/Landing.astro";
 import {
   DEFAULT_LOCALE,
-  SUPPORTED_LOCALES,
+  WWW_SUPPORTED_LOCALES,
   makeTranslator,
 } from "../../i18n/translations";
 
 export function getStaticPaths() {
-  return SUPPORTED_LOCALES.filter((l) => l !== DEFAULT_LOCALE).map((l) => ({
+  return WWW_SUPPORTED_LOCALES.filter((l) => l !== DEFAULT_LOCALE).map((l) => ({
     params: { lang: l },
   }));
 }
@@ -17,7 +17,7 @@ const { lang } = Astro.params;
 if (!lang) throw new Error("lang param missing");
 const t = makeTranslator(lang);
 
-const title = `RecipeSage - ${t("pages.welcome.title")}`;
+const title = `${t("pages.welcome.title")} - RecipeSage`;
 const description = t("pages.welcome.subtitle");
 ---
 

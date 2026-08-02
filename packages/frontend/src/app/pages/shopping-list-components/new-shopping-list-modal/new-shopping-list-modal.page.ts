@@ -5,12 +5,12 @@ import {
   NavController,
 } from "@ionic/angular/standalone";
 
-import { LoadingService } from "~/services/loading.service";
-import { MessagingService } from "~/services/messaging.service";
-import { UserService } from "~/services/user.service";
-import { UtilService, RouteMap } from "~/services/util.service";
+import { LoadingService } from "../../../services/loading.service";
+import { MessagingService } from "../../../services/messaging.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { SelectCollaboratorsComponent } from "../../../components/select-collaborators/select-collaborators.component";
+import { TextInputComponent } from "../../../components/forms/text-input/text-input.component";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import {
   IonHeader,
@@ -20,12 +20,10 @@ import {
   IonButton,
   IonIcon,
   IonContent,
-  IonItem,
-  IonInput,
   IonFooter,
   IonLabel,
 } from "@ionic/angular/standalone";
-import { close, list } from "ionicons/icons";
+import { closeOutline, listOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -36,6 +34,7 @@ import { addIcons } from "ionicons";
   imports: [
     ...SHARED_UI_IMPORTS,
     SelectCollaboratorsComponent,
+    TextInputComponent,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -43,15 +42,13 @@ import { addIcons } from "ionicons";
     IonButton,
     IonIcon,
     IonContent,
-    IonItem,
-    IonInput,
     IonFooter,
     IonLabel,
   ],
 })
 export class NewShoppingListModalPage {
   constructor() {
-    addIcons({ close, list });
+    addIcons({ closeOutline, listOutline });
   }
 
   modalCtrl = inject(ModalController);
@@ -60,7 +57,6 @@ export class NewShoppingListModalPage {
   loadingService = inject(LoadingService);
   serverActionsService = inject(ServerActionsService);
   messagingService = inject(MessagingService);
-  userService = inject(UserService);
   toastCtrl = inject(ToastController);
 
   @Input() openAfterCreate = true;
@@ -88,6 +84,7 @@ export class NewShoppingListModalPage {
 
     this.modalCtrl.dismiss({
       success: true,
+      id: response.id,
     });
     if (this.openAfterCreate) {
       this.navCtrl.navigateRoot(RouteMap.ShoppingListPage.getPath(response.id));

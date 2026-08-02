@@ -7,7 +7,7 @@ import {
   ViewChild,
 } from "@angular/core";
 
-import { UtilService } from "~/services/util.service";
+import { UtilService } from "../../services/util.service";
 import { SHARED_UI_IMPORTS } from "../../providers/shared-ui.provider";
 import { TranslateService } from "@ngx-translate/core";
 import { AlertController } from "@ionic/angular/standalone";
@@ -22,7 +22,7 @@ import {
   IonListHeader,
   IonLabel,
 } from "@ionic/angular/standalone";
-import { ellipsisVertical, trash } from "ionicons/icons";
+import { ellipsisVerticalOutline, trashOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -101,12 +101,15 @@ export class ShoppingListItemComponent {
     "pages.shoppingList.category.frozen",
     "pages.shoppingList.category.canned",
     "pages.shoppingList.category.beverages",
+    "pages.shoppingList.category.baking",
+    "pages.shoppingList.category.spices",
+    "pages.shoppingList.category.condiments",
   ];
   builtinCategories: string[] = [];
   userKnownCategories = this.getUserKnownCategories();
 
   constructor() {
-    addIcons({ ellipsisVertical, trash });
+    addIcons({ ellipsisVerticalOutline, trashOutline });
     this.generateBuiltinCategories();
   }
 

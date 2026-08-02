@@ -1,8 +1,42 @@
-import { Injectable } from "@angular/core";
-import type { RecipeSummary } from "@recipesage/prisma";
+import { Injectable, inject } from "@angular/core";
+import type {
+  NutritionFilter,
+  NutritionRange,
+  RecipeSummary,
+} from "@recipesage/prisma";
 import { stripNumberedRecipeTitle } from "@recipesage/util/shared";
 
+const LOCAL_SEARCH_PAGE_SIZE = 100;
+
+const passesNutritionRange = (
+  value: number | null,
+  range: NutritionRange | undefined,
+): boolean => {
+  if (!range) return true;
+  const hasRange = range.min != null || range.max != null;
+  if (!hasRange && !range.matchMissing) return true;
+  if (value == null) return !!range.matchMissing;
+  if (range.min != null && value < range.min) return false;
+  if (range.max != null && value > range.max) return false;
+  return hasRange;
+};
+
+const passesNutritionFilter = (
+  recipe: RecipeSummary,
+  filter: NutritionFilter | undefined,
+): boolean => {
+  if (!filter) return true;
+  return (
+    passesNutritionRange(recipe.nutritionCalories, filter.calories) &&
+    passesNutritionRange(recipe.nutritionProtein, filter.protein) &&
+    passesNutritionRange(recipe.nutritionTotalCarbs, filter.totalCarbs) &&
+    passesNutritionRange(recipe.nutritionTotalFat, filter.totalFat) &&
+    passesNutritionRange(recipe.nutritionSodium, filter.sodium)
+  );
+};
+
 import { ErrorHandlers } from "../http-error-handler.service";
+import { EventName, EventService } from "../event.service";
 import { ActionsBase, RouterInputs, RouterOutputs } from "./actions-base";
 import {
   getKvStoreEntry,
@@ -16,6 +50,8 @@ import { appIdbStorageManager } from "../../utils/appIdbStorageManager";
   providedIn: "root",
 })
 export class RecipesActionsService extends ActionsBase {
+  private events = inject(EventService);
+
   getRecipe(
     input: RouterInputs["recipes"]["getRecipe"],
     errorHandlers?: ErrorHandlers,
@@ -25,6 +61,30 @@ export class RecipesActionsService extends ActionsBase {
       async () => {
         const localDb = await getLocalDb();
         return localDb.get(ObjectStoreName.Recipes, input.id);
+      },
+      errorHandlers,
+    );
+  }
+
+  getRecipeCount(
+    input: RouterInputs["recipes"]["getRecipeCount"],
+    errorHandlers?: ErrorHandlers,
+  ): Promise<RouterOutputs["recipes"]["getRecipeCount"] | undefined> {
+    return this.executeQuery(
+      () => this.trpc.recipes.getRecipeCount.query(input),
+      async () => {
+        const localDb = await getLocalDb();
+        const session = await appIdbStorageManager.getSession();
+        if (!session) return undefined;
+
+        const recipes = await localDb.getAll(ObjectStoreName.Recipes);
+        const count = recipes.filter(
+          (recipe) =>
+            recipe.userId === session.userId &&
+            (!input.folder || recipe.folder === input.folder),
+        ).length;
+
+        return { count };
       },
       errorHandlers,
     );
@@ -49,6 +109,7 @@ export class RecipesActionsService extends ActionsBase {
           labelIntersection,
           includeAllFriends,
           ratings,
+          nutritionFilter,
         } = input;
 
         const localDb = await getLocalDb();
@@ -97,17 +158,17 @@ export class RecipesActionsService extends ActionsBase {
           const labelsSet = new Set(labels);
           recipes = recipes.filter((recipe) => {
             if (labelIntersection) {
-              return recipe.recipeLabels.some((recipeLabel) => {
-                labelsSet.has(recipeLabel.label.title);
-              });
+              for (const requiredLabel of labelsSet) {
+                const hasLabel = recipe.recipeLabels.some((recipeLabel) => {
+                  return recipeLabel.label.title === requiredLabel;
+                });
+                if (!hasLabel) return false;
+              }
+              return true;
             }
-            for (const requiredLabel of labelsSet) {
-              const hasLabel = recipe.recipeLabels.some((recipeLabel) => {
-                return recipeLabel.label.title === requiredLabel;
-              });
-              if (!hasLabel) return false;
-            }
-            return true;
+            return recipe.recipeLabels.some((recipeLabel) => {
+              return labelsSet.has(recipeLabel.label.title);
+            });
           });
         }
 
@@ -121,6 +182,12 @@ export class RecipesActionsService extends ActionsBase {
           recipes = recipes.filter((recipe) => {
             return ratings.includes(recipe.rating);
           });
+        }
+
+        if (nutritionFilter) {
+          recipes = recipes.filter((recipe) =>
+            passesNutritionFilter(recipe, nutritionFilter),
+          );
         }
 
         const totalCount = recipes.length;
@@ -283,6 +350,7 @@ export class RecipesActionsService extends ActionsBase {
           labelIntersection,
           includeAllFriends,
           ratings,
+          nutritionFilter,
         } = input;
 
         const localDb = await getLocalDb();
@@ -292,14 +360,21 @@ export class RecipesActionsService extends ActionsBase {
         const searchManager = await this.searchService.getManager();
         const searchResults = searchManager.search(searchTerm);
 
-        let recipes: RecipeSummary[] = [];
-        for (const searchResult of searchResults) {
-          const recipe = await localDb.get(
-            ObjectStoreName.Recipes,
-            searchResult.recipeId,
-          );
-          if (recipe) recipes.push(recipe);
-        }
+        const recipesTx = localDb.transaction(
+          ObjectStoreName.Recipes,
+          "readonly",
+        );
+        const fetchedRecipes = await Promise.all(
+          searchResults.map((searchResult) =>
+            recipesTx.store.get(searchResult.recipeId),
+          ),
+        );
+        recipesTx.commit();
+        await recipesTx.done;
+
+        let recipes = fetchedRecipes.filter(
+          (recipe): recipe is RecipeSummary => !!recipe,
+        );
 
         if (userIds) {
           const friendships = await getKvStoreEntry(KVStoreKeys.MyFriends);
@@ -320,17 +395,17 @@ export class RecipesActionsService extends ActionsBase {
           const labelsSet = new Set(labels);
           recipes = recipes.filter((recipe) => {
             if (labelIntersection) {
-              return recipe.recipeLabels.some((recipeLabel) => {
-                labelsSet.has(recipeLabel.label.title);
-              });
+              for (const requiredLabel of labelsSet) {
+                const hasLabel = recipe.recipeLabels.some((recipeLabel) => {
+                  return recipeLabel.label.title === requiredLabel;
+                });
+                if (!hasLabel) return false;
+              }
+              return true;
             }
-            for (const requiredLabel of labelsSet) {
-              const hasLabel = recipe.recipeLabels.some((recipeLabel) => {
-                return recipeLabel.label.title === requiredLabel;
-              });
-              if (!hasLabel) return false;
-            }
-            return true;
+            return recipe.recipeLabels.some((recipeLabel) => {
+              return labelsSet.has(recipeLabel.label.title);
+            });
           });
         }
 
@@ -346,8 +421,29 @@ export class RecipesActionsService extends ActionsBase {
           });
         }
 
-        return { recipes, totalCount: recipes.length };
+        if (nutritionFilter) {
+          recipes = recipes.filter((recipe) =>
+            passesNutritionFilter(recipe, nutritionFilter),
+          );
+        }
+
+        return {
+          recipes: recipes.slice(0, LOCAL_SEARCH_PAGE_SIZE),
+          totalCount: recipes.length,
+        };
       },
+      errorHandlers,
+    );
+  }
+
+  searchRecipesByIngredients(
+    input: RouterInputs["recipes"]["searchRecipesByIngredients"],
+    errorHandlers?: ErrorHandlers,
+  ): Promise<
+    RouterOutputs["recipes"]["searchRecipesByIngredients"] | undefined
+  > {
+    return this.passThrough(
+      () => this.trpc.recipes.searchRecipesByIngredients.query(input),
       errorHandlers,
     );
   }
@@ -360,6 +456,7 @@ export class RecipesActionsService extends ActionsBase {
       () => this.trpc.recipes.createRecipe.mutate(input),
       (result) => {
         void this.syncService.syncRecipe(result.id);
+        this.events.publish(EventName.RecipeCreated);
       },
       errorHandlers,
     );
@@ -373,6 +470,7 @@ export class RecipesActionsService extends ActionsBase {
       () => this.trpc.recipes.updateRecipe.mutate(input),
       (result) => {
         void this.syncService.syncRecipe(result.id);
+        this.events.publish(EventName.RecipeUpdated);
       },
       errorHandlers,
     );
@@ -386,6 +484,7 @@ export class RecipesActionsService extends ActionsBase {
       () => this.trpc.recipes.deleteRecipe.mutate(input),
       () => {
         void this.syncService.syncRecipes();
+        this.events.publish(EventName.RecipeDeleted);
       },
       errorHandlers,
     );
@@ -399,6 +498,7 @@ export class RecipesActionsService extends ActionsBase {
       () => this.trpc.recipes.deleteRecipesByIds.mutate(input),
       () => {
         void this.syncService.syncRecipes();
+        this.events.publish(EventName.RecipeDeleted);
       },
       errorHandlers,
     );
@@ -412,6 +512,7 @@ export class RecipesActionsService extends ActionsBase {
       () => this.trpc.recipes.deleteRecipesByLabelIds.mutate(input),
       () => {
         void this.syncService.syncRecipes();
+        this.events.publish(EventName.RecipeDeleted);
       },
       errorHandlers,
     );
@@ -424,6 +525,7 @@ export class RecipesActionsService extends ActionsBase {
       () => this.trpc.recipes.deleteAllRecipes.mutate(),
       () => {
         void this.syncService.syncRecipes();
+        this.events.publish(EventName.RecipeDeleted);
       },
       errorHandlers,
     );

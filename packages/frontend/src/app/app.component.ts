@@ -1,4 +1,4 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, NgZone } from "@angular/core";
 import { ActivatedRoute, Router, NavigationEnd } from "@angular/router";
 import { TranslateService } from "@ngx-translate/core";
 import * as Sentry from "@sentry/browser";
@@ -14,18 +14,17 @@ import {
 
 import { ENABLE_ANALYTICS, IS_SELFHOST } from "../environments/environment";
 
-import { UtilService, RouteMap, AuthType } from "~/services/util.service";
-import { RecipeService } from "~/services/recipe.service";
-import { MessagingService } from "~/services/messaging.service";
-import { WebsocketService } from "~/services/websocket.service";
-import { UserService } from "~/services/user.service";
-import { PreferencesService } from "~/services/preferences.service";
+import { UtilService, RouteMap, AuthType } from "./services/util.service";
+import { MessagingService } from "./services/messaging.service";
+import { WebsocketService } from "./services/websocket.service";
+import { PreferencesService } from "./services/preferences.service";
+import { OfflineModeService } from "./services/offline-mode.service";
 import {
   GlobalPreferenceKey,
   SupportedLanguages,
 } from "@recipesage/util/shared";
-import { CookingToolbarService } from "~/services/cooking-toolbar.service";
-import { EventName, EventService } from "~/services/event.service";
+import { CookingToolbarService } from "./services/cooking-toolbar.service";
+import { EventName, EventService } from "./services/event.service";
 import {
   FeatureFlagKeys,
   FeatureFlagService,
@@ -38,8 +37,9 @@ import { appIdbStorageManager } from "./utils/appIdbStorageManager";
 import { SHARED_UI_IMPORTS } from "./providers/shared-ui.provider";
 import { CookingToolbarComponent } from "./components/cooking-toolbar/cooking-toolbar.component";
 import { VersionCheckService } from "./services/versioncheck.service";
+import { NativePrintTutorialService } from "./services/native-print-tutorial.service";
 import { DebugStoreService } from "./services/debugStore.service";
-import { ShareHandlerService } from "~/services/share-handler.service";
+import { ShareHandlerService } from "./services/share-handler.service";
 import {
   IonApp,
   IonSplitPane,
@@ -58,21 +58,20 @@ import {
   IonRouterOutlet,
 } from "@ionic/angular/standalone";
 import {
-  add,
-  book,
-  calendar,
-  cart,
-  chatboxEllipses,
-  chatbubbles,
-  cloudDownload,
-  heart,
-  helpBuoy,
-  leaf,
-  logIn,
-  mail,
-  people,
-  pricetag,
-  settings,
+  addOutline,
+  bookOutline,
+  calendarOutline,
+  cartOutline,
+  cloudDownloadOutline,
+  compassOutline,
+  constructOutline,
+  heartOutline,
+  helpBuoyOutline,
+  leafOutline,
+  logInOutline,
+  peopleOutline,
+  pricetagOutline,
+  settingsOutline,
 } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
@@ -117,25 +116,27 @@ export class AppComponent {
   private syncService = inject(SyncService);
   private router = inject(Router);
   private platform = inject(Platform);
+  private ngZone = inject(NgZone);
   private menuCtrl = inject(MenuController);
   private events = inject(EventService);
   private toastCtrl = inject(ToastController);
   private alertCtrl = inject(AlertController);
   private utilService = inject(UtilService);
-  private recipeService = inject(RecipeService);
   private messagingService = inject(MessagingService);
   private websocketService = inject(WebsocketService);
-  private userService = inject(UserService);
   private preferencesService = inject(PreferencesService);
+  private offlineModeService = inject(OfflineModeService);
   private featureFlagService = inject(FeatureFlagService);
   private titleService = inject(Title);
   cookingToolbarService = inject(CookingToolbarService);
   private versionCheckService = inject(VersionCheckService);
+  private nativePrintTutorialService = inject(NativePrintTutorialService);
   debugStoreService = inject(DebugStoreService);
   private shareHandlerService = inject(ShareHandlerService);
 
   isSelfHost = IS_SELFHOST;
   isLoggedIn?: boolean;
+  inCookMode = false;
 
   // See https://bugzilla.mozilla.org/show_bug.cgi?id=1811099
   enableAnimations = !navigator.userAgent.toLowerCase().includes("firefox");
@@ -144,6 +145,10 @@ export class AppComponent {
 
   inboxCount?: number;
   friendRequestCount?: number;
+
+  get peopleBadgeCount(): number {
+    return (this.inboxCount || 0) + (this.friendRequestCount || 0);
+  }
 
   version: number = (window as any).version;
 
@@ -160,23 +165,25 @@ export class AppComponent {
 
   constructor() {
     addIcons({
-      add,
-      book,
-      calendar,
-      cart,
-      chatboxEllipses,
-      chatbubbles,
-      cloudDownload,
-      heart,
-      helpBuoy,
-      leaf,
-      logIn,
-      mail,
-      people,
-      pricetag,
-      settings,
+      addOutline,
+      bookOutline,
+      calendarOutline,
+      cartOutline,
+      cloudDownloadOutline,
+      compassOutline,
+      constructOutline,
+      heartOutline,
+      helpBuoyOutline,
+      leafOutline,
+      logInOutline,
+      peopleOutline,
+      pricetagOutline,
+      settingsOutline,
     });
 
+    this.translate.onLangChange.subscribe((params) => {
+      (window as any).currentRSLanguage = params.lang;
+    });
     const languagePref =
       this.preferencesService.preferences[GlobalPreferenceKey.Language];
     const language = languagePref || this.utilService.getAppBrowserLang();
@@ -351,13 +358,9 @@ export class AppComponent {
     const home = await this.translate.get("pages.app.nav.home").toPromise();
     const labels = await this.translate.get("pages.app.nav.labels").toPromise();
     const people = await this.translate.get("pages.app.nav.people").toPromise();
-    const assistant = await this.translate
-      .get("pages.app.nav.assistant")
+    const discover = await this.translate
+      .get("pages.app.nav.discover")
       .toPromise();
-    const messages = await this.translate
-      .get("pages.app.nav.messages")
-      .toPromise();
-    const inbox = await this.translate.get("pages.app.nav.inbox").toPromise();
     const newrecipe = await this.translate
       .get("pages.app.nav.newrecipe")
       .toPromise();
@@ -365,23 +368,24 @@ export class AppComponent {
       .get("pages.app.nav.shopping")
       .toPromise();
     const meals = await this.translate.get("pages.app.nav.meals").toPromise();
+    const tools = await this.translate.get("pages.app.nav.tools").toPromise();
     const settings = await this.translate
       .get("pages.app.nav.settings")
       .toPromise();
 
     const enableInstallInstructions =
       this.featureFlagService.flags[FeatureFlagKeys.EnableInstallInstructions];
-    const enableAssistant =
-      this.featureFlagService.flags[FeatureFlagKeys.EnableAssistant];
     const enableContribution =
       this.featureFlagService.flags[FeatureFlagKeys.EnableContribution];
+    const enableDiscover =
+      this.featureFlagService.flags[FeatureFlagKeys.EnableDiscover];
     const loggedOutPages = [
       [
         true,
         {
           id: "login",
           title: login,
-          icon: "log-in",
+          icon: "log-in-outline",
           url: RouteMap.AuthPage.getPath(AuthType.Login),
         },
       ],
@@ -390,8 +394,17 @@ export class AppComponent {
         {
           id: "register",
           title: register,
-          icon: "leaf",
+          icon: "leaf-outline",
           url: RouteMap.AuthPage.getPath(AuthType.Register),
+        },
+      ],
+      [
+        enableDiscover,
+        {
+          id: "discover",
+          title: discover,
+          icon: "compass-outline",
+          url: RouteMap.DiscoverPage.getPath(),
         },
       ],
       [
@@ -399,7 +412,7 @@ export class AppComponent {
         {
           id: "download",
           title: download,
-          icon: "cloud-download",
+          icon: "cloud-download-outline",
           url: RouteMap.DownloadAndInstallPage.getPath(),
         },
       ],
@@ -408,7 +421,7 @@ export class AppComponent {
         {
           id: "contribute",
           title: contribute,
-          icon: "heart",
+          icon: "heart-outline",
           url: RouteMap.ContributePage.getPath(),
         },
       ],
@@ -417,7 +430,7 @@ export class AppComponent {
         {
           id: "settings",
           title: settings,
-          icon: "settings",
+          icon: "settings-outline",
           url: RouteMap.SettingsPage.getPath(),
         },
       ],
@@ -426,7 +439,7 @@ export class AppComponent {
         {
           id: "about",
           title: about,
-          icon: "help-buoy",
+          icon: "help-buoy-outline",
           url: RouteMap.AboutPage.getPath(),
         },
       ],
@@ -438,7 +451,7 @@ export class AppComponent {
         {
           id: "home",
           title: home,
-          icon: "book",
+          icon: "book-outline",
           url: RouteMap.HomePage.getPath("main"),
         },
       ],
@@ -447,7 +460,7 @@ export class AppComponent {
         {
           id: "meals",
           title: meals,
-          icon: "calendar",
+          icon: "calendar-outline",
           url: RouteMap.MealPlansPage.getPath(),
         },
       ],
@@ -456,7 +469,7 @@ export class AppComponent {
         {
           id: "shopping",
           title: shopping,
-          icon: "cart",
+          icon: "cart-outline",
           url: RouteMap.ShoppingListsPage.getPath(),
         },
       ],
@@ -465,17 +478,8 @@ export class AppComponent {
         {
           id: "newrecipe",
           title: newrecipe,
-          icon: "add",
+          icon: "add-outline",
           url: RouteMap.EditRecipePage.getPath("new"),
-        },
-      ],
-      [
-        true,
-        {
-          id: "labels",
-          title: labels,
-          icon: "pricetag",
-          url: RouteMap.LabelsPage.getPath(),
         },
       ],
       [
@@ -483,35 +487,35 @@ export class AppComponent {
         {
           id: "people",
           title: people,
-          icon: "people",
+          icon: "people-outline",
           url: RouteMap.PeoplePage.getPath(),
         },
       ],
       [
-        enableAssistant,
+        enableDiscover,
         {
-          id: "assistant",
-          title: assistant,
-          icon: "chatbox-ellipses",
-          url: RouteMap.AssistantPage.getPath(),
+          id: "discover",
+          title: discover,
+          icon: "compass-outline",
+          url: RouteMap.DiscoverPage.getPath(),
         },
       ],
       [
         true,
         {
-          id: "messages",
-          title: messages,
-          icon: "chatbubbles",
-          url: RouteMap.MessagesPage.getPath(),
+          id: "tools",
+          title: tools,
+          icon: "construct-outline",
+          url: RouteMap.ToolsPage.getPath(),
         },
       ],
       [
         true,
         {
-          id: "inbox",
-          title: inbox,
-          icon: "mail",
-          url: RouteMap.HomePage.getPath("inbox"),
+          id: "labels",
+          title: labels,
+          icon: "pricetag-outline",
+          url: RouteMap.LabelsPage.getPath(),
         },
       ],
       [
@@ -519,7 +523,7 @@ export class AppComponent {
         {
           id: "download",
           title: download,
-          icon: "cloud-download",
+          icon: "cloud-download-outline",
           url: RouteMap.DownloadAndInstallPage.getPath(),
         },
       ],
@@ -528,7 +532,7 @@ export class AppComponent {
         {
           id: "contribute",
           title: contribute,
-          icon: "heart",
+          icon: "heart-outline",
           url: RouteMap.ContributePage.getPath(),
         },
       ],
@@ -537,7 +541,7 @@ export class AppComponent {
         {
           id: "settings",
           title: settings,
-          icon: "settings",
+          icon: "settings-outline",
           url: RouteMap.SettingsPage.getPath(),
         },
       ],
@@ -546,7 +550,7 @@ export class AppComponent {
         {
           id: "about",
           title: about,
-          icon: "help-buoy",
+          icon: "help-buoy-outline",
           url: RouteMap.AboutPage.getPath(),
         },
       ],
@@ -562,26 +566,35 @@ export class AppComponent {
   async loadInboxCount() {
     if (!localStorage.getItem("token")) return;
 
-    const response = await this.recipeService.count({ folder: "inbox" });
-    if (!response.success) return;
+    const response = await this.serverActionsService.recipes.getRecipeCount({
+      folder: "inbox",
+    });
+    if (!response) return;
 
-    this.inboxCount = response.data.count;
+    this.inboxCount = response.count;
   }
 
   async loadFriendRequestCount() {
     if (!localStorage.getItem("token")) return;
 
-    const response = await this.userService.getMyFriends({
+    const response = await this.serverActionsService.users.getMyFriends({
       401: () => {},
     });
-    if (!response.success) return;
+    if (!response) return;
 
-    this.friendRequestCount = response.data.incomingRequests?.length || null;
+    this.friendRequestCount = response.incomingRequests?.length || undefined;
   }
 
   initializeApp() {
     this.platform.ready().then(() => {
       this.menuCtrl.close();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      this.ngZone.run(() => {
+        this.events.publish(EventName.ApplicationMultitaskingResumed);
+      });
     });
 
     let currentUrl: string | undefined;
@@ -590,6 +603,8 @@ export class AppComponent {
 
       this.updateIsLoggedIn();
       this.updateNavList();
+
+      this.inCookMode = event.url.split("?")[0].endsWith("/cook");
 
       this.checkBrowserCompatibility();
 
@@ -628,9 +643,9 @@ export class AppComponent {
       const currentIdbSession = await appIdbStorageManager.getSession();
       if (currentIdbSession) return;
 
-      const me = await this.serverActionsService.users.getMe({
-        "*": () => {},
-      });
+      const me = await this.trpcService.trpc.users.getMe
+        .query()
+        .catch(() => undefined);
 
       if (!me) return;
 

@@ -1,13 +1,20 @@
-import { Component, ViewChild, ChangeDetectorRef, inject } from "@angular/core";
+import {
+  Component,
+  ViewChild,
+  ElementRef,
+  ChangeDetectorRef,
+  inject,
+} from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import { NavController } from "@ionic/angular/standalone";
 
-import { linkifyStr } from "~/utils/linkify";
-import { Message, MessagingService } from "~/services/messaging.service";
-import { LoadingService } from "~/services/loading.service";
-import { WebsocketService } from "~/services/websocket.service";
-import { EventName, EventService } from "~/services/event.service";
-import { UtilService, RouteMap } from "~/services/util.service";
+import { linkifyStr } from "../../../utils/linkify";
+import type { MessageSummary } from "@recipesage/prisma";
+import { ServerActionsService } from "../../../services/server-actions.service";
+import { LoadingService } from "../../../services/loading.service";
+import { WebsocketService } from "../../../services/websocket.service";
+import { EventName, EventService } from "../../../services/event.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
 import { TranslateService } from "@ngx-translate/core";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import {
@@ -19,16 +26,26 @@ import {
   IonButton,
   IonIcon,
   IonContent,
-  IonRefresher,
-  IonRefresherContent,
   IonItem,
   IonAvatar,
   IonLabel,
   IonFooter,
   IonTextarea,
 } from "@ionic/angular/standalone";
-import { refresh, send } from "ionicons/icons";
+import { refreshOutline, sendOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
+
+interface MessageParsedDetails {
+  body: string;
+  formattedDate: string;
+  deservesDateDiff: boolean;
+  dateDiff?: string;
+}
+
+interface ThreadMessage {
+  message: MessageSummary;
+  parsedDetails: MessageParsedDetails;
+}
 
 @Component({
   standalone: true,
@@ -45,8 +62,6 @@ import { addIcons } from "ionicons";
     IonButton,
     IonIcon,
     IonContent,
-    IonRefresher,
-    IonRefresherContent,
     IonItem,
     IonAvatar,
     IonLabel,
@@ -63,20 +78,19 @@ export class MessageThreadPage {
   private loadingService = inject(LoadingService);
   private websocketService = inject(WebsocketService);
   private utilService = inject(UtilService);
-  private messagingService = inject(MessagingService);
+  private serverActionsService = inject(ServerActionsService);
 
   defaultBackHref: string = RouteMap.MessagesPage.getPath();
 
-  @ViewChild("content", { static: true }) content: any;
+  @ViewChild("content", { static: true }) content!: IonContent;
+  @ViewChild("content", { static: true, read: ElementRef })
+  contentElement!: ElementRef<HTMLElement>;
 
-  messages: (Message & {
-    formattedDate?: string;
-    deservesDateDiff?: boolean;
-    dateDiff?: string;
-  })[] = [];
-  messagesById: { [key: string]: Message } = {};
+  messages: ThreadMessage[] = [];
+  private parsedBodyById = new Map<string, string>();
 
   otherUserId = "";
+  otherUserName = "";
   pendingMessage = "";
   messagePlaceholder = "";
   reloading = false;
@@ -84,7 +98,11 @@ export class MessageThreadPage {
   selectedChatIdx = -1;
 
   constructor() {
-    addIcons({ refresh, send });
+    addIcons({ refreshOutline, sendOutline });
+    this.applyRouteParams();
+  }
+
+  private applyRouteParams() {
     const otherUserId = this.route.snapshot.paramMap.get("otherUserId");
     if (!otherUserId) {
       this.navCtrl.navigateBack(this.defaultBackHref);
@@ -94,6 +112,13 @@ export class MessageThreadPage {
   }
 
   ionViewWillEnter() {
+    const snapshotOtherUserId = this.route.snapshot.paramMap.get("otherUserId");
+    if (snapshotOtherUserId && snapshotOtherUserId !== this.otherUserId) {
+      this.applyRouteParams();
+      this.messages = [];
+      this.parsedBodyById.clear();
+    }
+
     this.translate
       .get("pages.messageThread.messagePlaceholder")
       .toPromise()
@@ -101,15 +126,17 @@ export class MessageThreadPage {
 
     const loading = this.loadingService.start();
 
-    let messageArea: any;
+    let messageArea: HTMLElement | undefined;
     try {
-      messageArea = this.content.getNativeElement().children[1].children[0];
+      const candidate =
+        this.contentElement.nativeElement.children[1]?.children[0];
+      if (candidate instanceof HTMLElement) messageArea = candidate;
     } catch (e) {}
 
-    if (messageArea) messageArea.style.opacity = 0;
+    if (messageArea) messageArea.style.opacity = "0";
     this.loadMessages(true).finally(() => {
       loading.dismiss();
-      if (messageArea) messageArea.style.opacity = 1;
+      if (messageArea) messageArea.style.opacity = "1";
     });
 
     this.websocketService.on("messages:new", this.onWSEvent);
@@ -137,17 +164,6 @@ export class MessageThreadPage {
     });
   }
 
-  refresh(refresher: any) {
-    this.loadMessages().then(
-      () => {
-        refresher.target.complete();
-      },
-      () => {
-        refresher.target.complete();
-      },
-    );
-  }
-
   onWSEvent = (data: Record<string, Record<string, string>>) => {
     if (data.otherUser.id !== this.otherUserId) {
       return;
@@ -156,7 +172,7 @@ export class MessageThreadPage {
     this.loadMessages();
   };
 
-  scrollToBottom(animate?: boolean, delay?: boolean, callback?: () => any) {
+  scrollToBottom(animate?: boolean, delay?: boolean, callback?: () => void) {
     const animationDuration = animate ? 300 : 0;
 
     if (delay) {
@@ -176,45 +192,47 @@ export class MessageThreadPage {
     };
   }
 
-  trackByFn(_: number, item: { id: string }) {
-    return item.id;
+  trackByFn(_: number, item: ThreadMessage) {
+    return item.message.id;
   }
 
   loadMessages = async (isInitialLoad?: boolean) => {
-    const response = await this.messagingService.fetch({
-      user: this.otherUserId,
+    const response = await this.serverActionsService.messages.getThread({
+      userId: this.otherUserId,
     });
-    if (!response.success) return;
+    if (!response) return;
 
-    this.messages = response.data.map((message) => {
-      // Reuse messages that have already been parsed for performance. Otherwise, send it through linkify
-      if (this.messagesById[message.id]) {
-        message.body = this.messagesById[message.id].body;
-      } else {
-        message.body = this.parseMessage(message.body);
-      }
+    this.otherUserName = response.messageThread.otherUser.name;
 
-      this.messagesById[message.id] = message;
-
-      return message;
-    });
-
-    this.processMessages();
+    const messages = response.messages;
+    this.messages = messages.map((message, index) => ({
+      message,
+      parsedDetails: this.buildParsedDetails(message, messages[index - 1]),
+    }));
 
     this.scrollToBottom(!isInitialLoad, true);
   };
 
-  processMessages() {
-    for (let i = 0; i < this.messages.length; i++) {
-      const message = this.messages[i];
-      message.deservesDateDiff = !!this.deservesDateDiff(
-        this.messages[i - 1],
-        message,
-      );
-      if (message.deservesDateDiff)
-        message.dateDiff = this.formatMessageDividerDate(message.createdAt);
-      message.formattedDate = this.formatMessageDate(message.createdAt);
+  private buildParsedDetails(
+    message: MessageSummary,
+    previous: MessageSummary | undefined,
+  ): MessageParsedDetails {
+    let body = this.parsedBodyById.get(message.id);
+    if (body === undefined) {
+      body = this.parseMessage(message.body);
+      this.parsedBodyById.set(message.id, body);
     }
+
+    const deservesDateDiff = !!this.deservesDateDiff(previous, message);
+
+    return {
+      body,
+      formattedDate: this.formatMessageDate(message.createdAt),
+      deservesDateDiff,
+      dateDiff: deservesDateDiff
+        ? this.formatMessageDividerDate(message.createdAt)
+        : undefined,
+    };
   }
 
   async sendMessage() {
@@ -234,11 +252,11 @@ export class MessageThreadPage {
     this.pendingMessage = "";
     this.messagePlaceholder = sending;
 
-    const response = await this.messagingService.create({
+    const response = await this.serverActionsService.messages.createMessage({
       to: this.otherUserId,
       body: myMessage,
     });
-    if (!response.success) return (this.pendingMessage = myMessage);
+    if (!response) return (this.pendingMessage = myMessage);
 
     this.messagePlaceholder = sent;
 
@@ -249,12 +267,13 @@ export class MessageThreadPage {
     this.loadMessages();
   }
 
-  openRecipe(recipe: NonNullable<Message["originalRecipe"]>) {
+  openRecipe(recipe: NonNullable<MessageSummary["originalRecipe"]>) {
     this.navCtrl.navigateForward(RouteMap.RecipePage.getPath(recipe.id));
   }
 
-  onMessageKeyUp(event: KeyboardEvent) {
-    if (!(event.key === "10" || event.key === "13")) return;
+  onMessageKeyDown(event: KeyboardEvent) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
 
     if (event.ctrlKey || event.shiftKey || event.altKey) {
       this.pendingMessage += "\n";
@@ -264,8 +283,8 @@ export class MessageThreadPage {
   }
 
   deservesDateDiff(
-    previous: { createdAt: string },
-    next: { createdAt: string },
+    previous: { createdAt: Date | string } | undefined,
+    next: { createdAt: Date | string },
   ) {
     if (!previous || !next) return;
 

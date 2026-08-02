@@ -1,12 +1,16 @@
 import { Component, inject } from "@angular/core";
 import { AlertController, NavController } from "@ionic/angular/standalone";
+import { Router } from "@angular/router";
 import { TranslateService } from "@ngx-translate/core";
 
-import { RouteMap } from "~/services/util.service";
-import { CookingToolbarService } from "~/services/cooking-toolbar.service";
+import { RouteMap } from "../../services/util.service";
+import {
+  CookingToolbarService,
+  PinnedRecipe,
+} from "../../services/cooking-toolbar.service";
 import { SHARED_UI_IMPORTS } from "../../providers/shared-ui.provider";
 import { IonIcon, IonRippleEffect } from "@ionic/angular/standalone";
-import { close, pin } from "ionicons/icons";
+import { closeOutline, pinOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -18,16 +22,25 @@ import { addIcons } from "ionicons";
 })
 export class CookingToolbarComponent {
   constructor() {
-    addIcons({ close, pin });
+    addIcons({ closeOutline, pinOutline });
   }
 
   private navCtrl = inject(NavController);
+  private router = inject(Router);
   private alertCtrl = inject(AlertController);
   private translate = inject(TranslateService);
   cookingToolbarService = inject(CookingToolbarService);
 
-  openRecipe(recipeId: string) {
-    this.navCtrl.navigateForward(RouteMap.RecipePage.getPath(recipeId));
+  openRecipe(pinnedRecipe: PinnedRecipe) {
+    if (pinnedRecipe.path) {
+      this.navCtrl.navigateForward(pinnedRecipe.path);
+      return;
+    }
+    const inCookMode = this.router.url.split("?")[0].endsWith("/cook");
+    const path = inCookMode
+      ? RouteMap.RecipePageCook.getPath(pinnedRecipe.id)
+      : RouteMap.RecipePage.getPath(pinnedRecipe.id);
+    this.navCtrl.navigateForward(path);
   }
 
   async clearPins() {

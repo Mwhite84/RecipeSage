@@ -1,10 +1,10 @@
 import type {
-  JobMeta,
+  ExportJobMeta,
   JobSummary,
   Prisma,
   RecipeSummary,
 } from "@recipesage/prisma";
-import type { JobQueueItem } from "../JobQueueItem";
+import type { StandardJobQueueItem } from "../JobQueueItem";
 import * as Sentry from "@sentry/node";
 import {
   JobStatus,
@@ -32,15 +32,13 @@ const JOB_PROGRESS_UPDATE_PERIOD_SECONDS = 3;
 
 export const processExportJob = async (
   job: JobSummary,
-  _jobQueueItem: JobQueueItem,
+  _jobQueueItem: StandardJobQueueItem,
 ) => {
-  const jobMeta = job.meta;
-
-  if (!jobMeta || job.type !== JobType.EXPORT) {
-    throw new Error(
-      "Export processor received a non-export job or job without meta",
-    );
+  if (job.type !== JobType.EXPORT) {
+    throw new Error("Export processor received a non-export job");
   }
+
+  const jobMeta = job.meta;
 
   const whereClause: Prisma.RecipeWhereInput = {
     userId: job.userId,
@@ -112,7 +110,7 @@ export const processExportJob = async (
         exportStorageBucket: storageRecord.bucket,
         exportStorageKey: storageRecord.key,
         exportDownloadUrl: storageRecord.location,
-      } satisfies JobMeta,
+      } satisfies ExportJobMeta,
     },
   });
 };

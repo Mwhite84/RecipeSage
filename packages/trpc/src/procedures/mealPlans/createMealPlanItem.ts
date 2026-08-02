@@ -1,8 +1,7 @@
-import { publicProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import {
-  WSBoardcastEventType,
+  WSBroadcastEventType,
   broadcastWSEventIgnoringErrors,
-  validateTrpcSession,
 } from "@recipesage/util/server/general";
 import { prisma } from "@recipesage/prisma";
 import { TRPCError } from "@trpc/server";
@@ -11,15 +10,31 @@ import {
   getAccessToMealPlan,
 } from "@recipesage/util/server/db";
 import { createMealPlanItemInput } from "@recipesage/util/shared";
+import { z } from "zod";
 
 /** @deprecated Use createMealPlanItems instead */
-export const createMealPlanItem = publicProcedure
+export const createMealPlanItem = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/mealPlans/createMealPlanItem",
+      tags: ["mealPlans"],
+      summary: "Create a single meal plan item (deprecated)",
+      protect: true,
+    },
+  })
   .input(createMealPlanItemInput)
+  .output(
+    z.object({
+      reference: z.uuid(),
+      id: z.uuid(),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    validateTrpcSession(session);
-
-    const access = await getAccessToMealPlan(session.userId, input.mealPlanId);
+    const access = await getAccessToMealPlan(
+      ctx.session.userId,
+      input.mealPlanId,
+    );
 
     if (access.level === MealPlanAccessLevel.None) {
       throw new TRPCError({
@@ -33,7 +48,7 @@ export const createMealPlanItem = publicProcedure
       data: {
         mealPlanId: input.mealPlanId,
         title: input.title,
-        userId: session.userId,
+        userId: ctx.session.userId,
         scheduledDate: new Date(input.scheduledDate),
         meal: input.meal,
         recipeId: input.recipeId,
@@ -45,7 +60,7 @@ export const createMealPlanItem = publicProcedure
     for (const subscriberId of access.subscriberIds) {
       broadcastWSEventIgnoringErrors(
         subscriberId,
-        WSBoardcastEventType.MealPlanUpdated,
+        WSBroadcastEventType.MealPlanUpdated,
         {
           reference,
           mealPlanId: input.mealPlanId,

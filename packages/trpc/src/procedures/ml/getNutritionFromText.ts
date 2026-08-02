@@ -1,26 +1,28 @@
-import { textToNutrition } from "@recipesage/util/server/ml";
+import { nutritionSchema, textToNutrition } from "@recipesage/util/server/ml";
 import { recordCreditsSpent } from "@recipesage/util/server/general";
-import { publicProcedure } from "../../trpc";
-import { assertCreditsAvailableTrpc } from "../../util/assertCreditsAvailableTrpc";
+import { authenticatedProcedure } from "../../trpc";
+import { assertCreditsAvailableTrpc } from "@recipesage/util/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export const getNutritionFromText = publicProcedure
+export const getNutritionFromText = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/ml/getNutritionFromText",
+      tags: ["ml"],
+      summary: "Extract nutrition information from a block of text",
+      protect: true,
+    },
+  })
   .input(
     z.object({
       text: z.string().min(1).max(10000),
     }),
   )
+  .output(nutritionSchema)
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    if (!session) {
-      throw new TRPCError({
-        message: "Must be logged in",
-        code: "UNAUTHORIZED",
-      });
-    }
-
-    await assertCreditsAvailableTrpc(session.userId, "mlTextNutrition");
+    await assertCreditsAvailableTrpc(ctx.session.userId, "mlTextNutrition");
 
     const nutrition = await textToNutrition(input.text);
     if (!nutrition) {
@@ -34,7 +36,7 @@ export const getNutritionFromText = publicProcedure
       (value) => value !== null && value !== undefined,
     );
     if (hasAnyNutritionData) {
-      await recordCreditsSpent(session.userId, "mlTextNutrition");
+      await recordCreditsSpent(ctx.session.userId, "mlTextNutrition");
     }
 
     return nutrition;

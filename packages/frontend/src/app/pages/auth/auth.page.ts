@@ -9,12 +9,11 @@ import { TranslateService } from "@ngx-translate/core";
 
 import { IS_SELFHOST } from "../../../environments/environment";
 
-import { EventName, EventService } from "~/services/event.service";
-import { UserService } from "~/services/user.service";
-import { LoadingService } from "~/services/loading.service";
-import { MessagingService } from "~/services/messaging.service";
-import { RouteMap, AuthType } from "~/services/util.service";
-import { CapabilitiesService } from "~/services/capabilities.service";
+import { EventName, EventService } from "../../services/event.service";
+import { LoadingService } from "../../services/loading.service";
+import { MessagingService } from "../../services/messaging.service";
+import { RouteMap, AuthType } from "../../services/util.service";
+import { CapabilitiesService } from "../../services/capabilities.service";
 import { ServerActionsService } from "../../services/server-actions.service";
 import { appIdbStorageManager } from "../../utils/appIdbStorageManager";
 import type { SessionDTO } from "@recipesage/prisma";
@@ -24,6 +23,7 @@ import { SignInWithGoogleComponent } from "../../components/sign-in-with-google/
 import { LogoIconComponent } from "../../components/logo-icon/logo-icon.component";
 import { TosClickwrapAgreementComponent } from "../../components/tos-clickwrap-agreement/tos-clickwrap-agreement.component";
 import { WebsocketService } from "../../services/websocket.service";
+import { TextInputComponent } from "../../components/forms/text-input/text-input.component";
 import {
   IonHeader,
   IonToolbar,
@@ -34,10 +34,8 @@ import {
   IonTitle,
   IonContent,
   IonList,
-  IonItem,
-  IonInput,
 } from "@ionic/angular/standalone";
-import { close, eye, eyeOff } from "ionicons/icons";
+import { closeOutline, eyeOutline, eyeOffOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -45,12 +43,12 @@ import { addIcons } from "ionicons";
   selector: "page-auth",
   templateUrl: "auth.page.html",
   styleUrls: ["auth.page.scss"],
-  providers: [UserService],
   imports: [
     ...SHARED_UI_IMPORTS,
     SignInWithGoogleComponent,
     LogoIconComponent,
     TosClickwrapAgreementComponent,
+    TextInputComponent,
     IonHeader,
     IonToolbar,
     IonButtons,
@@ -60,8 +58,6 @@ import { addIcons } from "ionicons";
     IonTitle,
     IonContent,
     IonList,
-    IonItem,
-    IonInput,
   ],
 })
 export class AuthPage {
@@ -96,7 +92,7 @@ export class AuthPage {
   loading = false;
 
   constructor() {
-    addIcons({ close, eye, eyeOff });
+    addIcons({ closeOutline, eyeOutline, eyeOffOutline });
     if (this.route.snapshot.paramMap.get("authType") === AuthType.Register) {
       this.showLogin = false;
     } else {
@@ -236,6 +232,10 @@ export class AuthPage {
 
     this.events.publish(EventName.Auth);
     this.close();
+  }
+
+  onGoogleAccountNotFound() {
+    this.presentAlert("generic.error", "pages.auth.error.incorrectEmail");
   }
 
   async signInWithGoogleComplete(session: SessionDTO) {

@@ -5,23 +5,45 @@ import {
   jobSummary,
   prisma,
   prismaJobSummaryToJobSummary,
-  type JobMeta,
 } from "@recipesage/prisma";
 import { JobStatus, JobType } from "@recipesage/prisma";
 import { processImportJob } from "./import/processImportJob";
 import { processExportJob } from "./export/processExportJob";
+import { processCookbookJob } from "./cookbook/processCookbookJob";
 import {
   jobErrorsToReport,
   jobErrorToResultCode,
 } from "../jobs/getJobResultCode";
 import { onJobUpdate } from "../jobs/updateJobProgress";
+import { moderateDiscoverRecipe } from "../../ml/moderateDiscoverRecipe";
 
 export const processWorkerJob = async (
   args: SandboxedJob<JobQueueItem, unknown>,
 ) => {
+  if ("discoverModeration" in args.data) {
+    const { discoverRecipeId } = args.data.discoverModeration;
+    try {
+      await moderateDiscoverRecipe(discoverRecipeId);
+    } catch (e) {
+      Sentry.captureException(e, {
+        extra: {
+          discoverRecipeId,
+        },
+      });
+      console.error(e);
+      throw e;
+    }
+    return;
+  }
+
+  if (!args.data.jobId) {
+    throw new Error("Job queue item is missing a jobId");
+  }
+  const jobId = args.data.jobId;
+
   const verify = await prisma.job.findUniqueOrThrow({
     where: {
-      id: args.data.jobId,
+      id: jobId,
     },
     ...jobSummary,
   });
@@ -34,16 +56,9 @@ export const processWorkerJob = async (
     );
   }
 
-  console.log(
-    `Starting processing job ${args.id} with ${verify.type}.${
-      (verify.meta as JobMeta)?.importType ||
-      (verify.meta as JobMeta)?.exportType
-    }`,
-  );
-
   const _job = await prisma.job.update({
     where: {
-      id: args.data.jobId,
+      id: jobId,
       status: JobStatus.CREATE,
     },
     data: {
@@ -52,6 +67,14 @@ export const processWorkerJob = async (
     ...jobSummary,
   });
   const job = prismaJobSummaryToJobSummary(_job);
+
+  const subType =
+    job.type === JobType.IMPORT
+      ? job.meta.importType
+      : job.type === JobType.EXPORT
+        ? job.meta.exportType
+        : undefined;
+  console.log(`Starting processing job ${args.id} with ${job.type}.${subType}`);
   await onJobUpdate({
     jobId: job.id,
     userId: job.userId,
@@ -67,8 +90,9 @@ export const processWorkerJob = async (
         await processExportJob(job, args.data);
         break;
       }
-      default: {
-        throw new Error(`Unsupported job type: ${job.type}`);
+      case JobType.COOKBOOK: {
+        await processCookbookJob(job, args.data);
+        break;
       }
     }
   } catch (e) {

@@ -1,9 +1,9 @@
 import { Component, inject } from "@angular/core";
+import { TranslateService } from "@ngx-translate/core";
 import * as Sentry from "@sentry/browser";
 
-import { ExportFormat } from "~/services/recipe.service";
-import { RouteMap, UtilService } from "~/services/util.service";
-import type { JobSummary } from "@recipesage/prisma";
+import { RouteMap, UtilService } from "../../../services/util.service";
+import type { ExportJobSummary } from "@recipesage/prisma";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { WebsocketService } from "../../../services/websocket.service";
@@ -21,10 +21,16 @@ import {
   IonButton,
   IonList,
 } from "@ionic/angular/standalone";
-import { cloudDownload, document } from "ionicons/icons";
+import { cloudDownloadOutline, documentOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
-export const getJobFailureI18n = (exportJob: JobSummary) => {
+export enum ExportFormat {
+  PDF = "pdf",
+  TXT = "txt",
+  JSONLD = "jsonld",
+}
+
+export const getJobFailureI18n = (exportJob: ExportJobSummary) => {
   switch (exportJob.resultCode) {
     default: {
       return "pages.import.jobs.status.fail.unknown";
@@ -60,12 +66,13 @@ const JOB_POLL_INTERVAL_MS = 60_000;
 })
 export class ExportPage {
   constructor() {
-    addIcons({ cloudDownload, document });
+    addIcons({ cloudDownloadOutline, documentOutline });
   }
 
   private utilService = inject(UtilService);
   private serverActionsService = inject(ServerActionsService);
   private websocketService = inject(WebsocketService);
+  private translate = inject(TranslateService);
 
   defaultBackHref: string = RouteMap.SettingsPage.getPath();
 
@@ -73,7 +80,7 @@ export class ExportPage {
    * We show this many historical jobs
    */
   showJobs = 5;
-  exportJobs: JobSummary[] = [];
+  exportJobs: ExportJobSummary[] = [];
   jobPollInterval?: NodeJS.Timeout;
 
   ionViewWillEnter() {
@@ -110,9 +117,7 @@ export class ExportPage {
         .sort((a, b) => {
           return b.createdAt.getTime() - a.createdAt.getTime();
         })
-        .filter((job) => {
-          return job.type === "EXPORT";
-        });
+        .filter((job): job is ExportJobSummary => job.type === "EXPORT");
     } else {
       clearInterval(this.jobPollInterval);
     }
@@ -155,23 +160,24 @@ export class ExportPage {
     this.export(ExportFormat.PDF);
   }
 
-  async downloadJob(job: JobSummary) {
+  async downloadJob(job: ExportJobSummary) {
     if (job.status !== "SUCCESS") return;
 
-    const response =
-      await this.serverActionsService.jobs.getExportJobDownloadUrlById({
+    const response = await this.serverActionsService.jobs.getJobDownloadUrlById(
+      {
         id: job.id,
-      });
+      },
+    );
     if (!response) return;
     window.open(response.signedUrl, "_blank", 'rel="noopener"');
   }
 
-  getJobFailureI18n(job: JobSummary) {
+  getJobFailureI18n(job: ExportJobSummary) {
     return getJobFailureI18n(job);
   }
 
-  getJobTitleI18n(job: JobSummary): string {
-    const exportType = job.meta?.exportType;
+  getJobTitleI18n(job: ExportJobSummary): string {
+    const exportType = job.meta.exportType;
     if (!exportType) return "pages.export.jobs.job";
 
     switch (exportType) {

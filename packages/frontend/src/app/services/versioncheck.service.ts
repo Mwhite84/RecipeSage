@@ -1,13 +1,13 @@
 import { Injectable, inject } from "@angular/core";
 import { AlertController } from "@ionic/angular/standalone";
-import { UtilService } from "./util.service";
 import { HttpService } from "./http.service";
+import { serverConfig } from "../utils/serverConfig";
+import { forceSWUpdate } from "../utils/forceSWUpdate";
 
 @Injectable({
   providedIn: "root",
 })
 export class VersionCheckService {
-  private utilService = inject(UtilService);
   private httpService = inject(HttpService);
   private alertCtrl = inject(AlertController);
 
@@ -15,7 +15,7 @@ export class VersionCheckService {
     const version = (window as any).version;
     if (version === "stg") return;
 
-    const url = `${this.utilService.getBase()}versioncheck?version=${version}`;
+    const url = `${serverConfig.apiBase}versioncheck?version=${version}`;
 
     this.httpService
       .request<{ supported: boolean }>({
@@ -33,13 +33,9 @@ export class VersionCheckService {
                 text: "Ok",
                 role: "cancel",
                 handler: () => {
-                  try {
-                    (window as any).forceSWUpdate().then(() => {
-                      (window as any).location.reload(true);
-                    });
-                  } catch (e) {
-                    (window as any).location.reload(true);
-                  }
+                  forceSWUpdate().finally(() => {
+                    window.location.reload();
+                  });
                 },
               },
             ],

@@ -29,6 +29,10 @@ export class RatingComponent {
 
   ratingVisual = new Array<string>(5).fill("star-outline");
 
+  get filledStarCount() {
+    return this.ratingVisual.filter((star) => star === "star").length;
+  }
+
   constructor() {
     addIcons({ star, starOutline });
   }

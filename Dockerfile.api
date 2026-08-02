@@ -10,9 +10,12 @@ WORKDIR /app
 
 RUN apk add --no-cache openssl
 
-COPY package-lock.json package-lock.json
+RUN corepack enable
+
+COPY .npmrc .npmrc
+COPY pnpm-lock.yaml pnpm-lock.yaml
 COPY package.json package.json
-RUN npm ci
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 
 # ---- Stage 2: Copy source + generate prisma + build all ----
 FROM deps AS builder
@@ -30,7 +33,7 @@ COPY scripts scripts
 COPY fonts fonts
 
 # Generate Prisma client
-RUN npx prisma generate
+RUN pnpm exec prisma generate
 
 ENV NX_SKIP_NX_CACHE=true
 ENV NX_NO_CLOUD=true
@@ -39,10 +42,10 @@ ENV APP_VERSION=0.0.0-selfhost
 ENV ENVIRONMENT=selfhost
 
 # Build backend (produces dist/apps/backend/main.cjs)
-RUN npx nx build backend
+RUN pnpm exec nx build backend
 
 # Build queue-worker (produces dist/apps/queue-worker/worker.cjs + main.cjs)
-RUN npx nx build queue-worker
+RUN pnpm exec nx build queue-worker
 
 # ---- Stage 3: Production runner ----
 FROM node:24.13-alpine AS runner
@@ -50,7 +53,8 @@ FROM node:24.13-alpine AS runner
 WORKDIR /app
 
 # System dependencies for runtime
-RUN apk add --no-cache openssl mdbtools mdbtools-utils poppler-utils
+# pandoc added upstream for rtf/odt/docx text extraction during import
+RUN apk add --no-cache openssl mdbtools mdbtools-utils poppler-utils pandoc
 
 # Copy node_modules from builder stage (includes prisma generated client)
 COPY --from=builder /app/node_modules ./node_modules

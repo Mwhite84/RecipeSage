@@ -9,7 +9,7 @@
       }
       @if (selectionMode) {
         <ion-button (click)="clearSelectedRecipes()">
-          <ion-icon slot="icon-only" name="close"></ion-icon>
+          <ion-icon slot="icon-only" name="close-outline"></ion-icon>
         </ion-button>
       }
     </ion-buttons>
@@ -23,12 +23,12 @@
       </ion-title>
     }
     @if (!userId && !selectionMode && folder === "main") {
-      <ion-title>{{ "pages.home.title.main" | translate }}</ion-title>
+      <ion-title> {{ "pages.home.title.main" | translate }} </ion-title>
     }
     @if (!userId && !selectionMode && folder === "inbox") {
-      <ion-title>{{ "pages.home.title.inbox" | translate }}</ion-title>
+      <ion-title> {{ "pages.home.title.inbox" | translate }} </ion-title>
     }
-    @if (userId && otherUserProfile && selectedLabels.length) {
+    @if (userId && otherUserProfile && this.selectedLabels.length) {
       <ion-title>
         {{
           "pages.home.title.sharedLabel.withProfile"
@@ -37,7 +37,7 @@
         }}
       </ion-title>
     }
-    @if (userId && otherUserProfile && !selectedLabels.length) {
+    @if (userId && otherUserProfile && !this.selectedLabels.length) {
       <ion-title>
         {{
           "pages.home.title.sharedAll.withProfile"
@@ -45,7 +45,7 @@
         }}
       </ion-title>
     }
-    @if (userId && !otherUserProfile && selectedLabels.length) {
+    @if (userId && !otherUserProfile && this.selectedLabels.length) {
       <ion-title>
         {{
           "pages.home.title.sharedLabel"
@@ -53,28 +53,29 @@
         }}
       </ion-title>
     }
-    @if (userId && !otherUserProfile && !selectedLabels.length) {
-      <ion-title>{{ "pages.home.title.sharedAll" | translate }}</ion-title>
+    @if (userId && !otherUserProfile && !this.selectedLabels.length) {
+      <ion-title> {{ "pages.home.title.sharedAll" | translate }} </ion-title>
     }
 
     <ion-buttons slot="end">
       @if (selectionMode && selectedRecipeIds.length > 0 && folder === "main") {
         <ion-button (click)="addLabelToSelectedRecipes()">
-          <ion-icon slot="icon-only" name="pricetag"></ion-icon>
+          <ion-icon slot="icon-only" name="pricetag-outline"></ion-icon>
         </ion-button>
       }
       @if (selectionMode && selectedRecipeIds.length > 0) {
         <ion-button (click)="exportSelectedRecipes()">
-          <ion-icon slot="icon-only" name="download"></ion-icon>
+          <ion-icon slot="icon-only" name="download-outline"></ion-icon>
         </ion-button>
       }
       @if (selectionMode && selectedRecipeIds.length > 0) {
         <ion-button (click)="deleteSelectedRecipes()">
-          <ion-icon slot="icon-only" name="trash"></ion-icon>
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
         </ion-button>
       }
+
       <ion-button (click)="presentPopover($event)">
-        <ion-icon slot="icon-only" name="options"></ion-icon>
+        <ion-icon slot="icon-only" name="options-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -121,7 +122,7 @@
           </div>
         }
         <div *uiScroll="let recipeGroup of datasource" class="recipe-group-row">
-          <div class="recipe-group">
+          <div class="recipe-group" [class.single-col]="tileColCount === 1">
             @for (recipe of recipeGroup; track recipe.id) {
               <div
                 class="recipe-card"
@@ -138,9 +139,10 @@
                   preferences[preferenceKeys.ShowImages]
                 ) {
                   <img
+                    loading="lazy"
+                    decoding="async"
                     [src]="recipe.recipeImages[0].image.location"
                     [alt]="recipe.title"
-                    loading="lazy"
                   />
                 } @else if (preferences[preferenceKeys.ShowImages]) {
                   <div class="recipe-card-no-image"></div>
@@ -172,15 +174,24 @@
                   ) {
                     <p class="recipe-card-meta">{{ getLabelList(recipe) }}</p>
                   }
+                  @if (
+                    recipe.rating && preferences[preferenceKeys.ShowRating]
+                  ) {
+                    <rating [rating]="recipe.rating"></rating>
+                  }
                 </div>
-                @if (!userId && myProfile && myProfile.id !== recipe.userId) {
-                  <ion-badge>
-                    @if (friendsById && friendsById[recipe.userId]) {
-                      &commat;{{ friendsById[recipe.userId].handle }}
-                    } @else {
-                      {{ "pages.home.recipe.fromSharedCollection" | translate }}
-                    }
-                  </ion-badge>
+                @if (myProfile(); as myProfileValue) {
+                  @if (!userId && myProfileValue.id !== recipe.userId) {
+                    <ion-badge>
+                      @if (friendsById && friendsById[recipe.userId]) {
+                        &commat;{{ friendsById[recipe.userId].handle }}
+                      } @else {
+                        {{
+                          "pages.home.recipe.fromSharedCollection" | translate
+                        }}
+                      }
+                    </ion-badge>
+                  }
                 }
                 @if (selectedRecipeIds.indexOf(recipe.id) > -1) {
                   <ion-badge>{{
@@ -222,26 +233,34 @@
           [class.compact]="preferences[preferenceKeys.ViewType] === 'compact'"
           [class.selected]="selectedRecipeIds.indexOf(recipe.id) > -1"
           [class.no-image]="!preferences[preferenceKeys.ShowImages]"
+          role="button"
+          tabindex="0"
           (click)="
             selectionMode ? selectRecipe(recipe) : openRecipe(recipe, $event)
           "
-          button
+          (keydown.enter)="
+            selectionMode
+              ? selectRecipe(recipe)
+              : openRecipe(recipe, $any($event))
+          "
         >
           @if (
             recipe.recipeImages?.length &&
             preferences[preferenceKeys.ShowImages]
           ) {
             <img
+              loading="lazy"
+              decoding="async"
               [src]="recipe.recipeImages[0].image.location"
               [alt]="recipe.title"
-              loading="lazy"
             />
           } @else if (preferences[preferenceKeys.ShowImages]) {
             <img
               class="no-image"
+              loading="lazy"
+              decoding="async"
               src="assets/imgs/logo_green_padded.png"
               [alt]="recipe.title"
-              loading="lazy"
             />
           } @else {
             <div></div>
@@ -253,15 +272,15 @@
                 preferences[preferenceKeys.ShowRecipeDescription] &&
                 recipe.description
               ) {
-                <p class="description">{{ recipe.description }}</p>
+                <p class="description" dir="auto">{{ recipe.description }}</p>
               }
               @if (
                 recipe.source?.length && preferences[preferenceKeys.ShowSource]
               ) {
-                <p>{{ recipe.source }}</p>
+                <p dir="auto">{{ recipe.source }}</p>
               }
               @if (recipe.folder === "inbox" && recipe.fromUser) {
-                <p>
+                <p dir="auto">
                   <b>{{ recipe.fromUser.name }}</b>
                 </p>
               }
@@ -269,7 +288,10 @@
                 recipe.recipeLabels?.length &&
                 preferences[preferenceKeys.ShowLabels]
               ) {
-                <p>{{ getLabelList(recipe) }}</p>
+                <p dir="auto">{{ getLabelList(recipe) }}</p>
+              }
+              @if (recipe.rating && preferences[preferenceKeys.ShowRating]) {
+                <rating [rating]="recipe.rating"></rating>
               }
             </div>
           </div>
@@ -278,13 +300,11 @@
             class="recipe-item-chevron"
             aria-hidden="true"
           ></ion-icon>
-          @if (!userId && myProfile && myProfile.id !== recipe.userId) {
+          @if (getRecipeBadgeHandle(recipe); as badgeHandle) {
+            <ion-badge>&commat;{{ badgeHandle }}</ion-badge>
+          } @else if (isFromSharedCollection(recipe)) {
             <ion-badge>
-              @if (friendsById && friendsById[recipe.userId]) {
-                &commat;{{ friendsById[recipe.userId].handle }}
-              } @else {
-                {{ "pages.home.recipe.fromSharedCollection" | translate }}
-              }
+              {{ "pages.home.recipe.fromSharedCollection" | translate }}
             </ion-badge>
           }
           @if (selectedRecipeIds.indexOf(recipe.id) > -1) {
@@ -302,14 +322,13 @@
     @if (preferences[preferenceKeys.ViewType] === "reel" && recipes.length) {
       <div class="reel-container">
         @for (recipe of recipes; track recipe.id) {
-          <div
-            class="reel-item"
-            (click)="utilService.openRecipe(navCtrl, recipe.id, $event)"
-          >
+          <div class="reel-item" (click)="openRecipe(recipe, $event)">
             <div class="reel-card">
               @if (recipe.recipeImages && recipe.recipeImages.length > 0) {
                 <img
                   class="reel-img"
+                  loading="lazy"
+                  decoding="async"
                   [src]="recipe.recipeImages[0].image.location"
                   [alt]="recipe.title"
                 />
@@ -350,11 +369,19 @@
             }
           </div>
         }
+        @if (loading) {
+          <null-state>
+            <ion-spinner virtualSlot="header"></ion-spinner>
+            <ion-label virtualSlot="body">
+              <p>{{ "pages.home.loading" | translate }}</p>
+            </ion-label>
+          </null-state>
+        }
         @if (!loading) {
           @if (searchText.length) {
             <null-state>
               <ion-icon
-                name="search"
+                name="search-outline"
                 class="big-icon"
                 virtualSlot="header"
               ></ion-icon>
@@ -372,7 +399,7 @@
           @if (!searchText.length && folder === "inbox") {
             <null-state>
               <ion-icon
-                name="mail-open"
+                name="mail-open-outline"
                 class="big-icon"
                 virtualSlot="header"
               ></ion-icon>
@@ -390,7 +417,8 @@
               userId &&
               !totalRecipeCount &&
               !selectedLabels.length &&
-              !ratingFilter.length
+              !ratingFilter.length &&
+              !hasActiveNutritionFilter
             ) {
               <null-state>
                 <logo-icon
@@ -414,7 +442,8 @@
               !userId &&
               !totalRecipeCount &&
               !selectedLabels.length &&
-              !ratingFilter.length
+              !ratingFilter.length &&
+              !hasActiveNutritionFilter
             ) {
               <null-state>
                 <logo-icon
@@ -460,10 +489,14 @@
                 </ion-label>
               </null-state>
             }
-            @if (selectedLabels.length || ratingFilter.length) {
+            @if (
+              selectedLabels.length ||
+              ratingFilter.length ||
+              hasActiveNutritionFilter
+            ) {
               <null-state>
                 <ion-icon
-                  name="funnel"
+                  name="funnel-outline"
                   class="big-icon"
                   virtualSlot="header"
                 ></ion-icon>
@@ -485,7 +518,7 @@
         color="primary"
         aria-label="New recipe"
       >
-        <ion-icon name="add" aria-hidden="true"></ion-icon>
+        <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
       </ion-fab-button>
     </ion-fab>
   }

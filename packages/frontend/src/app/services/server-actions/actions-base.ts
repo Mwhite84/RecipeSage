@@ -1,4 +1,4 @@
-import { inject } from "@angular/core";
+import { Signal, inject, signal } from "@angular/core";
 import * as Sentry from "@sentry/browser";
 import { TRPCClientError } from "@trpc/client";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
@@ -8,9 +8,17 @@ import { TRPCService } from "../trpc.service";
 import { ErrorHandlers } from "../http-error-handler.service";
 import { SyncService } from "../sync.service";
 import { SearchService } from "../search.service";
+import { offlineModeState } from "../offlineModeState";
+
+const SLOW_READ_PROMPT_MS = 4_000;
 
 export type RouterInputs = inferRouterInputs<AppRouter>;
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
+
+export type RefreshableSignal<T> = {
+  value: Signal<T | undefined>;
+  refresh: () => Promise<void>;
+};
 
 export abstract class ActionsBase {
   protected trpcService = inject(TRPCService);
@@ -19,6 +27,27 @@ export abstract class ActionsBase {
 
   protected get trpc() {
     return this.trpcService.trpc;
+  }
+
+  private async runOfflineFallback<T>(
+    fallback: () => Promise<T | undefined>,
+  ): Promise<T | undefined> {
+    try {
+      return await fallback();
+    } catch (fe) {
+      console.warn("Local fallback failed", fe);
+      return undefined;
+    }
+  }
+
+  private handleOfflineModeBlocked(errorHandlers?: ErrorHandlers): undefined {
+    const handler = errorHandlers?.["0"] ?? errorHandlers?.["*"];
+    if (handler) {
+      handler(new Error("Offline mode enabled"));
+      return undefined;
+    }
+    offlineModeState.showBlockedError();
+    return undefined;
   }
 
   protected shouldAttemptFallback(error: unknown): boolean {
@@ -32,21 +61,77 @@ export abstract class ActionsBase {
     invoke: () => Promise<T>,
     fallback: () => Promise<T | undefined>,
     errorHandlers?: ErrorHandlers,
+    timeoutMs: number = 10000,
   ): Promise<T | undefined> {
+    if (offlineModeState.enabled) {
+      return this.runOfflineFallback(fallback);
+    }
+
+    const networkPromise = invoke();
+    networkPromise.catch(() => {});
+
+    const slowHandle = setTimeout(() => {
+      offlineModeState.notifySlowRead();
+    }, SLOW_READ_PROMPT_MS);
+
+    const offlineWaiter = offlineModeState.whenEnabled();
+
+    const timeoutPromise = new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), timeoutMs);
+    });
+
     try {
-      return await invoke();
-    } catch (e) {
-      if (this.shouldAttemptFallback(e)) {
-        try {
-          const fallbackResult = await fallback();
-          if (fallbackResult !== undefined) {
-            return fallbackResult;
-          }
-        } catch (fe) {
-          console.warn("Local fallback failed", fe);
-        }
+      const winner = await Promise.race([
+        networkPromise.then(
+          (result) => ({ kind: "network" as const, result }),
+          (error) => ({ kind: "network-error" as const, error }),
+        ),
+        timeoutPromise.then(() => ({ kind: "timeout" as const })),
+        offlineWaiter.promise.then(() => ({ kind: "offline" as const })),
+      ]);
+
+      if (winner.kind === "offline") {
+        return this.runOfflineFallback(fallback);
       }
-      return this.trpcService.handle(Promise.reject(e), errorHandlers);
+
+      if (winner.kind === "network") {
+        return winner.result;
+      }
+
+      if (winner.kind === "network-error") {
+        if (this.shouldAttemptFallback(winner.error)) {
+          try {
+            const fallbackResult = await fallback();
+            if (fallbackResult !== undefined) {
+              return fallbackResult;
+            }
+          } catch (fe) {
+            console.warn("Local fallback failed", fe);
+          }
+        }
+        return this.trpcService.handle(
+          Promise.reject(winner.error),
+          errorHandlers,
+        );
+      }
+
+      try {
+        const fallbackResult = await fallback();
+        if (fallbackResult !== undefined) {
+          return fallbackResult;
+        }
+      } catch (fe) {
+        console.warn("Local fallback failed", fe);
+      }
+
+      try {
+        return await networkPromise;
+      } catch (e) {
+        return this.trpcService.handle(Promise.reject(e), errorHandlers);
+      }
+    } finally {
+      clearTimeout(slowHandle);
+      offlineWaiter.dispose();
     }
   }
 
@@ -55,6 +140,9 @@ export abstract class ActionsBase {
     onSuccess: (result: T) => void,
     errorHandlers?: ErrorHandlers,
   ): Promise<T | undefined> {
+    if (offlineModeState.enabled) {
+      return this.handleOfflineModeBlocked(errorHandlers);
+    }
     try {
       const result = await invoke();
       onSuccess(result);
@@ -70,6 +158,14 @@ export abstract class ActionsBase {
     fallback: () => Promise<T>,
     errorHandlers?: ErrorHandlers,
   ): Promise<T | undefined> {
+    if (offlineModeState.enabled) {
+      try {
+        return await fallback();
+      } catch (fe) {
+        console.warn("Offline mutation fallback failed", fe);
+        return this.handleOfflineModeBlocked(errorHandlers);
+      }
+    }
     try {
       const result = await invoke();
       onSuccess(result);
@@ -91,6 +187,64 @@ export abstract class ActionsBase {
     invoke: () => Promise<T>,
     errorHandlers?: ErrorHandlers,
   ): Promise<T | undefined> {
+    if (offlineModeState.enabled) {
+      return Promise.resolve(this.handleOfflineModeBlocked(errorHandlers));
+    }
     return this.trpcService.handle(invoke(), errorHandlers);
+  }
+
+  protected executeQueryAsSignal<T>(
+    invoke: () => Promise<T>,
+    fallback: () => Promise<T | undefined>,
+    errorHandlers?: ErrorHandlers,
+  ): RefreshableSignal<T> {
+    const result = signal<T | undefined>(undefined);
+    let generation = 0;
+
+    const run = (): Promise<void> => {
+      const myGeneration = ++generation;
+      const isCurrent = () => myGeneration === generation;
+
+      const networkPromise = invoke();
+
+      const slowHandle = setTimeout(() => {
+        offlineModeState.notifySlowRead();
+      }, SLOW_READ_PROMPT_MS);
+
+      const cachePromise = fallback().catch((fe) => {
+        console.warn("Local fallback failed", fe);
+        return undefined;
+      });
+
+      void cachePromise.then((cached) => {
+        if (!isCurrent()) return;
+        if (cached !== undefined && result() === undefined) {
+          result.set(cached);
+        }
+      });
+
+      return networkPromise.then(
+        (fresh) => {
+          clearTimeout(slowHandle);
+          if (!isCurrent()) return;
+          result.set(fresh);
+        },
+        async (e) => {
+          clearTimeout(slowHandle);
+          if (!isCurrent()) return;
+          await cachePromise;
+          if (!isCurrent()) return;
+          if (result() === undefined || !this.shouldAttemptFallback(e)) {
+            this.trpcService.handle(Promise.reject(e), errorHandlers);
+          } else {
+            console.warn("Network fetch failed; using cached value", e);
+          }
+        },
+      );
+    };
+
+    void run();
+
+    return { value: result.asReadonly(), refresh: run };
   }
 }

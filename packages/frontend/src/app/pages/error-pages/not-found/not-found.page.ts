@@ -1,7 +1,7 @@
 import { Component, inject } from "@angular/core";
 import { NavController } from "@ionic/angular/standalone";
 
-import { RouteMap } from "~/services/util.service";
+import { RouteMap } from "../../../services/util.service";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { NullStateComponent } from "../../../components/null-state/null-state.component";
 import {
@@ -14,7 +14,7 @@ import {
   IonIcon,
   IonLabel,
 } from "@ionic/angular/standalone";
-import { compass } from "ionicons/icons";
+import { compassOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -37,7 +37,7 @@ import { addIcons } from "ionicons";
 })
 export class NotFoundPage {
   constructor() {
-    addIcons({ compass });
+    addIcons({ compassOutline });
   }
 
   private navCtrl = inject(NavController);

@@ -11,42 +11,6 @@ import * as ServerUtil from "@recipesage/util/server/general";
  * ALL ADDITIONS SHOULD EXIST IN SEPARATE TS FILES
  */
 
-export const dispatchImportNotification = (user, status, reason) => {
-  let event;
-  if (status === 0) {
-    event = "complete";
-  } else if (status === 1) {
-    event = "failed";
-  } else if (status === 2) {
-    event = "working";
-  } else {
-    return;
-  }
-
-  const type = "import:pepperplate:" + event;
-
-  const message = {
-    type,
-    reason: reason || "status",
-  };
-
-  const sendQueues = [];
-  if (user.fcmTokens) {
-    sendQueues.push(
-      FirebaseService.sendMessages(
-        user.fcmTokens.map((fcmToken) => fcmToken.token),
-        message,
-      ),
-    );
-  }
-
-  sendQueues.push(
-    ServerUtil.broadcastWSEventIgnoringErrors(user.id, type, message),
-  );
-
-  return Promise.all(sendQueues);
-};
-
 export const sortUserProfileImages = (user) => {
   if (user.toJSON) user = user.toJSON();
 
@@ -91,7 +55,7 @@ export const dispatchMessageNotification = (user, fullMessage) => {
   const sendQueues = [];
   if (user.fcmTokens) {
     const notification = {
-      type: "messages:new",
+      type: ServerUtil.WSBroadcastEventType.MessageReceived,
       message: JSON.stringify(message),
     };
 
@@ -104,7 +68,11 @@ export const dispatchMessageNotification = (user, fullMessage) => {
   }
 
   sendQueues.push(
-    ServerUtil.broadcastWSEventIgnoringErrors(user.id, "messages:new", message),
+    ServerUtil.broadcastWSEventIgnoringErrors(
+      user.id,
+      ServerUtil.WSBroadcastEventType.MessageReceived,
+      message,
+    ),
   );
 
   return Promise.all(sendQueues);

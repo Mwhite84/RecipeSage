@@ -5,12 +5,14 @@ import {
   ModalController,
 } from "@ionic/angular/standalone";
 
-import { MessageThread, MessagingService } from "~/services/messaging.service";
-import { LoadingService } from "~/services/loading.service";
-import { WebsocketService } from "~/services/websocket.service";
-import { EventService } from "~/services/event.service";
-import { UtilService, RouteMap } from "~/services/util.service";
-import { NewMessageModalPage } from "~/pages/messaging-components/new-message-modal/new-message-modal.page";
+import type { MessageThreadDTO } from "@recipesage/prisma";
+import { MessagingService } from "../../../services/messaging.service";
+import { ServerActionsService } from "../../../services/server-actions.service";
+import { LoadingService } from "../../../services/loading.service";
+import { WebsocketService } from "../../../services/websocket.service";
+import { EventService } from "../../../services/event.service";
+import { UtilService, RouteMap } from "../../../services/util.service";
+import { NewMessageModalPage } from "../new-message-modal/new-message-modal.page";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { NullStateComponent } from "../../../components/null-state/null-state.component";
 import {
@@ -20,8 +22,6 @@ import {
   IonMenuButton,
   IonTitle,
   IonContent,
-  IonRefresher,
-  IonRefresherContent,
   IonList,
   IonItem,
   IonIcon,
@@ -29,8 +29,9 @@ import {
   IonFab,
   IonFabButton,
   IonFooter,
+  IonSpinner,
 } from "@ionic/angular/standalone";
-import { add, chatbox } from "ionicons/icons";
+import { addOutline, chatboxOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 @Component({
@@ -47,8 +48,6 @@ import { addIcons } from "ionicons";
     IonMenuButton,
     IonTitle,
     IonContent,
-    IonRefresher,
-    IonRefresherContent,
     IonList,
     IonItem,
     IonIcon,
@@ -56,6 +55,7 @@ import { addIcons } from "ionicons";
     IonFab,
     IonFabButton,
     IonFooter,
+    IonSpinner,
   ],
 })
 export class MessagesPage {
@@ -67,13 +67,14 @@ export class MessagesPage {
   loadingService = inject(LoadingService);
   websocketService = inject(WebsocketService);
   messagingService = inject(MessagingService);
+  serverActionsService = inject(ServerActionsService);
 
   loading = true;
 
-  threads: any = [];
+  threads: MessageThreadDTO[] = [];
 
   constructor() {
-    addIcons({ add, chatbox });
+    addIcons({ addOutline, chatboxOutline });
     this.messagingService.requestNotifications();
   }
 
@@ -87,17 +88,6 @@ export class MessagesPage {
     this.websocketService.off("messages:new", this.loadThreads);
   }
 
-  refresh(refresher: any) {
-    this.loadThreads().then(
-      () => {
-        refresher.target.complete();
-      },
-      () => {
-        refresher.target.complete();
-      },
-    );
-  }
-
   loadThreadsWithProgress = () => {
     const loading = this.loadingService.start();
     this.loadThreads().finally(() => {
@@ -107,20 +97,12 @@ export class MessagesPage {
   };
 
   loadThreads = async () => {
-    const response = await this.messagingService.threads({
-      limit: 1,
-    });
-    if (!response.success) return;
-
-    this.threads = response.data.sort((a, b) => {
-      const aCreatedAt = new Date(a.messages[0].updatedAt);
-      const bCreatedAt = new Date(b.messages[0].updatedAt);
-      // Ascending (newest first)
-      return bCreatedAt.valueOf() - aCreatedAt.valueOf();
-    });
+    const response = await this.serverActionsService.messages.getThreads();
+    if (!response) return;
+    this.threads = response;
   };
 
-  openThread(thread: MessageThread) {
+  openThread(thread: MessageThreadDTO) {
     this.navCtrl.navigateForward(
       RouteMap.MessageThreadPage.getPath(thread.otherUser.id),
     );

@@ -2,21 +2,26 @@ import { Injectable, Injector, inject } from "@angular/core";
 import {
   AppPreferenceTypes,
   AppTheme,
+  CookModePreferenceKey,
   GlobalPreferenceKey,
   ManageLabelsPreferenceKey,
   MealPlanPreferenceKey,
+  MeasurementConverterPreferenceKey,
   MealPlanStartOfWeekOptions,
   MealPlanViewTypeOptions,
   MyRecipesIncludeFriendsOptions,
   MyRecipesPreferenceKey,
   MyRecipesSortOptions,
   MyRecipesViewTypeOptions,
+  OfflineModePromptOptions,
   PreferencesSync,
   RecipeDetailsPreferenceKey,
   ShoppingListPreferenceKey,
   ShoppingListSortOptions,
   StartPageOptions,
   SupportedFontSize,
+  VOLUME_UNITS_COMMON,
+  WEIGHT_UNITS_COMMON,
 } from "@recipesage/util/shared";
 import { ServerActionsService } from "./server-actions.service";
 import { UtilService } from "./util.service";
@@ -44,6 +49,7 @@ export class PreferencesService {
     [GlobalPreferenceKey.Theme]: AppTheme.Default,
     [GlobalPreferenceKey.PreferencesSync]: PreferencesSync.Enabled,
     [GlobalPreferenceKey.StartPage]: StartPageOptions.MyRecipes,
+    [GlobalPreferenceKey.OfflineModePrompt]: OfflineModePromptOptions.Ask,
 
     [MyRecipesPreferenceKey.EnableLabelIntersection]: false,
     [MyRecipesPreferenceKey.ShowLabels]: true,
@@ -51,6 +57,7 @@ export class PreferencesService {
     [MyRecipesPreferenceKey.ShowImages]: true,
     [MyRecipesPreferenceKey.ShowSource]: false,
     [MyRecipesPreferenceKey.ShowRecipeDescription]: true,
+    [MyRecipesPreferenceKey.ShowRating]: false,
     // Show list by default on small screens
     [MyRecipesPreferenceKey.ViewType]:
       Math.min(window.innerWidth, window.innerHeight) < 440
@@ -62,7 +69,14 @@ export class PreferencesService {
     [RecipeDetailsPreferenceKey.EnableWakeLock]: true,
     [RecipeDetailsPreferenceKey.AutoExpandNutrition]: false,
 
+    [CookModePreferenceKey.FontSize]: SupportedFontSize.PX20,
+
     [ManageLabelsPreferenceKey.ShowCreatedAt]: true,
+
+    [MeasurementConverterPreferenceKey.EnabledUnits]: [
+      ...VOLUME_UNITS_COMMON,
+      ...WEIGHT_UNITS_COMMON,
+    ],
 
     [MealPlanPreferenceKey.ShowAddedBy]: false,
     [MealPlanPreferenceKey.ShowAddedOn]: false,

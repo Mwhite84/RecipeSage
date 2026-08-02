@@ -67,3 +67,8 @@ ion-list {
   color: var(--rs-text-tertiary);
   width: 0.8125rem;
 }
+
+.page-wrapper {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+}

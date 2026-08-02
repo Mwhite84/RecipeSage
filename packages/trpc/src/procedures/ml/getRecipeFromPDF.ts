@@ -3,30 +3,33 @@ import {
   isRecipeRecognitionSuccess,
   recordCreditsSpent,
 } from "@recipesage/util/server/general";
-import { publicProcedure } from "../../trpc";
-import { assertCreditsAvailableTrpc } from "../../util/assertCreditsAvailableTrpc";
+import { authenticatedProcedure } from "../../trpc";
+import { assertCreditsAvailableTrpc } from "@recipesage/util/server/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { standardizedRecipeImportEntryForWebSchema } from "@recipesage/prisma";
 
 /**
  * @deprecated Please use express routes which support file streaming rather than base64
  */
-export const getRecipeFromPDF = publicProcedure
+export const getRecipeFromPDF = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/ml/getRecipeFromPDF",
+      tags: ["ml"],
+      summary: "Extract a recipe from a base64-encoded PDF (deprecated)",
+      protect: true,
+    },
+  })
   .input(
     z.object({
       pdf: z.string(),
     }),
   )
+  .output(standardizedRecipeImportEntryForWebSchema)
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    if (!session) {
-      throw new TRPCError({
-        message: "Must be logged in",
-        code: "UNAUTHORIZED",
-      });
-    }
-
-    await assertCreditsAvailableTrpc(session.userId, "mlPdf");
+    await assertCreditsAvailableTrpc(ctx.session.userId, "mlPdf");
 
     const pdf = Buffer.from(input.pdf, "base64");
 
@@ -39,8 +42,13 @@ export const getRecipeFromPDF = publicProcedure
     }
 
     if (isRecipeRecognitionSuccess(recognizedRecipe.recipe)) {
-      await recordCreditsSpent(session.userId, "mlPdf");
+      await recordCreditsSpent(ctx.session.userId, "mlPdf");
     }
 
-    return recognizedRecipe;
+    return {
+      ...recognizedRecipe,
+      images: recognizedRecipe.images.filter(
+        (img): img is string => typeof img === "string",
+      ),
+    };
   });

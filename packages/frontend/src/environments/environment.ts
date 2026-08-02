@@ -7,13 +7,15 @@ export const environment = {
 };
 
 export const IS_SELFHOST = false;
+export const IS_DESKTOP = false;
 
 export const ENABLE_ANALYTICS = false;
 
 export const STRIPE_PK = "pk_test_eBbi3a7mWEH73JQPB965gDB800buCgF4Gd";
 
-export const API_BASE_URL = "/api/";
-export const GRIP_WS_URL = null;
+export const DEFAULT_API_BASE_URL = `${self.location.protocol}//${self.location.host}/api/`;
+const wsProto = self.location.protocol === "https:" ? "wss:" : "ws:";
+export const DEFAULT_GRIP_WS_URL = `${wsProto}//${self.location.host}/grip/ws`;
 
 export const SENTRY_SAMPLE_RATE = 0;
 

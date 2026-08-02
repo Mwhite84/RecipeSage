@@ -1,5 +1,5 @@
-import type { JobSummary } from "@recipesage/prisma";
-import { type JobMeta } from "@recipesage/prisma";
+import type { ImportJobSummary } from "@recipesage/prisma";
+
 import type { StandardizedRecipeImportEntry } from "../../../../db/index";
 import { importJobFinishCommon } from "../../../index";
 import {
@@ -10,15 +10,16 @@ import {
 } from "@recipesage/util/shared";
 import { downloadS3ToTemp } from "./shared/s3Download";
 import { createReadStream } from "fs";
-import { parse } from "csv-parse";
-import type { JobQueueItem } from "../../JobQueueItem";
+import { parse, CsvError } from "csv-parse";
+import type { StandardJobQueueItem } from "../../JobQueueItem";
 import { pipeline } from "stream/promises";
+import { ImportBadFormatError } from "../../../jobs/jobErrors";
 
 export async function csvImportJobHandler(
-  job: JobSummary,
-  queueItem: JobQueueItem,
+  job: ImportJobSummary,
+  queueItem: StandardJobQueueItem,
 ): Promise<void> {
-  const jobMeta = job.meta as JobMeta;
+  const jobMeta = job.meta;
   const importLabels = jobMeta.importLabels || [];
 
   if (!queueItem.storageKey) {
@@ -261,7 +262,14 @@ export async function csvImportJobHandler(
     });
   });
 
-  await Promise.all([pipeline(fileReadStream, parser), done]);
+  try {
+    await Promise.all([pipeline(fileReadStream, parser), done]);
+  } catch (e) {
+    if (e instanceof CsvError) {
+      throw new ImportBadFormatError(e.message);
+    }
+    throw e;
+  }
 
   await importJobFinishCommon({
     job,

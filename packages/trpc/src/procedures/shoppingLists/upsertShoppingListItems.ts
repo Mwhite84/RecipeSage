@@ -1,9 +1,8 @@
-import { publicProcedure } from "../../trpc";
+import { authenticatedProcedure } from "../../trpc";
 import {
-  WSBoardcastEventType,
+  WSBroadcastEventType,
   broadcastWSEventIgnoringErrors,
   getShoppingListItemCategories,
-  validateTrpcSession,
 } from "@recipesage/util/server/general";
 import { prisma } from "@recipesage/prisma";
 import { z } from "zod";
@@ -17,7 +16,17 @@ import {
   UPSERT_SHOPPING_LIST_ITEMS_PAGINATION_LIMIT,
 } from "@recipesage/util/shared";
 
-export const upsertShoppingListItems = publicProcedure
+export const upsertShoppingListItems = authenticatedProcedure
+  .meta({
+    openapi: {
+      method: "POST",
+      path: "/shoppingLists/upsertShoppingListItems",
+      tags: ["shoppingLists"],
+      summary:
+        "Create or update multiple shopping list items via id-keyed upsert",
+      protect: true,
+    },
+  })
   .input(
     z.object({
       shoppingListId: z.uuid(),
@@ -32,20 +41,22 @@ export const upsertShoppingListItems = publicProcedure
             recipeId: z.uuid().nullable(),
             completed: z.boolean().optional(),
             categoryTitle: z.string().optional(),
-            createdAt: z.date().optional(),
-            updatedAt: z.date(),
+            createdAt: z.coerce.date().optional(),
+            updatedAt: z.coerce.date(),
           }),
         )
         .min(1)
         .max(UPSERT_SHOPPING_LIST_ITEMS_PAGINATION_LIMIT),
     }),
   )
+  .output(
+    z.object({
+      reference: z.uuid(),
+    }),
+  )
   .mutation(async ({ ctx, input }) => {
-    const session = ctx.session;
-    validateTrpcSession(session);
-
     const access = await getAccessToShoppingList(
-      session.userId,
+      ctx.session.userId,
       input.shoppingListId,
     );
 
@@ -117,7 +128,7 @@ export const upsertShoppingListItems = publicProcedure
             id: item.id,
             shoppingListId: input.shoppingListId,
             title: item.title,
-            userId: session.userId,
+            userId: ctx.session.userId,
             recipeId: item.recipeId,
             completed: item.completed,
             categoryTitle: item.categoryTitle,
@@ -139,7 +150,7 @@ export const upsertShoppingListItems = publicProcedure
     for (const subscriberId of access.subscriberIds) {
       broadcastWSEventIgnoringErrors(
         subscriberId,
-        WSBoardcastEventType.ShoppingListUpdated,
+        WSBroadcastEventType.ShoppingListUpdated,
         {
           reference,
           shoppingListId: input.shoppingListId,

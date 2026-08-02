@@ -1,10 +1,17 @@
 import { Component, Input, Output, EventEmitter, inject } from "@angular/core";
 import { ModalController } from "@ionic/angular/standalone";
-import { RecipeService, ParsedIngredient } from "../../services/recipe.service";
+import { TranslateService } from "@ngx-translate/core";
 
-import { ScaleRecipeComponent } from "~/modals/scale-recipe/scale-recipe.component";
+import { ScaleRecipeComponent } from "../../modals/scale-recipe/scale-recipe.component";
 import { PreferencesService } from "../../services/preferences.service";
-import { ShoppingListPreferenceKey } from "@recipesage/util/shared";
+import {
+  ShoppingListPreferenceKey,
+  ParsedIngredient,
+  parseIngredients,
+  inferIngredientsNotation,
+  applyDecimalNotation,
+  type DecimalNotation,
+} from "@recipesage/util/shared";
 import { SHARED_UI_IMPORTS } from "../../providers/shared-ui.provider";
 import { IonItem, IonCheckbox } from "@ionic/angular/standalone";
 
@@ -17,13 +24,14 @@ import { IonItem, IonCheckbox } from "@ionic/angular/standalone";
 })
 export class SelectIngredientsComponent {
   private modalCtrl = inject(ModalController);
-  private recipeService = inject(RecipeService);
   private preferencesService = inject(PreferencesService);
+  private translate = inject(TranslateService);
 
   allSelected = true;
   ingredientBinders: { [index: number]: boolean } = {};
   scaledIngredients: ParsedIngredient[] = [];
-  scale = 1;
+  scale: string = "1";
+  decimalNotationMode: DecimalNotation = ".";
 
   _ingredients!: string;
   @Input({
@@ -46,8 +54,12 @@ export class SelectIngredientsComponent {
 
   @Output() selectedIngredientsChange = new EventEmitter();
 
+  get scaleDisplay(): string {
+    return applyDecimalNotation(this.scale, this.decimalNotationMode);
+  }
+
   @Input()
-  set initialScale(val: number) {
+  set initialScale(val: string) {
     this.scale = val;
     this.applyScale();
   }
@@ -56,7 +68,9 @@ export class SelectIngredientsComponent {
     const modal = await this.modalCtrl.create({
       component: ScaleRecipeComponent,
       componentProps: {
-        scale: this.scale.toString(),
+        scale: this.scale,
+        ingredients: this.scaledIngredients ?? [],
+        decimalNotationMode: this.decimalNotationMode,
       },
       cssClass: "scaleRecipeModal",
     });
@@ -89,9 +103,13 @@ export class SelectIngredientsComponent {
   }
 
   applyScale(init?: boolean) {
-    this.scaledIngredients = this.recipeService
-      .parseIngredients(this._ingredients, this.scale)
-      .filter((e) => !e.isHeader);
+    this.decimalNotationMode = inferIngredientsNotation(
+      this._ingredients,
+      this.translate.getCurrentLang(),
+    );
+    this.scaledIngredients = parseIngredients(this._ingredients, this.scale, {
+      decimalNotationMode: this.decimalNotationMode,
+    }).filter((e) => !e.isHeader);
 
     this.selectedIngredients = [];
     for (let i = 0; i < (this.scaledIngredients || []).length; i++) {
