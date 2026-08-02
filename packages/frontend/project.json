@@ -34,14 +34,24 @@
           "tsx upload-sourcemaps.ts"
         ],
         "parallel": false
+      },
+      "configurations": {
+        "selfhost": {
+          "commands": [
+            "ENVIRONMENT=selfhost tsx build-service-worker.ts",
+            "ng build --configuration=selfhost",
+            "workbox injectManifest"
+          ]
+        }
       }
     },
     "build:selfhost": {
       "executor": "nx:run-commands",
+      "dependsOn": ["util-shared:build"],
       "options": {
         "cwd": "packages/frontend",
         "commands": [
-          "tsx build-service-worker.ts",
+          "ENVIRONMENT=selfhost tsx build-service-worker.ts",
           "ng build --configuration=selfhost",
           "workbox injectManifest"
         ],
