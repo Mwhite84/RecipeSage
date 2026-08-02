@@ -104,17 +104,34 @@
     18% 0.008 232
   ); // headings, body — near-black, tinted
   --rs-text-secondary: oklch(42% 0.01 232); // descriptions, secondary info
-  --rs-text-tertiary: oklch(60% 0.008 232); // timestamps, metadata
+  // WCAG AA fix — was oklch(60% 0.008 232), which measured 3.11–3.93 against
+  // the four light surfaces. 51% clears 4.5:1 on all four (4.54–5.72).
+  --rs-text-tertiary: oklch(51% 0.008 232); // timestamps, metadata
   --rs-text-on-accent: oklch(
     100% 0.002 232
   ); // text on primary button/accent bg
 
   // Accent
-  --rs-accent: oklch(64% 0.18 232); // primary actions, links, focus rings
+  // ===========================================================================
+  // BRAND-COLOUR CHANGE — accent deepened one shade for WCAG AA
+  // ---------------------------------------------------------------------------
+  // --rs-text-on-accent (white) on the old accent measured 3.08:1, failing AA
+  // for the 10–12px labels on primary buttons, the FAB, nav badges and selected
+  // chips. 54% lightness brings it to 4.53:1 on the same hue and chroma.
+  //
+  // TO REVERT THIS PIECE ONLY, restore these three lines:
+  //     --rs-accent: oklch(64% 0.18 232);
+  //     --rs-accent-rgb: 0, 148, 232;
+  // ...and the two --ion-color-primary-shade/-tint lines marked
+  // "BRAND-COLOUR CHANGE" further down in this mixin.
+  // ===========================================================================
+  --rs-accent: oklch(54% 0.18 232); // primary actions, links, focus rings
+  --rs-accent-rgb: 0, 123, 195; // for Ionic's opacity-based effects
+  // ===========================================================================
+
   --rs-accent-subtle: oklch(94% 0.022 232); // chip backgrounds, hover states
   --rs-accent-muted: oklch(78% 0.12 232); // disabled accent states
   --rs-accent-text: oklch(36% 0.13 232); // accent-colored text on light surface
-  --rs-accent-rgb: 0, 148, 232; // for Ionic's opacity-based effects
 
   // Borders & dividers
   --rs-border: oklch(88% 0.008 232); // standard borders
@@ -151,8 +168,12 @@
   --ion-color-primary: var(--rs-accent);
   --ion-color-primary-rgb: var(--rs-accent-rgb);
   --ion-color-primary-contrast: var(--rs-text-on-accent);
-  --ion-color-primary-shade: oklch(57% 0.18 232);
-  --ion-color-primary-tint: oklch(70% 0.17 232);
+  // BRAND-COLOUR CHANGE — tracked to the deepened --rs-accent above. Shade must
+  // stay darker and tint lighter than the base, or the pressed state inverts.
+  // TO REVERT: --ion-color-primary-shade: oklch(57% 0.18 232);
+  //            --ion-color-primary-tint: oklch(70% 0.17 232);
+  --ion-color-primary-shade: oklch(47% 0.18 232);
+  --ion-color-primary-tint: oklch(60% 0.17 232);
 
   // Step scale — regenerated from the new surface
   --ion-color-step-50: oklch(97% 0.005 232);
@@ -189,8 +210,20 @@
 
   // Text
   --rs-text-primary: oklch(95% 0.005 232);
-  --rs-text-secondary: oklch(68% 0.008 232);
-  --rs-text-tertiary: oklch(48% 0.006 232);
+  // Raised 68% -> 74%. Lifting tertiary to 62% for WCAG AA compressed the
+  // secondary/tertiary gap to 6 lightness points (light mode has 9), so the two
+  // levels read almost identically. Widening from the SECONDARY side restores
+  // the three-level hierarchy at zero contrast cost — on a dark surface more
+  // lightness means more contrast, so this only improves — measured 6.16-7.11
+  // -> 7.69-8.88 across base/elevated/sunken/overlay — while lowering tertiary
+  // to 58% would have dropped dark and midnight overlay under AA. Primary stays
+  // 21 points clear at 95%, and secondary/tertiary now resolve to visibly
+  // different greys (#a6acaf vs #838789).
+  --rs-text-secondary: oklch(74% 0.008 232);
+  // WCAG AA fix — was oklch(48% 0.006 232), which measured 2.52–3.22 against
+  // the dark/black/midnight surfaces. 62% clears 4.5:1 on all twelve
+  // (4.52–5.78); midnight's overlay surface is the binding constraint.
+  --rs-text-tertiary: oklch(62% 0.006 232);
   --rs-text-on-accent: oklch(100% 0.002 232);
 
   // Accent — brighter for dark surface contrast

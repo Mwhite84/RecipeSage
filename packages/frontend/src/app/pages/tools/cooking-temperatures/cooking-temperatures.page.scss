@@ -1,33 +1,40 @@
+// =============================================================================
+// Cooking Temperatures
+// =============================================================================
+// Token-substitution pass. Off-scale values with no --rs-* equivalent (3, 6,
+// 10, 14, 22, 120px, the 10px list radius, line-heights 1.35) are left raw.
+// =============================================================================
+
 .page-wrapper {
   max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: 16px;
+  padding: var(--rs-inset-page);
   padding-bottom: 25vh;
 }
 
 info-block {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: var(--rs-space-3);
 }
 
 .temps-search {
-  --background: var(--ion-color-step-50, #f5f5f5);
+  --background: var(--rs-surface-sunken);
   --box-shadow: none;
   padding: 0;
-  margin-bottom: 12px;
+  margin-bottom: var(--rs-space-3);
 }
 
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48px 16px;
+  padding: var(--rs-space-7) var(--rs-space-4);
   text-align: center;
-  color: var(--ion-color-medium-shade, #5b5b5b);
+  color: var(--rs-text-tertiary);
 
   ion-icon {
     font-size: 2rem;
-    margin-bottom: 8px;
+    margin-bottom: var(--rs-space-2);
   }
 
   p {
@@ -38,20 +45,20 @@ info-block {
 .category-list {
   background: transparent;
   padding: 0;
-  margin-bottom: 16px;
-  border: 1px solid var(--ion-color-step-150, #e0e0e0);
+  margin-bottom: var(--rs-space-4);
+  border: 1px solid var(--rs-border);
   border-radius: 10px;
 }
 
 .category-divider {
-  --background: var(--ion-color-step-100, #ededed);
-  --color: var(--ion-text-color, #1f1f1f);
+  --background: var(--rs-surface-overlay);
+  --color: var(--rs-text-primary);
   --padding-top: 6px;
   --padding-bottom: 6px;
   --padding-start: 14px;
   min-height: 32px;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: var(--rs-text-xs);
+  font-weight: var(--rs-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -59,22 +66,22 @@ info-block {
 .temp-row {
   --padding-top: 10px;
   --padding-bottom: 10px;
-  --inner-padding-end: 12px;
+  --inner-padding-end: var(--rs-space-3);
 }
 
 .temp-label {
   h3 {
     margin: 0;
-    font-weight: 600;
-    font-size: 0.98rem;
+    font-weight: var(--rs-weight-semibold);
+    font-size: var(--rs-text-base);
     white-space: normal;
   }
 }
 
 .temp-state {
   margin: 3px 0 0 0;
-  font-size: 0.82rem;
-  color: var(--ion-color-medium-shade, #5b5b5b);
+  font-size: var(--rs-text-sm);
+  color: var(--rs-text-tertiary);
   white-space: normal;
 }
 
@@ -86,22 +93,22 @@ info-block {
   min-width: 120px;
   max-width: 56%;
   text-align: end;
-  margin-inline-start: 12px;
+  margin-inline-start: var(--rs-space-3);
 }
 
 .temp-number {
   margin: 0;
-  font-weight: 700;
-  font-size: 1.02rem;
-  line-height: 1.2;
+  font-weight: var(--rs-weight-bold);
+  font-size: var(--rs-text-base);
+  line-height: var(--rs-leading-tight);
   font-variant-numeric: tabular-nums;
-  color: var(--ion-text-color, #1f1f1f);
+  color: var(--rs-text-primary);
 }
 
 .temp-cue {
   margin: 0;
-  font-size: 0.82rem;
-  color: var(--ion-color-medium-shade, #5b5b5b);
+  font-size: var(--rs-text-sm);
+  color: var(--rs-text-tertiary);
   white-space: normal;
   line-height: 1.35;
 }
@@ -109,17 +116,19 @@ info-block {
 .temp-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--rs-space-1);
   margin-top: 6px;
   justify-content: flex-end;
 }
 
 .info-chip {
-  font-size: 0.7rem;
+  // Non-interactive (pointer-events: none) — --rs-touch-min does not apply, so
+  // the 22px badge height stands.
+  font-size: var(--rs-text-xs);
   height: 22px;
   margin: 0;
   --padding-start: 6px;
-  --padding-end: 8px;
+  --padding-end: var(--rs-space-2);
   pointer-events: none;
   cursor: default;
 

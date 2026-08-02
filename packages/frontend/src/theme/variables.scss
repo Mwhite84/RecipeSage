@@ -3,11 +3,41 @@
 
 @import "design-system";
 
+// =============================================================================
+// DESIGN-SYSTEM PRECEDENCE — legacy surface overrides removed
+// -----------------------------------------------------------------------------
+// Each theme mixin below @includes its rs*Tokens() first and then used to
+// re-declare the same Ionic custom properties with pre-merge hex values later in
+// the same rule. Last declaration wins in CSS, so the legacy hexes were silently
+// beating the design system. Two consequences:
+//
+//   * light mode painted the page #ffffff while cards were #feffff — a 1.002
+//     luminance ratio, i.e. elevation collapsed to nothing;
+//   * dark mode painted two competing greys — neutral #121212 from the legacy
+//     values against the blue-tinted #080c0e the design system defines.
+//
+// Removed from all four mixins (blackModeVars, darkModeVars, midnightModeVars,
+// lightModeVars):
+//   --ion-background-color, --ion-item-background, --ion-toolbar-background,
+//   --ion-tab-bar-background, --ion-card-background, and the complete
+//   --ion-color-step-50 … --ion-color-step-950 legacy ramp.
+// Every one of those is already defined by the corresponding rs*Tokens() mixin
+// in design-system.scss, so nothing is left undefined.
+//
+// VISIBLE RESULT: the light-mode page background moves #ffffff -> #f8fbfc (the
+// design system's --rs-surface-base), which is what restores the card/page
+// elevation difference. That is the intended outcome of this change.
+//
+// TO REVERT JUST THIS: each mixin below carries a "LEGACY OVERRIDES REMOVED"
+// marker with the exact declarations that were deleted, in their original order.
+// Paste them back at the marker to restore the previous behaviour; no other part
+// of this change depends on them.
+// =============================================================================
+
 @mixin blackModeVars() {
   @include rsBlackTokens();
   --rs-match-color: var(--ion-color-primary);
   --ion-border-color: var(--ion-color-dark-shade);
-  --ion-background-color: #000000;
   --ion-background-color-rgb: rgb(0, 0, 0);
   --ion-background-shade-color: var(--ion-color-dark-shade);
   --ion-background-tint-color: var(--ion-color-dark-tint);
@@ -15,31 +45,25 @@
   --ion-text-color: var(--ion-color-light);
   --ion-text-color-rgb: var(--ion-color-light-rgb);
 
-  --ion-item-background: #000000;
-  --ion-toolbar-background: #000000;
-  --ion-tab-bar-background: #000000;
-  --ion-card-background: #000000;
   --ion-card-background-hover: #101010;
 
-  --ion-color-step-50: #232323;
-  --ion-color-step-100: #2e2e2e;
-  --ion-color-step-150: #3a3a3a;
-  --ion-color-step-200: #454545;
-  --ion-color-step-250: #515151;
-  --ion-color-step-300: #5d5d5d;
-  --ion-color-step-350: #8b8b8b;
-  --ion-color-step-400: #c2c2c2;
-  --ion-color-step-450: #c6c6c6;
-  --ion-color-step-500: #cacaca;
-  --ion-color-step-550: #cecece;
-  --ion-color-step-600: #d2d2d2;
-  --ion-color-step-650: #d6d6d6;
-  --ion-color-step-700: #dadada;
-  --ion-color-step-750: #dedede;
-  --ion-color-step-800: #e2e2e2;
-  --ion-color-step-850: #e6e6e6;
-  --ion-color-step-900: #eaeaea;
-  --ion-color-step-950: #f4f4f4;
+  // --- LEGACY OVERRIDES REMOVED (black) — re-add here to revert -------------
+  //   --ion-background-color: #000000;
+  //   --ion-item-background: #000000;
+  //   --ion-toolbar-background: #000000;
+  //   --ion-tab-bar-background: #000000;
+  //   --ion-card-background: #000000;
+  //   --ion-color-step-50: #232323;   --ion-color-step-100: #2e2e2e;
+  //   --ion-color-step-150: #3a3a3a;  --ion-color-step-200: #454545;
+  //   --ion-color-step-250: #515151;  --ion-color-step-300: #5d5d5d;
+  //   --ion-color-step-350: #8b8b8b;  --ion-color-step-400: #c2c2c2;
+  //   --ion-color-step-450: #c6c6c6;  --ion-color-step-500: #cacaca;
+  //   --ion-color-step-550: #cecece;  --ion-color-step-600: #d2d2d2;
+  //   --ion-color-step-650: #d6d6d6;  --ion-color-step-700: #dadada;
+  //   --ion-color-step-750: #dedede;  --ion-color-step-800: #e2e2e2;
+  //   --ion-color-step-850: #e6e6e6;  --ion-color-step-900: #eaeaea;
+  //   --ion-color-step-950: #f4f4f4;
+  // -------------------------------------------------------------------------
 
   .alert-wrapper,
   .popover-viewport,
@@ -52,7 +76,6 @@
   @include rsDarkTokens();
   --rs-match-color: var(--ion-color-primary);
   --ion-border-color: var(--rs-border);
-  --ion-background-color: #121212;
   --ion-background-color-rgb: 18, 18, 18;
   --ion-background-shade-color: #101010;
   --ion-background-tint-color: #2a2a2a;
@@ -60,32 +83,26 @@
   --ion-text-color: #ffffff;
   --ion-text-color-rgb: 255, 255, 255;
 
-  --ion-item-background: #121212;
-  --ion-toolbar-background: #1f1f1f;
-  --ion-tab-bar-background: #1f1f1f;
-  --ion-card-background: #171717;
   --ion-card-background-hover: #1a1a1a;
-  // --ion-card-background: #1e1e1e;
 
-  --ion-color-step-50: #1e1e1e;
-  --ion-color-step-100: #2a2a2a;
-  --ion-color-step-150: #363636;
-  --ion-color-step-200: #414141;
-  --ion-color-step-250: #4d4d4d;
-  --ion-color-step-300: #595959;
-  --ion-color-step-350: #656565;
-  --ion-color-step-400: #717171;
-  --ion-color-step-450: #7d7d7d;
-  --ion-color-step-500: #898989;
-  --ion-color-step-550: #949494;
-  --ion-color-step-600: #a0a0a0;
-  --ion-color-step-650: #acacac;
-  --ion-color-step-700: #b8b8b8;
-  --ion-color-step-750: #c4c4c4;
-  --ion-color-step-800: #d0d0d0;
-  --ion-color-step-850: #dbdbdb;
-  --ion-color-step-900: #e7e7e7;
-  --ion-color-step-950: #f3f3f3;
+  // --- LEGACY OVERRIDES REMOVED (dark) — re-add here to revert --------------
+  //   --ion-background-color: #121212;
+  //   --ion-item-background: #121212;
+  //   --ion-toolbar-background: #1f1f1f;
+  //   --ion-tab-bar-background: #1f1f1f;
+  //   --ion-card-background: #171717;
+  //   // --ion-card-background: #1e1e1e;   (already commented out upstream)
+  //   --ion-color-step-50: #1e1e1e;   --ion-color-step-100: #2a2a2a;
+  //   --ion-color-step-150: #363636;  --ion-color-step-200: #414141;
+  //   --ion-color-step-250: #4d4d4d;  --ion-color-step-300: #595959;
+  //   --ion-color-step-350: #656565;  --ion-color-step-400: #717171;
+  //   --ion-color-step-450: #7d7d7d;  --ion-color-step-500: #898989;
+  //   --ion-color-step-550: #949494;  --ion-color-step-600: #a0a0a0;
+  //   --ion-color-step-650: #acacac;  --ion-color-step-700: #b8b8b8;
+  //   --ion-color-step-750: #c4c4c4;  --ion-color-step-800: #d0d0d0;
+  //   --ion-color-step-850: #dbdbdb;  --ion-color-step-900: #e7e7e7;
+  //   --ion-color-step-950: #f3f3f3;
+  // -------------------------------------------------------------------------
 
   ion-searchbar {
     --background: var(--ion-card-background);
@@ -96,7 +113,6 @@
   @include rsMidnightTokens();
   --rs-match-color: var(--ion-color-primary);
   --ion-border-color: var(--rs-border);
-  --ion-background-color: var(--ion-color-dark);
   --ion-background-color-rgb: var(--ion-color-dark-rgb);
   --ion-background-shade-color: var(--ion-color-dark-shade);
   --ion-background-tint-color: var(--ion-color-dark-tint);
@@ -104,35 +120,28 @@
   --ion-text-color: var(--ion-color-light);
   --ion-text-color-rgb: var(--ion-color-light-rgb);
 
-  --ion-card-background: #222428;
   --ion-card-background-hover: #282a2f;
 
-  --ion-color-step-50: #232323;
-  --ion-color-step-100: #2e2e2e;
-  --ion-color-step-150: #3a3a3a;
-  --ion-color-step-200: #454545;
-  --ion-color-step-250: #515151;
-  --ion-color-step-300: #5d5d5d;
-  --ion-color-step-350: #8b8b8b;
-  --ion-color-step-400: #c2c2c2;
-  --ion-color-step-450: #c6c6c6;
-  --ion-color-step-500: #cacaca;
-  --ion-color-step-550: #cecece;
-  --ion-color-step-600: #d2d2d2;
-  --ion-color-step-650: #d6d6d6;
-  --ion-color-step-700: #dadada;
-  --ion-color-step-750: #dedede;
-  --ion-color-step-800: #e2e2e2;
-  --ion-color-step-850: #e6e6e6;
-  --ion-color-step-900: #eaeaea;
-  --ion-color-step-950: #f4f4f4;
+  // --- LEGACY OVERRIDES REMOVED (midnight) — re-add here to revert ----------
+  //   --ion-background-color: var(--ion-color-dark);
+  //   --ion-card-background: #222428;
+  //   --ion-color-step-50: #232323;   --ion-color-step-100: #2e2e2e;
+  //   --ion-color-step-150: #3a3a3a;  --ion-color-step-200: #454545;
+  //   --ion-color-step-250: #515151;  --ion-color-step-300: #5d5d5d;
+  //   --ion-color-step-350: #8b8b8b;  --ion-color-step-400: #c2c2c2;
+  //   --ion-color-step-450: #c6c6c6;  --ion-color-step-500: #cacaca;
+  //   --ion-color-step-550: #cecece;  --ion-color-step-600: #d2d2d2;
+  //   --ion-color-step-650: #d6d6d6;  --ion-color-step-700: #dadada;
+  //   --ion-color-step-750: #dedede;  --ion-color-step-800: #e2e2e2;
+  //   --ion-color-step-850: #e6e6e6;  --ion-color-step-900: #eaeaea;
+  //   --ion-color-step-950: #f4f4f4;
+  // -------------------------------------------------------------------------
 }
 
 @mixin lightModeVars() {
   @include rsLightTokens();
   --rs-match-color: #0077b8;
   --ion-border-color: var(--rs-border);
-  --ion-background-color: #ffffff;
   --ion-background-color-rgb: rgb(255, 255, 255);
   --ion-background-shade-color: var(--ion-color-light-shade);
   --ion-background-tint-color: var(--ion-color-light-tint);
@@ -140,29 +149,27 @@
   --ion-text-color: var(--ion-color-dark);
   --ion-text-color-rgb: var(--ion-color-dark-rgb);
 
-  --ion-card-background: #ffffff;
   --ion-card-background-hover: #f6f6f6;
 
+  // --- LEGACY OVERRIDES REMOVED (light) — re-add here to revert -------------
+  // NOTE: these two are what pinned the page and the cards to the same #ffffff.
+  // Re-adding them restores the pure-white page background and re-flattens the
+  // page/card elevation difference.
+  //   --ion-background-color: #ffffff;
+  //   --ion-card-background: #ffffff;
+  //
   // Generated from this: https://ionicframework.com/docs/theming/themes
-  --ion-color-step-50: #f4f4f4;
-  --ion-color-step-100: #e9e9ea;
-  --ion-color-step-150: #dededf;
-  --ion-color-step-200: #d3d3d4;
-  --ion-color-step-250: #c8c8c9;
-  --ion-color-step-300: #bdbdbf;
-  --ion-color-step-350: #b2b2b4;
-  --ion-color-step-400: #a7a7a9;
-  --ion-color-step-450: #9c9c9e;
-  --ion-color-step-500: #919294;
-  --ion-color-step-550: #858789;
-  --ion-color-step-600: #7a7c7e;
-  --ion-color-step-650: #6f7173;
-  --ion-color-step-700: #646669;
-  --ion-color-step-750: #595b5e;
-  --ion-color-step-800: #4e5053;
-  --ion-color-step-850: #434548;
-  --ion-color-step-900: #383a3d;
-  --ion-color-step-950: #2d2f33;
+  //   --ion-color-step-50: #f4f4f4;   --ion-color-step-100: #e9e9ea;
+  //   --ion-color-step-150: #dededf;  --ion-color-step-200: #d3d3d4;
+  //   --ion-color-step-250: #c8c8c9;  --ion-color-step-300: #bdbdbf;
+  //   --ion-color-step-350: #b2b2b4;  --ion-color-step-400: #a7a7a9;
+  //   --ion-color-step-450: #9c9c9e;  --ion-color-step-500: #919294;
+  //   --ion-color-step-550: #858789;  --ion-color-step-600: #7a7c7e;
+  //   --ion-color-step-650: #6f7173;  --ion-color-step-700: #646669;
+  //   --ion-color-step-750: #595b5e;  --ion-color-step-800: #4e5053;
+  //   --ion-color-step-850: #434548;  --ion-color-step-900: #383a3d;
+  //   --ion-color-step-950: #2d2f33;
+  // -------------------------------------------------------------------------
 }
 
 /** Ionic CSS Variables **/

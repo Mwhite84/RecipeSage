@@ -53,6 +53,7 @@ import { ServerActionsService } from "../../../services/server-actions.service";
 import { Title } from "@angular/platform-browser";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { RatingComponent } from "../../../components/rating/rating.component";
+import { NullStateComponent } from "../../../components/null-state/null-state.component";
 import {
   IonHeader,
   IonToolbar,
@@ -73,8 +74,10 @@ import {
   IonFab,
   IonFabButton,
   IonFabList,
+  IonSpinner,
 } from "@ionic/angular/standalone";
 import {
+  alertCircleOutline,
   bookOutline,
   calendarOutline,
   cloudDownloadOutline,
@@ -115,6 +118,7 @@ import { addIcons } from "ionicons";
   imports: [
     ...SHARED_UI_IMPORTS,
     RatingComponent,
+    NullStateComponent,
     IonHeader,
     IonToolbar,
     IonButtons,
@@ -134,6 +138,7 @@ import { addIcons } from "ionicons";
     IonFab,
     IonFabButton,
     IonFabList,
+    IonSpinner,
   ],
 })
 export class RecipePage {
@@ -165,6 +170,12 @@ export class RecipePage {
   private meQuery = this.serverActionsService.users.getMe({ 401: () => {} });
   me = this.meQuery.value;
   recipe: RecipeSummary | null = null;
+  /**
+   * True when the recipe fetch finished without producing a recipe (network
+   * failure, 404, offline with no cached copy). Drives the retryable error
+   * state; while it is false and `recipe` is null the page is still loading.
+   */
+  loadError = false;
   similarRecipes: RecipeSummaryLite[] = [];
   linkedRecipes: Array<{
     id: string;
@@ -215,6 +226,7 @@ export class RecipePage {
 
   constructor() {
     addIcons({
+      alertCircleOutline,
       bookOutline,
       calendarOutline,
       cloudDownloadOutline,
@@ -266,6 +278,7 @@ export class RecipePage {
     }
 
     this.recipe = null;
+    this.loadError = false;
     this.similarRecipes = [];
     this.linkedRecipes = [];
 
@@ -278,6 +291,20 @@ export class RecipePage {
     const loading = this.loadingService.start();
     await this.load();
     loading.dismiss();
+  }
+
+  /**
+   * Re-runs the recipe load after a failure. Resets back to the loading state
+   * so the user sees the spinner rather than the error while the retry is in
+   * flight.
+   */
+  retryLoad() {
+    this.loadError = false;
+    this.recipe = null;
+    this.similarRecipes = [];
+    this.linkedRecipes = [];
+
+    return this.loadWithBar();
   }
 
   ionViewWillLeave() {
@@ -293,11 +320,34 @@ export class RecipePage {
   }
 
   async _loadRecipe() {
-    const response = await this.serverActionsService.recipes.getRecipe({
-      id: this.recipeId,
-    });
-    if (!response) return;
+    let response;
+    try {
+      response = await this.serverActionsService.recipes.getRecipe(
+        {
+          id: this.recipeId,
+        },
+        {
+          // This page renders its own error state with a retry action, so the
+          // global alert would stack a second error UI on top of a perfectly
+          // good one — verified in a browser: the "Resource Not Found" modal
+          // lands over the retry button and has to be dismissed to reach it.
+          // Only the cases our own state actually describes are suppressed;
+          // 401 still prompts for auth and 500 still alerts + reports.
+          0: () => {},
+          404: () => {},
+        },
+      );
+    } catch (e) {
+      console.error(e);
+      response = undefined;
+    }
 
+    if (!response) {
+      this.loadError = true;
+      return;
+    }
+
+    this.loadError = false;
     this.recipe = response;
     if (this.recipe && "recipeLinks" in this.recipe) {
       const recipeWithLinks = this.recipe as typeof this.recipe & {
@@ -463,6 +513,26 @@ export class RecipePage {
       this.recipeId,
       idx,
     );
+  }
+
+  /**
+   * Enter/Space activation for the instruction checkbox rows. Angular types
+   * `(keydown.enter)`/`(keydown.space)` $event as Event, hence the widened
+   * parameter. preventDefault stops Space from page-scrolling.
+   */
+  instructionKeydown(
+    event: Event,
+    instruction: ParsedInstruction,
+    idx: number,
+  ) {
+    event.preventDefault();
+    this.instructionClicked(event, instruction, idx);
+  }
+
+  /** Enter/Space activation for the ingredient checkbox rows. */
+  ingredientKeydown(event: Event, ingredient: ParsedIngredient, idx: number) {
+    event.preventDefault();
+    this.ingredientClicked(event, ingredient, idx);
   }
 
   getInstructionComplete(idx: number) {

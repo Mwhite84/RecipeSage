@@ -1,6 +1,30 @@
 @import "../../../../theme/shared-variables.scss";
 
+// Inline text-styled buttons (author handle, scale toggle). These replace
+// href-less <a> elements, which were neither tabbable nor Enter-activatable.
+// Mirrors button.scale in components/select-ingredients.
+button.inline-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  // --rs-accent measures 2.44-3.08 against the light surfaces and fails WCAG
+  // 2.2 SC 1.4.11 (3:1 for focus indicators); --rs-accent-text does not.
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+    border-radius: var(--rs-radius-sm);
+  }
+}
+
 .page-wrapper {
+  // Layout caps, not spacing steps — no tokens.
   max-width: 1250px;
   margin: 0 auto;
   padding-bottom: 25vh;
@@ -8,33 +32,41 @@
 
 .not-found {
   text-align: center;
-  padding: 48px 16px;
-  color: var(--ion-text-color);
+  padding: var(--rs-space-7) var(--rs-inset-page);
+  color: var(--rs-text-primary);
 }
 
 ion-thumbnail {
-  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--rs-shadow-sm);
   cursor: pointer;
 
+  // Now tabbable (role=button/tabindex=0) — needs a visible focus state.
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+  }
+
   img {
+    // 4px has no token (--rs-radius-sm is 8px) and doubling it is visible at
+    // thumbnail size.
     border-radius: 4px;
   }
 }
 
 h2.recipeTitle {
-  font-size: 1.125rem;
+  font-size: var(--rs-text-md);
   margin-top: 0 !important;
 }
 
 .meta {
-  border-top: 1px solid var(--ion-border-color);
-  border-bottom: 1px solid var(--ion-border-color);
-  margin-top: 15px;
-  margin-bottom: 15px;
+  border-top: 1px solid var(--rs-border);
+  border-bottom: 1px solid var(--rs-border);
+  margin-top: var(--rs-space-4);
+  margin-bottom: var(--rs-space-4);
 
   ion-col {
-    padding: 5px;
-    font-size: 0.875rem;
+    padding: var(--rs-space-1);
+    font-size: var(--rs-text-sm);
 
     p {
       margin-top: 0;
@@ -45,33 +77,31 @@ h2.recipeTitle {
   .rating-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--rs-space-2);
   }
 
+  // Star glyph geometry, not type — the paired px line-height is what keeps the
+  // row from growing. No token for either.
   rating {
     font-size: 18px;
     line-height: 14px;
   }
-
-  a {
-    cursor: pointer;
-  }
 }
 
 .discover-action-row {
-  padding-inline-start: 16px;
-  padding-inline-end: 16px;
+  padding-inline-start: var(--rs-inset-page);
+  padding-inline-end: var(--rs-inset-page);
 }
 
 .rate-block {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 8px 0 4px;
+  gap: var(--rs-space-3);
+  margin: var(--rs-space-2) 0 var(--rs-space-1);
 
   .rate-label {
-    font-weight: bold;
-    font-size: 0.875rem;
+    font-weight: var(--rs-weight-bold);
+    font-size: var(--rs-text-sm);
   }
 
   rating {
@@ -81,12 +111,12 @@ h2.recipeTitle {
 }
 
 .actions {
-  margin: 8px 0;
+  margin: var(--rs-space-2) 0;
 }
 
 .label-group-container {
   display: flex;
-  gap: 16px;
+  gap: var(--rs-space-4);
   flex-wrap: wrap;
 
   ion-chip:not(.clickable) {
@@ -96,6 +126,14 @@ h2.recipeTitle {
 
   ion-chip.clickable {
     cursor: pointer;
+    // Ionic's chip is 32px tall. Grow the hit area only — the label's type size
+    // is untouched.
+    min-height: var(--rs-touch-min);
+
+    &:focus-visible {
+      outline: 2px solid var(--rs-accent-text);
+      outline-offset: 2px;
+    }
   }
 }
 
@@ -104,7 +142,7 @@ h2.recipeTitle {
 }
 
 .section-title p {
-  font-weight: bold;
+  font-weight: var(--rs-weight-bold);
 }
 
 .ingredientsInstructionsGrid {
@@ -155,9 +193,9 @@ h2.recipeTitle {
 .ingredients {
   .ingredient {
     &.header {
-      font-weight: bold;
+      font-weight: var(--rs-weight-bold);
       display: block;
-      margin: 4px 0;
+      margin: var(--rs-space-1) 0;
     }
 
     &.ingredientContent {
@@ -173,7 +211,7 @@ h2.recipeTitle {
 
 .instructions {
   .instruction {
-    margin-bottom: 15px;
+    margin-bottom: var(--rs-space-4);
 
     .instructionContent {
       cursor: pointer;
@@ -186,27 +224,28 @@ h2.recipeTitle {
   }
 
   .sectionHeader {
-    font-weight: bold;
+    font-weight: var(--rs-weight-bold);
     display: block;
-    margin: 4px 0;
+    margin: var(--rs-space-1) 0;
   }
 }
 
 .notes {
   .header {
-    font-weight: bold;
+    font-weight: var(--rs-weight-bold);
   }
 }
 
 .nutrition-fields {
   display: flex;
   flex-wrap: wrap;
+  // 20px falls between --rs-space-4 (16) and --rs-space-5 (24); no near match.
   column-gap: 20px;
 }
 
 .modified {
-  margin-top: 16px;
-  font-size: 0.8125rem;
+  margin-top: var(--rs-space-4);
+  font-size: var(--rs-text-xs);
   font-style: italic;
-  color: var(--ion-text-color);
+  color: var(--rs-text-primary);
 }

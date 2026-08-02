@@ -1,0 +1,89 @@
+<div class="lines-list" [attr.aria-label]="ariaLabel" role="group">
+  @if (hasTable()) {
+    <p class="lines-notice">
+      {{ "components.recipeLineEditor.tableNotice" | translate }}
+    </p>
+  }
+
+  @if (isEmpty()) {
+    <p class="lines-empty">{{ emptyKey | translate }}</p>
+  }
+
+  @for (line of lines(); track line.id) {
+    <div
+      class="line-row"
+      [class.line-row--header]="line.isHeader"
+      [class.line-row--numbered]="!line.isHeader && variant === 'instructions'"
+      [class.line-row--raw]="isTableLine(line)"
+    >
+      @if (line.isHeader) {
+        <ion-icon
+          name="bookmark-outline"
+          class="line-section-icon"
+          aria-hidden="true"
+        ></ion-icon>
+      } @else if (variant === "instructions") {
+        <span class="line-step-number" aria-hidden="true">{{
+          stepNumbers().get(line.id)
+        }}</span>
+      }
+
+      <textarea
+        #lineInput
+        class="line-input"
+        [class.line-input--header]="line.isHeader"
+        rows="1"
+        [value]="line.text"
+        [disabled]="disabled"
+        placeholder="{{
+          (line.isHeader ? sectionPlaceholderKey : itemPlaceholderKey)
+            | translate
+        }}"
+        attr.aria-label="{{
+          (line.isHeader ? sectionPlaceholderKey : itemPlaceholderKey)
+            | translate
+        }}"
+        (input)="onInput(line, $event)"
+        (blur)="onBlur()"
+        (keydown.enter)="onEnter($event, line.id)"
+        (keydown.shift.enter)="onEnter($event, line.id)"
+        (keydown.backspace)="onBackspace($event, line.id)"
+        (paste)="onPaste($any($event), line.id)"
+        autocapitalize="on"
+        autocorrect="on"
+        spellcheck="true"
+      ></textarea>
+
+      <button
+        type="button"
+        class="line-remove"
+        [disabled]="disabled"
+        (click)="removeLine(line.id)"
+        attr.aria-label="{{ 'components.recipeLineEditor.remove' | translate }}"
+      >
+        <ion-icon name="remove-circle-outline" aria-hidden="true"></ion-icon>
+      </button>
+    </div>
+  }
+</div>
+
+<div class="lines-actions">
+  <button
+    type="button"
+    class="lines-add-item"
+    [disabled]="disabled"
+    (click)="addItem()"
+  >
+    <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+    {{ addItemKey | translate }}
+  </button>
+  <button
+    type="button"
+    class="lines-add-section"
+    [disabled]="disabled"
+    (click)="addSection()"
+  >
+    <ion-icon name="bookmark-outline" aria-hidden="true"></ion-icon>
+    {{ "components.recipeLineEditor.addSection" | translate }}
+  </button>
+</div>

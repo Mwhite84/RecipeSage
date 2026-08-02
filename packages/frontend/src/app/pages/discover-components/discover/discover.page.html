@@ -30,7 +30,13 @@
       <div *uiScroll="let recipeGroup of datasource" class="recipe-group-row">
         <div class="recipe-group" [class.single-col]="tileColCount === 1">
           @for (recipe of recipeGroup; track recipe.id) {
-            <div class="recipe-card" (click)="openRecipe(recipe)" button>
+            <div
+              class="recipe-card"
+              role="button"
+              tabindex="0"
+              (click)="openRecipe(recipe)"
+              (keydown.enter)="openRecipe(recipe)"
+            >
               @if (recipe.discoverRecipeImages.length) {
                 <img
                   loading="lazy"
@@ -80,8 +86,14 @@
         </div>
       </div>
     } @else {
-      <div *uiScroll="let recipe of datasource" class="recipe-item" button>
-        <div class="recipe-item-clickable" (click)="openRecipe(recipe)">
+      <div *uiScroll="let recipe of datasource" class="recipe-item">
+        <div
+          class="recipe-item-clickable"
+          role="button"
+          tabindex="0"
+          (click)="openRecipe(recipe)"
+          (keydown.enter)="openRecipe(recipe)"
+        >
           @if (recipe.discoverRecipeImages.length) {
             <img
               loading="lazy"
@@ -130,12 +142,42 @@
       </div>
     }
 
-    @if (loadedAny && recipes.length === 0) {
-      <div class="discover-empty">
-        <ion-icon name="search-outline" class="big-icon"></ion-icon>
-        <h2>{{ "pages.discover.empty.title" | translate }}</h2>
-        <p>{{ "pages.discover.empty.message" | translate }}</p>
-      </div>
+    <!-- ================================================================
+         LOADING / ERROR / EMPTY STATES
+    ================================================================ -->
+    @if (loading) {
+      <null-state>
+        <ion-spinner virtualSlot="header"></ion-spinner>
+        <ion-label virtualSlot="body">
+          <p>{{ "pages.discover.loading" | translate }}</p>
+        </ion-label>
+      </null-state>
+    }
+    @if (!loading && loadError) {
+      <null-state>
+        <ion-icon
+          name="cloud-offline-outline"
+          class="big-icon"
+          virtualSlot="header"
+        ></ion-icon>
+        <ion-label virtualSlot="body">
+          <h2>{{ "pages.discover.error.title" | translate }}</h2>
+          <p>{{ "pages.discover.error.message" | translate }}</p>
+        </ion-label>
+      </null-state>
+    }
+    @if (!loading && !loadError && loadedAny && recipes.length === 0) {
+      <null-state>
+        <ion-icon
+          name="search-outline"
+          class="big-icon"
+          virtualSlot="header"
+        ></ion-icon>
+        <ion-label virtualSlot="body">
+          <h2>{{ "pages.discover.empty.title" | translate }}</h2>
+          <p>{{ "pages.discover.empty.message" | translate }}</p>
+        </ion-label>
+      </null-state>
     }
   </div>
 </ion-content>

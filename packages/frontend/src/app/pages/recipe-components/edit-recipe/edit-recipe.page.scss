@@ -89,21 +89,18 @@
 // -----------------------------------------------------------------------------
 // Core info inputs (title + description)
 // -----------------------------------------------------------------------------
+// Fields render via <text-input> / <text-area>, whose control is inside an
+// emulated-encapsulation template — page SCSS can only reach it through the
+// --rs-field-* custom properties declared on :host in components/forms/field.scss.
 .rs-input {
-  --padding-top: var(--rs-space-3);
-  --padding-bottom: var(--rs-space-3);
-  --padding-start: var(--rs-space-4);
-  --padding-end: var(--rs-space-4);
-  --background: transparent;
-  --border-width: 0;
-  --highlight-height: 0;
-  --color: var(--rs-text-primary);
-  --placeholder-color: var(--rs-text-tertiary);
+  --rs-field-padding: var(--rs-space-3) var(--rs-space-4);
+  --rs-field-bg: transparent;
+  --rs-field-text: var(--rs-text-primary);
+  --rs-field-placeholder: var(--rs-text-tertiary);
   width: 100%;
 
   &--title {
-    --font-size: var(--rs-text-lg);
-    font-weight: 600;
+    --rs-field-font-size: var(--rs-text-lg);
   }
 
   &--notes {
@@ -120,7 +117,7 @@
     grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr));
     gap: 0;
 
-    ion-input {
+    text-input {
       border-bottom: 1px solid var(--rs-border);
 
       &:last-child {
@@ -172,10 +169,8 @@
   }
 
   .rs-date {
-    --padding-start: 0;
-    --padding-top: var(--rs-space-1);
-    --padding-bottom: 0;
-    font-size: var(--rs-text-sm);
+    --rs-field-padding: var(--rs-space-1) 0 0;
+    --rs-field-font-size: var(--rs-text-sm);
   }
 }
 
@@ -218,14 +213,14 @@
   }
 }
 
-// Free-text textarea (text mode)
-.rs-input--freetext {
-  min-height: 120px;
-  padding: var(--rs-space-1) var(--rs-space-2) var(--rs-space-4);
-}
-
 // -----------------------------------------------------------------------------
 // Line list editor (ingredients + instructions)
+//
+// The row-level rules (.lines-list, .lines-empty, .line-row, .line-section-icon,
+// .line-step-number, .line-input, .line-remove, .lines-actions, .lines-add-item,
+// .lines-add-section) moved to recipe-line-editor.component.scss so they resolve
+// inside that component's emulated encapsulation. Only the card scoping is left
+// here, because the card is the page's.
 // -----------------------------------------------------------------------------
 .edit-card--lines {
   .edit-card__header {
@@ -233,163 +228,11 @@
   }
 }
 
-.lines-list {
-  padding: 0 var(--rs-space-2);
-}
-
-.lines-empty {
-  padding: var(--rs-space-3) var(--rs-space-2);
-  font-size: var(--rs-text-sm);
-  color: var(--rs-text-tertiary);
-  font-family: var(--rs-font-body);
-  margin: 0;
-  font-style: italic;
-}
-
-.line-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  min-height: 44px;
-  border-bottom: 1px solid var(--rs-divider, var(--rs-border));
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  // header rows get the section icon in column 0 — shift to 3-col
-  &--header {
-    grid-template-columns: auto 1fr auto;
-    background: var(--rs-surface-sunken);
-    border-radius: var(--rs-radius-sm);
-    margin: var(--rs-space-1) 0;
-    border: 1px solid var(--rs-border);
-  }
-}
-
-.line-section-icon {
-  font-size: 14px;
-  color: var(--rs-accent-text);
-  padding-left: var(--rs-space-3);
-  flex-shrink: 0;
-}
-
-.line-step-number {
-  font-size: var(--rs-text-xs);
-  font-weight: 600;
-  color: var(--rs-text-tertiary);
-  padding-left: var(--rs-space-3);
-  min-width: 20px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.line-input {
-  --padding-top: var(--rs-space-2);
-  --padding-bottom: var(--rs-space-2);
-  --padding-start: var(--rs-space-3);
-  --padding-end: var(--rs-space-1);
-  --background: transparent;
-  --border-width: 0;
-  --highlight-height: 0;
-  --color: var(--rs-text-primary);
-  --placeholder-color: var(--rs-text-tertiary);
-  font-family: var(--rs-font-body);
-  font-size: var(--rs-text-sm);
-
-  &--header {
-    --color: var(--rs-text-secondary);
-    font-weight: 600;
-    font-size: var(--rs-text-sm);
-    letter-spacing: 0.02em;
-  }
-}
-
-.line-remove {
-  background: none;
-  border: none;
-  padding: var(--rs-space-2);
-  cursor: pointer;
-  color: var(--rs-text-tertiary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  min-height: 36px;
-  border-radius: var(--rs-radius-sm);
-  transition:
-    color 150ms ease-out,
-    background 150ms ease-out;
-
-  ion-icon {
-    font-size: 18px;
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      color: var(--ion-color-danger, #eb445a);
-      background: oklch(96% 0.015 15);
-    }
-  }
-}
-
-.lines-actions {
-  display: flex;
-  gap: var(--rs-space-2);
-  padding: var(--rs-space-3) var(--rs-space-4);
-  border-top: 1px solid var(--rs-border);
-}
-
-.lines-add-item,
-.lines-add-section {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--rs-space-1);
-  background: none;
-  border: 1px solid var(--rs-border);
-  border-radius: var(--rs-radius-full);
-  padding: var(--rs-space-1) var(--rs-space-3);
-  font-family: var(--rs-font-body);
-  font-size: var(--rs-text-xs);
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background 150ms ease-out,
-    border-color 150ms ease-out,
-    color 150ms ease-out;
-  min-height: 32px;
-
-  ion-icon {
-    font-size: 14px;
-  }
-}
-
-.lines-add-item {
-  color: var(--rs-accent-text);
-
-  @media (hover: hover) {
-    &:hover {
-      background: var(--rs-accent-subtle);
-      border-color: var(--rs-accent-muted);
-    }
-  }
-}
-
-.lines-add-section {
-  color: var(--rs-text-secondary);
-
-  @media (hover: hover) {
-    &:hover {
-      background: var(--rs-surface-sunken);
-    }
-  }
-}
-
 // -----------------------------------------------------------------------------
 // Notes card
 // -----------------------------------------------------------------------------
 .edit-card--notes {
-  ion-textarea {
+  text-area {
     padding: 0 var(--rs-space-1) var(--rs-space-3);
   }
 }
@@ -436,7 +279,6 @@
 }
 
 .recipe-input {
-  --background: transparent;
   margin-bottom: 0;
 }
 

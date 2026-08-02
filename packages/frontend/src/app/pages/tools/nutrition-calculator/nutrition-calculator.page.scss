@@ -1,3 +1,10 @@
+// =============================================================================
+// Nutrition Calculator
+// =============================================================================
+// Token-substitution pass. Off-scale values with no --rs-* equivalent (6, 10,
+// 18, 20, 52, 160px, radii 3px/4px, the 16px macro-bar height) are left raw.
+// =============================================================================
+
 .page-wrapper {
   max-width: var(--page-max-width);
   margin: 0 auto;
@@ -6,25 +13,39 @@
 
 info-block {
   display: block;
-  margin: 16px;
+  margin: var(--rs-space-4);
+}
+
+// "Add recipe" / "Add label" sit in the list header at size="small", which
+// resolves to ~27px in Ionic. Hit area only — the label keeps its own size.
+ion-list-header ion-button {
+  min-height: var(--rs-touch-min);
 }
 
 .servings-help {
-  font-size: 0.8rem;
+  font-size: var(--rs-text-xs);
 
   ion-label {
-    margin-top: 4px;
-    margin-bottom: 4px;
+    margin-top: var(--rs-space-1);
+    margin-bottom: var(--rs-space-1);
   }
 }
 
 .recipe-link {
-  color: var(--ion-color-primary, #3880ff);
+  // --rs-accent measures 2.44-3.08 on the light surfaces; --rs-accent-text is
+  // the same hue family and clears WCAG AA for this ~16px link text.
+  color: var(--rs-accent-text);
   text-decoration: none;
   cursor: pointer;
 
   &:hover {
     text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+    border-radius: var(--rs-radius-sm);
   }
 }
 
@@ -33,7 +54,7 @@ info-block {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 0;
-  padding: 0 16px;
+  padding: 0 var(--rs-inset-page);
 
   .servings-adjustment-container {
     display: grid;
@@ -42,15 +63,18 @@ info-block {
 
   .step-button {
     margin: 0;
-    height: 36px;
-    --padding-start: 4px;
-    --padding-end: 4px;
+    // Hit area only — fill="clear", so the ± glyph keeps its own size and only
+    // the invisible target grows. Was 36px, under the 44px touch minimum.
+    height: var(--rs-touch-min);
+    min-width: var(--rs-touch-min);
+    --padding-start: var(--rs-space-1);
+    --padding-end: var(--rs-space-1);
   }
 
   hr {
     grid-column: 1 / -1;
     border: 0;
-    border-bottom: 1px solid var(--ion-color-step-300, rgba(0, 0, 0, 0.25));
+    border-bottom: 1px solid var(--rs-border-strong);
     margin: 0;
     width: 100%;
   }
@@ -61,43 +85,53 @@ info-block {
 
   input.qty {
     width: 48px;
-    height: 36px;
+    // Matches the stepper buttons' 44px target; the field is transparent and
+    // borderless, so this only grows the tap area.
+    height: var(--rs-touch-min);
     padding: 0;
     text-align: center;
     background: transparent;
     border: 0;
-    color: var(--ion-text-color, #000);
+    color: var(--rs-text-primary);
     font: inherit;
 
     &:focus {
       outline: none;
     }
+
+    // Upstream removed the outline unconditionally, leaving keyboard focus
+    // invisible on the only editable control in the row.
+    &:focus-visible {
+      outline: 2px solid var(--rs-accent-text);
+      outline-offset: -2px;
+      border-radius: var(--rs-radius-sm);
+    }
   }
 
   .set-all-label {
     text-align: end;
-    font-size: 0.85rem;
-    padding: 8px 8px 8px 8px;
+    font-size: var(--rs-text-sm);
+    padding: var(--rs-space-2);
   }
 }
 
 .recipe-meta {
   min-width: 0;
-  padding: 8px 8px 8px 0;
+  padding: var(--rs-space-2) var(--rs-space-2) var(--rs-space-2) 0;
 
   p {
-    margin: 4px 0 0 0;
-    font-size: 0.85rem;
-    color: var(--ion-color-medium-shade, #5b5b5b);
+    margin: var(--rs-space-1) 0 0 0;
+    font-size: var(--rs-text-sm);
+    color: var(--rs-text-tertiary);
   }
 }
 
 .servings-column-label {
   text-align: center;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ion-color-medium-shade, #5b5b5b);
-  padding-bottom: 4px;
+  font-size: var(--rs-text-xs);
+  font-weight: var(--rs-weight-semibold);
+  color: var(--rs-text-tertiary);
+  padding-bottom: var(--rs-space-1);
 }
 
 .mode-segment {
@@ -108,36 +142,36 @@ info-block {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 12px 16px 0;
+  padding: var(--rs-space-3) var(--rs-inset-page) 0;
 }
 
 .coverage-chip {
   display: inline-block;
-  padding: 4px 10px;
-  font-size: 0.8rem;
-  color: var(--ion-color-medium-shade, #5b5b5b);
-  border: 1px solid var(--ion-color-step-200, #cccccc);
-  border-radius: 12px;
+  padding: var(--rs-space-1) 10px;
+  font-size: var(--rs-text-xs);
+  color: var(--rs-text-tertiary);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
 }
 
 .macro-card {
-  margin: 16px;
-  padding: 12px 16px;
-  border: 1px solid var(--ion-color-step-150, #e0e0e0);
-  border-radius: 8px;
+  margin: var(--rs-space-4);
+  padding: var(--rs-space-3) var(--rs-space-4);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
 
   .macro-title {
-    margin: 0 0 8px 0;
-    font-weight: 600;
+    margin: 0 0 var(--rs-space-2) 0;
+    font-weight: var(--rs-weight-semibold);
   }
 
   .macro-bar {
     display: flex;
     width: 100%;
     height: 16px;
-    border-radius: 8px;
+    border-radius: var(--rs-radius-sm);
     overflow: hidden;
-    background: var(--ion-color-step-100, #f0f0f0);
+    background: var(--rs-surface-sunken);
   }
 
   .macro-segment {
@@ -147,15 +181,15 @@ info-block {
   .macro-legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 8px;
-    font-size: 0.85rem;
+    gap: var(--rs-space-3);
+    margin-top: var(--rs-space-2);
+    font-size: var(--rs-text-sm);
   }
 
   .macro-legend-item {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--rs-space-1);
   }
 
   .macro-swatch {
@@ -167,33 +201,35 @@ info-block {
 }
 
 .macro-fat {
-  background: var(--ion-color-warning, #ffc409);
+  background: var(--rs-warning);
 }
 
 .macro-carbs {
-  background: var(--ion-color-primary, #3880ff);
+  background: var(--rs-accent);
 }
 
 .macro-protein {
-  background: var(--ion-color-success, #2dd36f);
+  background: var(--rs-success);
 }
 
 .nutrition-facts {
-  margin: 16px;
-  padding: 12px 16px;
-  border: 2px solid var(--ion-text-color, #000);
+  margin: var(--rs-space-4);
+  padding: var(--rs-space-3) var(--rs-space-4);
+  // The heavy rules mimic the FDA label; --rs-text-primary is the token form of
+  // the --ion-text-color they used.
+  border: 2px solid var(--rs-text-primary);
   border-radius: 4px;
 
   .nutrition-facts-header {
-    border-bottom: 4px solid var(--ion-text-color, #000);
-    padding-bottom: 8px;
-    margin-bottom: 8px;
+    border-bottom: 4px solid var(--rs-text-primary);
+    padding-bottom: var(--rs-space-2);
+    margin-bottom: var(--rs-space-2);
   }
 
   .nutrition-facts-title {
     margin: 0;
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: var(--rs-text-md);
+    font-weight: var(--rs-weight-bold);
   }
 
   .divide-among {
@@ -203,20 +239,20 @@ info-block {
 
   .nutrition-facts-subtitle {
     margin: 6px 0 0 0;
-    font-size: 0.8rem;
-    color: var(--ion-color-medium-shade, #5b5b5b);
+    font-size: var(--rs-text-xs);
+    color: var(--rs-text-tertiary);
   }
 
   .nutrition-facts-dv-header {
-    margin: 8px 0 0 0;
-    font-size: 0.75rem;
-    font-weight: 700;
+    margin: var(--rs-space-2) 0 0 0;
+    font-size: var(--rs-text-xs);
+    font-weight: var(--rs-weight-bold);
     text-align: end;
   }
 
   .nutrition-fact-row {
     padding: 6px 0;
-    border-bottom: 1px solid var(--ion-color-step-150, #e0e0e0);
+    border-bottom: 1px solid var(--rs-border);
 
     &.indent {
       padding-inline-start: 20px;
@@ -226,7 +262,7 @@ info-block {
   .nutrition-fact-line {
     display: flex;
     align-items: baseline;
-    gap: 12px;
+    gap: var(--rs-space-3);
   }
 
   .nutrition-fact-label {
@@ -234,7 +270,7 @@ info-block {
   }
 
   .nutrition-fact-value {
-    font-weight: 600;
+    font-weight: var(--rs-weight-semibold);
     white-space: nowrap;
     text-align: end;
   }
@@ -242,23 +278,23 @@ info-block {
   .nutrition-fact-dv {
     flex: 0 0 52px;
     text-align: end;
-    font-weight: 600;
+    font-weight: var(--rs-weight-semibold);
     white-space: nowrap;
   }
 
   .nutrition-fact-missing {
     display: block;
     margin-top: 2px;
-    font-size: 0.75rem;
+    font-size: var(--rs-text-xs);
   }
 
   .nutrition-facts-footnote {
     margin: 10px 0 0 0;
-    font-size: 0.7rem;
-    color: var(--ion-color-medium-shade, #5b5b5b);
+    font-size: var(--rs-text-xs);
+    color: var(--rs-text-tertiary);
   }
 }
 
 .no-data-badge {
-  margin-top: 4px;
+  margin-top: var(--rs-space-1);
 }

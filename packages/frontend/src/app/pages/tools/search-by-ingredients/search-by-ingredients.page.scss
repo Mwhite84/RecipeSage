@@ -1,38 +1,44 @@
+// =============================================================================
+// Search by Ingredients
+// =============================================================================
+// Token-substitution pass. --rs-match-color is a theme-level token defined in
+// theme/variables.scss and is left alone.
+// =============================================================================
+
 .page-wrapper {
   max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: 16px;
+  padding: var(--rs-inset-page);
 }
 
 info-block {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: var(--rs-space-3);
 }
 
 .ingredients-input {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--rs-space-2);
 }
 
 .friends-toggle {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: var(--rs-space-3);
 }
 
 .search-button {
-  margin-bottom: 4px;
+  margin-bottom: var(--rs-space-1);
 }
 
 .results {
-  border-top: 1px solid
-    var(--ion-item-border-color, var(--ion-color-step-150, rgba(0, 0, 0, 0.13)));
+  border-top: 1px solid var(--rs-border);
   padding-bottom: 25vh;
 }
 
 .match-line {
   margin: 0 0 2px 0;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: var(--rs-text-xs);
+  font-weight: var(--rs-weight-semibold);
   color: var(--rs-match-color);
   white-space: nowrap;
   overflow: hidden;

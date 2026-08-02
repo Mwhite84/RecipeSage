@@ -61,6 +61,7 @@ import { SelectRecipeComponent } from "../../../components/select-recipe/select-
 import { RecipeFormatToolbarComponent } from "../../../components/recipe-format-toolbar/recipe-format-toolbar.component";
 import { TextInputComponent } from "../../../components/forms/text-input/text-input.component";
 import { TextAreaComponent } from "../../../components/forms/text-area/text-area.component";
+import { RecipeLineEditorComponent } from "../../../components/recipe-line-editor/recipe-line-editor.component";
 import {
   IonHeader,
   IonToolbar,
@@ -70,6 +71,7 @@ import {
   IonButton,
   IonIcon,
   IonContent,
+  IonFooter,
   IonPopover,
   IonList,
   IonItem,
@@ -104,6 +106,7 @@ import { addIcons } from "ionicons";
     RecipeFormatToolbarComponent,
     TextInputComponent,
     TextAreaComponent,
+    RecipeLineEditorComponent,
     IonHeader,
     IonToolbar,
     IonButtons,
@@ -112,6 +115,7 @@ import { addIcons } from "ionicons";
     IonButton,
     IonIcon,
     IonContent,
+    IonFooter,
     IonPopover,
     IonList,
     IonItem,
@@ -164,6 +168,16 @@ export class EditRecipePage {
     ingredients: "",
     instructions: "",
   };
+
+  /**
+   * Ingredients and instructions can each be edited either as a list of rows
+   * (`recipe-line-editor`) or as raw text (`text-area` + `recipe-format-toolbar`).
+   * Both bind the same newline-delimited string, so toggling is lossless and
+   * needs no conversion step here. List is the default - it is what phone entry
+   * from a cookbook actually wants.
+   */
+  ingredientsMode: "list" | "text" = "list";
+  instructionsMode: "list" | "text" = "list";
 
   images: ImageSummary[] = [];
   labels: LabelSummary[] = [];

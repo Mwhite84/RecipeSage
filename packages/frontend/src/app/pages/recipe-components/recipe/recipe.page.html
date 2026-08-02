@@ -126,7 +126,10 @@
           <div
             class="recipe-header__image"
             (click)="openImageViewer()"
+            (keydown.enter)="openImageViewer()"
+            (keydown.space)="$any($event).preventDefault(); openImageViewer()"
             role="button"
+            tabindex="0"
             aria-label="View image"
           >
             <img
@@ -185,6 +188,11 @@
                   class="ingredient-item"
                   [class.ingredient-item--complete]="getIngredientComplete(i)"
                   (click)="ingredientClicked($event, ingredient, i)"
+                  (keydown.enter)="ingredientKeydown($event, ingredient, i)"
+                  (keydown.space)="ingredientKeydown($event, ingredient, i)"
+                  role="checkbox"
+                  [attr.aria-checked]="getIngredientComplete(i)"
+                  tabindex="0"
                   dir="auto"
                 >
                   <span [innerHTML]="ingredient.htmlContent"></span>
@@ -216,6 +224,10 @@
               <a
                 class="jump-link"
                 (click)="scrollToInstructions()"
+                (keydown.enter)="scrollToInstructions()"
+                (keydown.space)="
+                  $any($event).preventDefault(); scrollToInstructions()
+                "
                 role="button"
                 tabindex="0"
                 aria-label="Jump to instructions"
@@ -262,6 +274,11 @@
                   class="instruction-item"
                   [class.instruction-item--complete]="getInstructionComplete(i)"
                   (click)="instructionClicked($event, instruction, i)"
+                  (keydown.enter)="instructionKeydown($event, instruction, i)"
+                  (keydown.space)="instructionKeydown($event, instruction, i)"
+                  role="checkbox"
+                  [attr.aria-checked]="getInstructionComplete(i)"
+                  tabindex="0"
                 >
                   <span class="instruction-number" aria-hidden="true">{{
                     instruction.count
@@ -333,6 +350,13 @@
                     <ion-chip
                       [class.clickable]="isOwner"
                       (click)="openLabel(recipeLabel.label.title)"
+                      (keydown.enter)="openLabel(recipeLabel.label.title)"
+                      (keydown.space)="
+                        $any($event).preventDefault();
+                        openLabel(recipeLabel.label.title)
+                      "
+                      [attr.role]="isOwner ? 'button' : null"
+                      [attr.tabindex]="isOwner ? 0 : null"
                       >{{ recipeLabel.label.title }}</ion-chip
                     >
                   }
@@ -352,6 +376,13 @@
                     <ion-chip
                       [class.clickable]="isOwner"
                       (click)="openLabel(recipeLabel.label.title)"
+                      (keydown.enter)="openLabel(recipeLabel.label.title)"
+                      (keydown.space)="
+                        $any($event).preventDefault();
+                        openLabel(recipeLabel.label.title)
+                      "
+                      [attr.role]="isOwner ? 'button' : null"
+                      [attr.tabindex]="isOwner ? 0 : null"
                       >{{ recipeLabel.label.title }}</ion-chip
                     >
                   }
@@ -376,6 +407,11 @@
               <div
                 class="linked-item"
                 (click)="openRecipe(linkedRecipe.id, $event)"
+                (keydown.enter)="openRecipe(linkedRecipe.id, $any($event))"
+                (keydown.space)="
+                  $any($event).preventDefault();
+                  openRecipe(linkedRecipe.id, $any($event))
+                "
                 role="button"
                 tabindex="0"
               >
@@ -413,6 +449,11 @@
               <div
                 class="linked-item"
                 (click)="openRecipe(similarRecipe.id, $event)"
+                (keydown.enter)="openRecipe(similarRecipe.id, $any($event))"
+                (keydown.space)="
+                  $any($event).preventDefault();
+                  openRecipe(similarRecipe.id, $any($event))
+                "
                 role="button"
                 tabindex="0"
               >
@@ -561,5 +602,27 @@
         </div>
       }
     </div>
+  } @else if (loadError) {
+    <null-state>
+      <ion-icon
+        name="alert-circle-outline"
+        class="big-icon"
+        virtualSlot="header"
+      ></ion-icon>
+      <ion-label virtualSlot="body">
+        <p>{{ "pages.recipeDetails.loadError" | translate }}</p>
+        <ion-button class="load-retry-button" (click)="retryLoad()">
+          <ion-icon name="refresh" slot="start" aria-hidden="true"></ion-icon>
+          {{ "pages.recipeDetails.loadError.retry" | translate }}
+        </ion-button>
+      </ion-label>
+    </null-state>
+  } @else {
+    <null-state>
+      <ion-spinner virtualSlot="header"></ion-spinner>
+      <ion-label virtualSlot="body">
+        <p>{{ "pages.recipeDetails.loading" | translate }}</p>
+      </ion-label>
+    </null-state>
   }
 </ion-content>

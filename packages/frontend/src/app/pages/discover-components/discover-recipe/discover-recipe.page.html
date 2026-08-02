@@ -30,7 +30,11 @@
           <ion-thumbnail
             class="ion-margin-top"
             slot="start"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="'pages.discoverRecipe.viewImage' | translate"
             (click)="openImageViewer()"
+            (keydown.enter)="openImageViewer()"
           >
             <img
               src="{{ recipe.discoverRecipeImages[0].image.location }}"
@@ -46,11 +50,14 @@
                 <p class="ion-text-wrap">
                   <b>{{ "pages.discoverRecipe.author" | translate }} </b>
                   @if (recipe.author.handle) {
-                    <a
+                    <button
+                      type="button"
+                      class="inline-link"
                       dir="auto"
                       (click)="openAuthorProfile(recipe.author.handle)"
-                      >{{ atHandle(recipe.author.handle) }}</a
                     >
+                      {{ atHandle(recipe.author.handle) }}
+                    </button>
                   } @else {
                     <span dir="auto">{{ recipe.author.name }}</span>
                   }
@@ -161,14 +168,18 @@
                 ></p>
               }
               <p>
-                <a class="scale" (click)="changeScale()"
-                  >{{
+                <button
+                  type="button"
+                  class="inline-link scale"
+                  (click)="changeScale()"
+                >
+                  {{
                     "pages.recipeDetails.scaleStatus"
                       | translate: { scale: scaleDisplay }
                   }}
                   ·
-                  {{ unitSystemLabelKey | translate }}</a
-                >
+                  {{ unitSystemLabelKey | translate }}
+                </button>
               </p>
             </ion-label>
           </ion-item>
@@ -563,7 +574,10 @@
                 @for (category of recipe.categories; track category) {
                   <ion-chip
                     class="clickable"
+                    role="button"
+                    tabindex="0"
                     (click)="openCategory(category)"
+                    (keydown.enter)="openCategory(category)"
                     >{{ categoryLabelKeys[category] | translate }}</ion-chip
                   >
                 }

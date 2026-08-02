@@ -5,28 +5,41 @@
 .format-toolbar {
   display: flex;
   align-items: center;
+  // 2px — deliberately tighter than --rs-space-1 (4px) so the help button
+  // sits close to the scrolling strip. No matching token; left as a literal.
   gap: 2px;
-  margin-bottom: 4px;
+  margin-bottom: var(--rs-space-1);
 }
 
 .format-buttons {
   display: flex;
   align-items: center;
   flex: 1;
+  // Buttons are now --rs-touch-min (44px) wide, so the widest field (7 actions)
+  // no longer fits a 375px viewport. Scroll the strip rather than shrink the
+  // targets back below the HIG minimum.
   overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 ion-button {
   --padding-start: 0;
   --padding-end: 0;
-  width: 26px;
-  height: 26px;
-  min-width: 26px;
+  // Hit area only — the glyph below stays its original visual size.
+  min-width: var(--rs-touch-min);
+  min-height: var(--rs-touch-min);
+  flex-shrink: 0;
   margin: 0;
-  color: var(--ion-text-color);
+  color: var(--rs-text-primary);
 }
 
 .icon {
+  // 15.4px is a deliberate optical size for the 24x24 Remix glyphs — no
+  // matching --rs-* token, left as a literal.
   width: 15.4px;
   height: 15.4px;
   font-size: 15.4px;
@@ -36,15 +49,22 @@ ion-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  min-width: var(--rs-touch-min);
+  min-height: var(--rs-touch-min);
   margin-inline-start: auto;
   flex-shrink: 0;
-  color: var(--ion-text-color);
+  color: var(--rs-text-primary);
 
   ion-icon {
+    // 17.6px — deliberate optical size, no matching token.
     width: 17.6px;
     height: 17.6px;
     font-size: 17.6px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: -2px;
+    border-radius: var(--rs-radius-sm);
   }
 }

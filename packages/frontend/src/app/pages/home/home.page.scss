@@ -40,10 +40,16 @@
   gap: var(--rs-space-2);
   padding: var(--rs-space-3) var(--rs-space-4);
 
-  a {
+  button {
+    -webkit-appearance: none;
+    appearance: none;
     display: inline-flex;
     align-items: center;
-    padding: var(--rs-space-1) var(--rs-space-3);
+    // Meets --rs-touch-min without inflating the resting chip
+    min-height: var(--rs-touch-min);
+    margin: 0;
+    padding-block: var(--rs-space-2);
+    padding-inline: var(--rs-space-3);
     border-radius: var(--rs-radius-full);
     border: 1px solid var(--rs-border);
     background: var(--rs-surface-elevated);
@@ -51,6 +57,7 @@
     font-size: var(--rs-text-xs);
     font-weight: var(--rs-weight-medium);
     font-family: var(--rs-font-body);
+    line-height: var(--rs-leading-normal);
     cursor: pointer;
     white-space: nowrap;
     text-decoration: none;
@@ -63,6 +70,14 @@
       &:hover {
         background: var(--rs-surface-sunken);
       }
+    }
+
+    // --rs-accent measures 2.44-3.08 against the light surfaces, failing WCAG
+    // 2.2 SC 1.4.11 (3:1 for focus indicators). --rs-accent-text is the same
+    // hue family and measures 9.62 on base.
+    &:focus-visible {
+      outline: 2px solid var(--rs-accent-text);
+      outline-offset: 2px;
     }
 
     &.selected {
@@ -82,6 +97,10 @@ ion-badge {
   left: 10px;
   box-shadow: var(--rs-shadow-sm);
   max-width: 90px;
+  // nowrap is required for text-overflow to apply at all; it also keeps every
+  // badge exactly one line tall, which is what the nth-of-type(2) offset below
+  // assumes.
+  white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
 
@@ -102,6 +121,13 @@ ion-badge {
 .recipe-item {
   --image-size: 60px;
   --pad: var(--rs-space-3);
+
+  // List rows carry tabindex="0" but had no focus affordance, so keyboard focus
+  // was invisible in the one view mode that was already keyboard-operable.
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: -2px;
+  }
 
   position: relative;
   display: grid;
@@ -205,26 +231,39 @@ ion-badge {
 }
 
 .recipe-group {
-  // Keep aligned with TILE_WIDTH / MOBILE_TWO_COLUMN_MIN_WIDTH in home.page.ts
-  --tile-width: 200px;
+  // Keep aligned with TILE_WIDTH / MOBILE_TWO_COLUMN_MIN_WIDTH in home.page.ts.
+  // 200px is the nominal tile, but it is clamped so two tiles plus one gap
+  // always fit. The percentage resolves against this row's content box, which
+  // already excludes the padding below (and any scrollbar / safe-area inset),
+  // so no viewport arithmetic is needed. Once the row is >= 412px wide the
+  // clamp is inert and 200px wins.
+  --tile-width: min(200px, calc((100% - var(--rs-space-3)) / 2));
 
   display: flex;
   flex-wrap: wrap;
   gap: var(--rs-space-3);
-  padding: var(--rs-space-3) var(--rs-space-4);
+  padding: var(--rs-space-3) var(--rs-inset-page);
   justify-content: center;
 
-  // Two columns on narrow phones: reserve row padding plus gap between tiles.
-  @media only screen and (min-width: 375px) and (max-width: 439px) {
-    --tile-width: min(200px, calc((100vw - 32px) / 2));
+  // A uiScroll group holds exactly tileColCount tiles and they are sized to
+  // fit, so the row must never wrap. (Single column is handled by .single-col.)
+  @media only screen and (min-width: 375px) {
     flex-wrap: nowrap;
   }
 
   &.single-col .recipe-card {
     width: 100%;
 
-    img {
+    // Single column keeps the 160px letterbox it has always had. The dead-strip
+    // fix gave the base rule aspect-ratio:1, which on a <375px phone would turn
+    // this into a ~343px square and roughly halve how many recipes fit on
+    // screen. That was never the defect — the dead strip only appeared once the
+    // card grew past 160px, which single-col does deliberately.
+    img,
+    .recipe-card-no-image {
       width: 100%;
+      aspect-ratio: auto;
+      height: 160px;
     }
   }
 }
@@ -248,16 +287,27 @@ ion-badge {
     }
   }
 
+  // A shadow lift plus a border tint is not a reliable focus indicator — a
+  // colour change alone can fail SC 1.4.11, and --rs-accent measures 2.44-3.08
+  // on light surfaces. Keep the lift as reinforcement, but draw a real ring.
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+    box-shadow: var(--rs-shadow-md);
+  }
+
+  // Image tracks the card, which is sized by --tile-width. Hardcoding it left a
+  // dead strip whenever the card was wider than 160px.
   img {
-    width: 160px;
-    height: 160px;
+    width: 100%;
+    aspect-ratio: 1;
     object-fit: cover;
     display: block;
   }
 
   .recipe-card-no-image {
-    width: 160px;
-    height: 160px;
+    width: 100%;
+    aspect-ratio: 1;
     background: var(--rs-surface-sunken);
   }
 
@@ -320,6 +370,16 @@ ion-badge {
   cursor: pointer;
   user-select: none;
   box-sizing: border-box;
+
+  // Now tabbable (role=button/tabindex=0) — needs a visible focus state.
+  &:focus-visible {
+    outline: none;
+
+    .reel-card {
+      outline: 2px solid var(--rs-accent-text);
+      outline-offset: 2px;
+    }
+  }
 }
 
 .reel-card {

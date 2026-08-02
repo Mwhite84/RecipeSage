@@ -448,16 +448,22 @@ ion-popover .popover-viewport {
 // Focus — visible keyboard navigation
 // =============================================================================
 
+// --rs-accent-text, not --rs-accent: the plain accent measures 2.44–3.08
+// against the light surfaces and fails WCAG 2.2 SC 1.4.11 (3:1 for a focus
+// indicator). --rs-accent-text measures 7.93–10.01 light / 7.59–9.70 dark.
 :focus-visible {
-  outline: 2px solid var(--rs-accent);
+  outline: 2px solid var(--rs-accent-text);
   outline-offset: 2px;
   border-radius: var(--rs-radius-sm);
 }
 
-// Ionic elements use :focus internally — let their own focus ring styles handle it
-ion-item:focus,
-ion-button:focus,
-ion-fab-button:focus {
+// Ionic elements use :focus internally — let their own focus ring styles handle
+// pointer focus. Scoped to :not(:focus-visible) because :focus-visible is a
+// subset of :focus and this rule is the more specific one: an unqualified
+// :focus here suppresses the keyboard focus ring above app-wide.
+ion-item:focus:not(:focus-visible),
+ion-button:focus:not(:focus-visible),
+ion-fab-button:focus:not(:focus-visible) {
   outline: none;
 }
 

@@ -20,6 +20,7 @@ import {
 } from "../../../utils/discoverLanguages";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { RatingComponent } from "../../../components/rating/rating.component";
+import { NullStateComponent } from "../../../components/null-state/null-state.component";
 import {
   DiscoverFilterPopoverPage,
   DiscoverFilterResult,
@@ -36,8 +37,14 @@ import {
   IonSearchbar,
   IonButton,
   IonIcon,
+  IonLabel,
+  IonSpinner,
 } from "@ionic/angular/standalone";
-import { searchOutline, optionsOutline } from "ionicons/icons";
+import {
+  searchOutline,
+  optionsOutline,
+  cloudOfflineOutline,
+} from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 type DiscoverRecipeSummary =
@@ -56,6 +63,7 @@ const TILE_PADD = 20;
   imports: [
     ...SHARED_UI_IMPORTS,
     RatingComponent,
+    NullStateComponent,
     UiScrollModule,
     IonHeader,
     IonToolbar,
@@ -66,6 +74,8 @@ const TILE_PADD = 20;
     IonSearchbar,
     IonButton,
     IonIcon,
+    IonLabel,
+    IonSpinner,
   ],
 })
 export class DiscoverPage {
@@ -92,6 +102,15 @@ export class DiscoverPage {
   sortBy: DiscoverSortBy = "trending";
 
   loadedAny = false;
+  /** True while a reload is in flight — drives the loading null-state. */
+  loading = false;
+  /**
+   * True when the last fetch came back empty-handed. `executeQuery` resolves to
+   * undefined on any network/server failure, so this is the page's only signal
+   * that the list is blank because the load failed rather than because there is
+   * nothing to show.
+   */
+  loadError = false;
   recipes: DiscoverRecipeSummary[] = [];
   reachedEnd = false;
   tileColCount = 1;
@@ -132,7 +151,7 @@ export class DiscoverPage {
   });
 
   constructor() {
-    addIcons({ searchOutline, optionsOutline });
+    addIcons({ searchOutline, optionsOutline, cloudOfflineOutline });
     this.languageOptions = getDiscoverLanguageOptions(
       this.translate.currentLang,
     );
@@ -230,13 +249,19 @@ export class DiscoverPage {
   }
 
   async reload() {
-    const loading = this.loadingService.start();
+    const loadingOverlay = this.loadingService.start();
     this.recipes = [];
     this.reachedEnd = false;
     this.loadedAny = false;
+    this.loadError = false;
+    this.loading = true;
     this.datasource.settings!.startIndex = 0;
-    await this.datasource.adapter.reset();
-    loading.dismiss();
+    try {
+      await this.datasource.adapter.reset();
+    } finally {
+      this.loading = false;
+      loadingOverlay.dismiss();
+    }
   }
 
   private async fetchUntil(target: number) {
@@ -265,7 +290,11 @@ export class DiscoverPage {
         limit: PAGE_SIZE,
       });
 
-    if (!response) return false;
+    if (!response) {
+      this.loadError = true;
+      return false;
+    }
+    this.loadError = false;
 
     for (let i = 0; i < response.recipes.length; i++) {
       this.recipes[offset + i] = response.recipes[i];

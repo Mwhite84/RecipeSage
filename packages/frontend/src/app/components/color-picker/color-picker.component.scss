@@ -1,30 +1,68 @@
 .color-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--rs-space-1);
 }
 
+// The button is the touch target (--rs-touch-min); the .swatch inside keeps the
+// original 32px colour block, which is the actual affordance.
 .color-option {
+  width: var(--rs-touch-min);
+  height: var(--rs-touch-min);
+  min-width: var(--rs-touch-min);
+  min-height: var(--rs-touch-min);
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--rs-radius-full);
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: -2px;
+  }
+
+  @media (hover: hover) {
+    &:hover .swatch {
+      transform: scale(1.08);
+    }
+  }
+
+  &:active .swatch {
+    transform: scale(0.94);
+  }
+}
+
+.swatch {
+  // 32px — the original swatch size, deliberately preserved. No matching
+  // --rs-space-* token at this value.
   width: 32px;
   height: 32px;
   border-radius: 50%;
   border: 2px solid transparent;
-  cursor: pointer;
-  padding: 0;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition:
+    transform var(--rs-duration-fast) var(--rs-ease-out),
+    border-color var(--rs-duration-fast) var(--rs-ease-out);
 
   &.selected {
-    border-color: var(--ion-text-color);
+    border-color: var(--rs-text-primary);
   }
 }
 
 .no-color-option {
-  background: var(--ion-background-color);
-  border-color: var(--ion-border-color, #d7d8da);
+  background: var(--rs-surface-base);
+  border-color: var(--rs-border);
 
   ion-icon {
+    // 18px glyph — no matching token, left as a literal.
     font-size: 18px;
     color: var(--ion-color-medium);
   }
@@ -32,6 +70,6 @@
 
 .hex-input-item {
   max-width: 140px;
-  margin-top: 8px;
+  margin-top: var(--rs-space-2);
   --padding-start: 0;
 }

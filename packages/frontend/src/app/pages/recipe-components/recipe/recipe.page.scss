@@ -79,6 +79,11 @@ ion-content {
       transform: scale(1.04);
     }
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -288,18 +293,35 @@ ion-content {
 }
 
 .ingredient-item {
+  // Hit area only — text size/weight unchanged. min-height reaches the 44px
+  // touch minimum without adding visual weight to the row.
+  display: flex;
+  align-items: center;
+  min-height: var(--rs-touch-min);
   padding: var(--rs-space-2) 0;
   font-size: var(--rs-text-base);
   line-height: var(--rs-leading-normal);
   color: var(--rs-text-primary);
   cursor: pointer;
   border-bottom: 1px solid var(--rs-divider);
+  // Long URLs / compound words must not push past the fixed ingredients column
+  overflow-wrap: anywhere;
   transition:
     opacity var(--rs-duration-fast) var(--rs-ease-out),
     color var(--rs-duration-fast) var(--rs-ease-out);
 
+  > span {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
   &:last-child {
     border-bottom: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
   }
 
   // Tap feedback on touch devices
@@ -316,9 +338,10 @@ ion-content {
     }
   }
 
+  // Checked ingredients stay readable — strikethrough + tertiary colour carry
+  // the "done" signal. No opacity: compositing tertiary at 0.45 measured 1.71:1.
   &--complete {
     text-decoration: line-through;
-    opacity: 0.45;
     color: var(--rs-text-tertiary);
   }
 }
@@ -337,6 +360,9 @@ ion-content {
 .scale-chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  // Hit area only — the glyph stays at --rs-text-xs and is centred vertically.
+  min-height: var(--rs-touch-min);
   gap: 4px;
   padding: var(--rs-space-1) var(--rs-space-3);
   border-radius: var(--rs-radius-full);
@@ -367,11 +393,15 @@ ion-content {
 .jump-link {
   display: inline-flex;
   align-items: center;
+  // Hit area only — text stays --rs-text-xs.
+  min-height: var(--rs-touch-min);
+  padding: var(--rs-space-2) var(--rs-space-1);
   gap: 2px;
   font-size: var(--rs-text-xs);
   color: var(--rs-text-tertiary);
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
 
   ion-icon {
     font-size: 12px;
@@ -379,6 +409,11 @@ ion-content {
 
   &:hover {
     color: var(--rs-accent-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
   }
 }
 
@@ -410,14 +445,21 @@ ion-content {
     }
   }
 
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+  }
+
+  // Same rationale as ingredients: a checked step must stay re-readable.
+  // Primary text at 0.45 opacity measured 3.03:1.
   &--complete {
     .instruction-text {
       text-decoration: line-through;
-      opacity: 0.45;
+      color: var(--rs-text-tertiary);
     }
 
     .instruction-number {
-      opacity: 0.3;
+      color: var(--rs-text-tertiary);
     }
   }
 }
@@ -544,6 +586,11 @@ ion-content {
     &:active {
       background: var(--rs-surface-sunken);
     }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: -2px;
   }
 }
 
@@ -740,4 +787,22 @@ ion-content {
 ion-chip:not(.clickable) {
   pointer-events: none;
   cursor: default;
+}
+
+// Clickable chips carry role/tabindex from the template; give them a focus ring
+// so keyboard users can see where they are.
+ion-chip.clickable {
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Loading / error null states
+// -----------------------------------------------------------------------------
+.load-retry-button {
+  margin-top: var(--rs-space-4);
 }

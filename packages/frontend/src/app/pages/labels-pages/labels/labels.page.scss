@@ -72,11 +72,14 @@ ion-item.ion-margin-start {
     }
   }
 
+  // Hit area held at --rs-touch-min (44px); the icon glyph keeps its own
+  // font-size, so the target grows without the icon looking bigger.
   ion-button[slot="end"] {
     --color: var(--rs-text-tertiary);
     --padding-start: var(--rs-space-2);
     --padding-end: var(--rs-space-2);
-    height: 36px;
+    min-width: var(--rs-touch-min);
+    min-height: var(--rs-touch-min);
 
     @media (hover: hover) {
       &:hover {

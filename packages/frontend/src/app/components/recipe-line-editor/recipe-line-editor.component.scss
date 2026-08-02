@@ -1,0 +1,218 @@
+// =============================================================================
+// Recipe line editor
+//
+// These rules were moved verbatim out of edit-recipe.page.scss (the orphaned
+// `.lines-*` / `.line-*` block) so they land inside this component's emulated
+// encapsulation. Card- and toggle-level styling stays on the page.
+// =============================================================================
+
+:host {
+  display: block;
+}
+
+.lines-list {
+  padding: 0 var(--rs-space-2);
+}
+
+// Helper copy. It sits above the seeded blank row, not in place of it - the
+// row has to be there to type or paste into.
+.lines-empty {
+  padding: var(--rs-space-3) var(--rs-space-2) var(--rs-space-2);
+  font-size: var(--rs-text-sm);
+  color: var(--rs-text-tertiary);
+  font-family: var(--rs-font-body);
+  margin: 0;
+  font-style: italic;
+}
+
+// Markdown tables are a multi-row construct the row model cannot represent
+// meaningfully - the rows still round-trip, but editing them belongs in Text.
+.lines-notice {
+  margin: 0 0 var(--rs-space-2);
+  padding: var(--rs-space-2) var(--rs-space-3);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+  background: var(--rs-surface-sunken);
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-xs);
+  color: var(--rs-text-secondary);
+}
+
+.line-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: var(--rs-touch-min, 44px);
+  border-bottom: 1px solid var(--rs-divider, var(--rs-border));
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  // header rows get the section icon in column 0 — shift to 3-col
+  &--header {
+    grid-template-columns: auto 1fr auto;
+    background: var(--rs-surface-sunken);
+    border-radius: var(--rs-radius-sm);
+    margin: var(--rs-space-1) 0;
+    border: 1px solid var(--rs-border);
+  }
+
+  // instruction steps get the step number in column 0 — same 3-col shape
+  &--numbered {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  // a markdown table row: keep the pipes aligned so it is at least readable
+  &--raw .line-input {
+    font-family: var(--rs-font-mono);
+    font-size: var(--rs-text-xs);
+    white-space: pre;
+    overflow-x: auto;
+  }
+}
+
+.line-section-icon {
+  font-size: 14px;
+  color: var(--rs-accent-text);
+  padding-left: var(--rs-space-3);
+  flex-shrink: 0;
+}
+
+.line-step-number {
+  font-size: var(--rs-text-xs);
+  font-weight: 600;
+  color: var(--rs-text-tertiary);
+  padding-left: var(--rs-space-3);
+  min-width: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+// Retargeted from <ion-input> (`--padding-*` custom props) to the plain
+// <textarea> this component renders. A textarea is required so that a
+// backslash line continuation keeps its embedded newline verbatim.
+.line-input {
+  display: block;
+  width: 100%;
+  min-height: var(--rs-touch-min, 44px);
+  padding: var(--rs-space-2) var(--rs-space-1) var(--rs-space-2)
+    var(--rs-space-3);
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--rs-radius-sm);
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  color: var(--rs-text-primary);
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-sm);
+  line-height: 1.45;
+
+  &::placeholder {
+    color: var(--rs-text-tertiary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: -2px;
+  }
+
+  &--header {
+    color: var(--rs-text-secondary);
+    font-weight: 600;
+    font-size: var(--rs-text-sm);
+    letter-spacing: 0.02em;
+  }
+}
+
+.line-remove {
+  background: none;
+  border: none;
+  padding: var(--rs-space-2);
+  cursor: pointer;
+  color: var(--rs-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--rs-touch-min, 44px);
+  min-height: var(--rs-touch-min, 44px);
+  border-radius: var(--rs-radius-sm);
+  transition:
+    color 150ms ease-out,
+    background 150ms ease-out;
+
+  ion-icon {
+    font-size: 18px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: -2px;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--ion-color-danger, #eb445a);
+      background: oklch(96% 0.015 15);
+    }
+  }
+}
+
+.lines-actions {
+  display: flex;
+  gap: var(--rs-space-2);
+  padding: var(--rs-space-3) var(--rs-space-4);
+  border-top: 1px solid var(--rs-border);
+}
+
+.lines-add-item,
+.lines-add-section {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rs-space-1);
+  background: none;
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-full);
+  padding: var(--rs-space-1) var(--rs-space-3);
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 150ms ease-out,
+    border-color 150ms ease-out,
+    color 150ms ease-out;
+  min-height: var(--rs-touch-min, 44px);
+
+  ion-icon {
+    font-size: 14px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+  }
+}
+
+.lines-add-item {
+  color: var(--rs-accent-text);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--rs-accent-subtle);
+      border-color: var(--rs-accent-muted);
+    }
+  }
+}
+
+.lines-add-section {
+  color: var(--rs-text-secondary);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--rs-surface-sunken);
+    }
+  }
+}

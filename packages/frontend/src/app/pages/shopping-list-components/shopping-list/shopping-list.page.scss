@@ -28,15 +28,41 @@ ion-list:first-of-type {
   ion-list-header {
     --background: var(--rs-surface-sunken);
     --color: var(--rs-text-secondary);
-    --min-height: 44px;
-    cursor: pointer;
+    --min-height: var(--rs-touch-min);
     border-bottom: 1px solid var(--rs-border);
     padding: 0 var(--rs-space-3);
 
+    // Collapse toggle — a real <button> so it is focusable and
+    // Enter/Space activate it natively (ion-list-header renders neither
+    // a button nor a tabindex on its own).
+    .category-toggle {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: var(--rs-touch-min);
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+      font: inherit;
+      color: inherit;
+      text-align: start;
+      cursor: pointer;
+
+      // Matches the global :focus-visible ring; inset because the
+      // category card clips overflow.
+      &:focus-visible {
+        outline: 2px solid var(--rs-accent-text);
+        outline-offset: -2px;
+        border-radius: var(--rs-radius-sm);
+      }
+    }
+
     ion-title {
+      flex: 1;
       font-family: var(--rs-font-body);
       font-size: var(--rs-text-sm);
-      font-weight: 600;
+      font-weight: var(--rs-weight-semibold);
       color: var(--rs-text-secondary);
       padding: 0;
       letter-spacing: 0.01em;
@@ -78,7 +104,7 @@ ion-list + ion-list {
   ion-item:first-child ion-label {
     font-family: var(--rs-font-body);
     font-size: var(--rs-text-xs);
-    font-weight: 600;
+    font-weight: var(--rs-weight-semibold);
     color: var(--rs-text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -86,7 +112,7 @@ ion-list + ion-list {
 }
 
 .delete-recipe {
-  transition: color 150ms ease-out;
+  transition: color var(--rs-duration-fast) var(--rs-ease-out);
   color: var(--rs-text-tertiary);
 
   &:hover {
@@ -111,15 +137,19 @@ ion-list:last-of-type {
     ion-label {
       font-family: var(--rs-font-body);
       font-size: var(--rs-text-xs);
-      font-weight: 600;
+      font-weight: var(--rs-weight-semibold);
       color: var(--rs-text-tertiary);
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
   }
 
-  shopping-list-item {
-    opacity: 0.6;
+  // "Done" signal. Previously `opacity: 0.6` on the whole component, which
+  // composited the tertiary sub-lines down to 2.10:1 (light) / 1.78:1 (dark).
+  // Strikethrough carries the signal; the text keeps a real, legible colour.
+  shopping-list-item ::ng-deep .ion-checkbox-label {
+    text-decoration: line-through;
+    color: var(--rs-text-secondary);
   }
 }
 

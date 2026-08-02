@@ -1,16 +1,18 @@
 .rec-body {
-  padding: 8px 0 8px 24px;
+  padding: var(--rs-space-2) 0 var(--rs-space-2) var(--rs-space-5);
 }
 
 .rec-body__sub {
-  padding-left: 24px;
+  padding-left: var(--rs-space-5);
 }
 
 .interval-row {
   display: flex;
   align-items: center;
+  // 14px — falls between --rs-space-3 (12px) and --rs-space-4 (16px);
+  // left as a literal rather than retuning the row.
   gap: 14px;
-  padding: 6px 16px;
+  padding: 6px var(--rs-space-4);
 
   &__label {
     flex: 0 1 auto;
@@ -19,8 +21,8 @@
   &__count {
     flex: 0 0 80px;
     max-width: 80px;
-    --padding-start: 8px;
-    --padding-end: 4px;
+    --padding-start: var(--rs-space-2);
+    --padding-end: var(--rs-space-1);
   }
 
   &__unit {
@@ -30,11 +32,11 @@
 }
 
 .monthly-row {
-  padding: 8px 16px;
+  padding: var(--rs-space-2) var(--rs-space-4);
 }
 
 .weekday-section {
-  padding: 10px 0 10px 16px;
+  padding: 10px 0 10px var(--rs-space-4);
 
   &__label {
     font-size: 0.85em;
@@ -50,6 +52,8 @@
 }
 
 .weekday-chip {
+  // 36px — below --rs-touch-min (44px), but growing it would reflow the
+  // 7-across weekday row, which is outside this token-substitution pass.
   width: 36px;
   height: 36px;
   min-width: 36px;
@@ -77,13 +81,19 @@
     cursor: default;
     opacity: 0.6;
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+  }
 }
 
 .ends-row {
   display: flex;
   align-items: center;
+  // See .interval-row — same 14px, same reason.
   gap: 14px;
-  padding: 6px 16px;
+  padding: 6px var(--rs-space-4);
 
   &__radio {
     flex: 0 1 auto;
@@ -96,8 +106,8 @@
   &__count {
     flex: 0 0 80px;
     max-width: 80px;
-    --padding-start: 8px;
-    --padding-end: 4px;
+    --padding-start: var(--rs-space-2);
+    --padding-end: var(--rs-space-1);
   }
 
   &__suffix {
@@ -107,7 +117,8 @@
 }
 
 .ends-preview {
-  padding: 0 16px 4px 38px;
+  // 38px start inset aligns the preview under the radio label — no token.
+  padding: 0 var(--rs-space-4) var(--rs-space-1) 38px;
   font-size: 0.85em;
-  line-height: 1.2;
+  line-height: var(--rs-leading-tight);
 }

@@ -1,18 +1,28 @@
 <div class="color-grid">
   @for (preset of presetColors; track preset) {
     <button
+      type="button"
       class="color-option"
-      [style.background-color]="preset"
-      [class.selected]="color === preset"
+      [attr.aria-pressed]="color === preset"
+      [title]="preset"
       (click)="selectColor(preset)"
-    ></button>
+    >
+      <span
+        class="swatch"
+        [style.background-color]="preset"
+        [class.selected]="color === preset"
+      ></span>
+    </button>
   }
   <button
-    class="color-option no-color-option"
-    [class.selected]="!color"
+    type="button"
+    class="color-option"
+    [attr.aria-pressed]="!color"
     (click)="selectColor(null)"
   >
-    <ion-icon name="ban-outline"></ion-icon>
+    <span class="swatch no-color-option" [class.selected]="!color">
+      <ion-icon name="ban-outline"></ion-icon>
+    </span>
   </button>
 </div>
 <ion-item class="hex-input-item" lines="none">

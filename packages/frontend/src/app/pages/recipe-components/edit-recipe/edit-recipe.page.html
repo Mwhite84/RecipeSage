@@ -324,22 +324,55 @@
         <h2 class="edit-card__title">
           {{ "pages.editRecipe.input.ingredients" | translate }}
         </h2>
+        <div
+          class="section-mode-toggle"
+          role="group"
+          attr.aria-label="{{
+            'pages.editRecipe.inputMode.ariaLabel' | translate
+          }}"
+        >
+          <button
+            type="button"
+            [class.active]="ingredientsMode === 'list'"
+            [attr.aria-pressed]="ingredientsMode === 'list'"
+            (click)="ingredientsMode = 'list'"
+          >
+            {{ "pages.editRecipe.inputMode.list" | translate }}
+          </button>
+          <button
+            type="button"
+            [class.active]="ingredientsMode === 'text'"
+            [attr.aria-pressed]="ingredientsMode === 'text'"
+            (click)="ingredientsMode = 'text'"
+          >
+            {{ "pages.editRecipe.inputMode.text" | translate }}
+          </button>
+        </div>
       </div>
-      <text-area
-        #ingredientsInput
-        class="rs-input recipe-input"
-        ariaLabel="{{ 'pages.editRecipe.input.ingredients' | translate }}"
-        [(ngModel)]="recipe.ingredients"
-        (ngModelChange)="markAsDirty()"
-        [autoGrow]="true"
-        autocapitalize="on"
-        autocorrect="on"
-      >
-        <recipe-format-toolbar
-          field="ingredients"
-          [target]="ingredientsInput"
-        ></recipe-format-toolbar>
-      </text-area>
+      @if (ingredientsMode === "list") {
+        <recipe-line-editor
+          variant="ingredients"
+          ariaLabel="{{ 'pages.editRecipe.input.ingredients' | translate }}"
+          [(ngModel)]="recipe.ingredients"
+          (ngModelChange)="markAsDirty()"
+        ></recipe-line-editor>
+      } @else {
+        <text-area
+          #ingredientsInput
+          class="rs-input recipe-input"
+          ariaLabel="{{ 'pages.editRecipe.input.ingredients' | translate }}"
+          [(ngModel)]="recipe.ingredients"
+          (ngModelChange)="markAsDirty()"
+          [autoGrow]="true"
+          autocapitalize="on"
+          autocorrect="on"
+        >
+          <recipe-format-toolbar
+            field="ingredients"
+            [target]="ingredientsInput"
+          ></recipe-format-toolbar>
+        </text-area>
+      }
     </div>
 
     <!-- ── INSTRUCTIONS ── -->
@@ -348,23 +381,56 @@
         <h2 class="edit-card__title">
           {{ "pages.editRecipe.input.instructions" | translate }}
         </h2>
+        <div
+          class="section-mode-toggle"
+          role="group"
+          attr.aria-label="{{
+            'pages.editRecipe.inputMode.ariaLabel' | translate
+          }}"
+        >
+          <button
+            type="button"
+            [class.active]="instructionsMode === 'list'"
+            [attr.aria-pressed]="instructionsMode === 'list'"
+            (click)="instructionsMode = 'list'"
+          >
+            {{ "pages.editRecipe.inputMode.list" | translate }}
+          </button>
+          <button
+            type="button"
+            [class.active]="instructionsMode === 'text'"
+            [attr.aria-pressed]="instructionsMode === 'text'"
+            (click)="instructionsMode = 'text'"
+          >
+            {{ "pages.editRecipe.inputMode.text" | translate }}
+          </button>
+        </div>
       </div>
-      <text-area
-        #instructionsInput
-        class="rs-input recipe-input"
-        ariaLabel="{{ 'pages.editRecipe.input.instructions' | translate }}"
-        [(ngModel)]="recipe.instructions"
-        (ngModelChange)="markAsDirty()"
-        [autoGrow]="true"
-        autocapitalize="on"
-        autocorrect="on"
-      >
-        <recipe-format-toolbar
-          field="instructions"
-          [target]="instructionsInput"
-          [imageCount]="images.length"
-        ></recipe-format-toolbar>
-      </text-area>
+      @if (instructionsMode === "list") {
+        <recipe-line-editor
+          variant="instructions"
+          ariaLabel="{{ 'pages.editRecipe.input.instructions' | translate }}"
+          [(ngModel)]="recipe.instructions"
+          (ngModelChange)="markAsDirty()"
+        ></recipe-line-editor>
+      } @else {
+        <text-area
+          #instructionsInput
+          class="rs-input recipe-input"
+          ariaLabel="{{ 'pages.editRecipe.input.instructions' | translate }}"
+          [(ngModel)]="recipe.instructions"
+          (ngModelChange)="markAsDirty()"
+          [autoGrow]="true"
+          autocapitalize="on"
+          autocorrect="on"
+        >
+          <recipe-format-toolbar
+            field="instructions"
+            [target]="instructionsInput"
+            [imageCount]="images.length"
+          ></recipe-format-toolbar>
+        </text-area>
+      }
     </div>
 
     <!-- ── NOTES ── -->
@@ -761,21 +827,23 @@
       </div>
     </div>
 
-    <!-- ── SAVE ── -->
-    <div class="ion-padding">
-      <ion-button
-        expand="block"
-        class="save-btn"
-        (click)="save()"
-        [disabled]="saving"
-      >
-        {{
-          (recipe.id ? "pages.editRecipe.save" : "pages.editRecipe.create")
-            | translate
-        }}
-      </ion-button>
-    </div>
-
     <div class="save-spacer"></div>
   </div>
 </ion-content>
+
+<!-- ── SAVE ── -->
+<ion-footer>
+  <ion-toolbar class="save-footer">
+    <ion-button
+      expand="block"
+      class="save-btn"
+      (click)="save()"
+      [disabled]="saving"
+    >
+      {{
+        (recipe.id ? "pages.editRecipe.save" : "pages.editRecipe.create")
+          | translate
+      }}
+    </ion-button>
+  </ion-toolbar>
+</ion-footer>

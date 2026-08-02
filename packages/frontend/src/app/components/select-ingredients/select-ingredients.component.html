@@ -29,12 +29,12 @@
         </ion-item>
       }
       <br />
-      <a class="scale" (click)="changeScale()">
+      <button type="button" class="scale" (click)="changeScale()">
         {{
           "components.selectIngredients.scale"
             | translate: { scale: scaleDisplay }
         }}
-      </a>
+      </button>
     </div>
   }
   @if (!scaledIngredients || scaledIngredients.length === 0) {

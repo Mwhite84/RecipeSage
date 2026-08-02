@@ -29,21 +29,26 @@
         <div>
           @for (categoryTitle of categoryTitles; track categoryTitle) {
             <div class="category-container">
-              <ion-list-header
-                (click)="
-                  categoryTitleCollapsed[categoryTitle] =
-                    !categoryTitleCollapsed[categoryTitle]
-                "
-              >
-                <ion-title class="ion-no-padding">
-                  {{ categoryTitle }}
-                  @if (!categoryTitleCollapsed[categoryTitle]) {
-                    <ion-icon name="caret-down"></ion-icon>
-                  }
-                  @if (categoryTitleCollapsed[categoryTitle]) {
-                    <ion-icon name="caret-up"></ion-icon>
-                  }
-                </ion-title>
+              <ion-list-header>
+                <button
+                  type="button"
+                  class="category-toggle"
+                  [attr.aria-expanded]="!categoryTitleCollapsed[categoryTitle]"
+                  (click)="
+                    categoryTitleCollapsed[categoryTitle] =
+                      !categoryTitleCollapsed[categoryTitle]
+                  "
+                >
+                  <ion-title class="ion-no-padding">
+                    {{ categoryTitle }}
+                    @if (!categoryTitleCollapsed[categoryTitle]) {
+                      <ion-icon name="caret-down" aria-hidden="true"></ion-icon>
+                    }
+                    @if (categoryTitleCollapsed[categoryTitle]) {
+                      <ion-icon name="caret-up" aria-hidden="true"></ion-icon>
+                    }
+                  </ion-title>
+                </button>
               </ion-list-header>
               @if (!categoryTitleCollapsed[categoryTitle]) {
                 <div>
@@ -108,21 +113,26 @@
         <div>
           @for (categoryTitle of categoryTitles; track categoryTitle) {
             <div class="category-container">
-              <ion-list-header
-                (click)="
-                  categoryTitleCollapsed[categoryTitle] =
-                    !categoryTitleCollapsed[categoryTitle]
-                "
-              >
-                <ion-title class="ion-no-padding">
-                  {{ categoryTitle }}
-                  @if (!categoryTitleCollapsed[categoryTitle]) {
-                    <ion-icon name="caret-down"></ion-icon>
-                  }
-                  @if (categoryTitleCollapsed[categoryTitle]) {
-                    <ion-icon name="caret-up"></ion-icon>
-                  }
-                </ion-title>
+              <ion-list-header>
+                <button
+                  type="button"
+                  class="category-toggle"
+                  [attr.aria-expanded]="!categoryTitleCollapsed[categoryTitle]"
+                  (click)="
+                    categoryTitleCollapsed[categoryTitle] =
+                      !categoryTitleCollapsed[categoryTitle]
+                  "
+                >
+                  <ion-title class="ion-no-padding">
+                    {{ categoryTitle }}
+                    @if (!categoryTitleCollapsed[categoryTitle]) {
+                      <ion-icon name="caret-down" aria-hidden="true"></ion-icon>
+                    }
+                    @if (categoryTitleCollapsed[categoryTitle]) {
+                      <ion-icon name="caret-up" aria-hidden="true"></ion-icon>
+                    }
+                  </ion-title>
+                </button>
               </ion-list-header>
               @if (!categoryTitleCollapsed[categoryTitle]) {
                 <div>

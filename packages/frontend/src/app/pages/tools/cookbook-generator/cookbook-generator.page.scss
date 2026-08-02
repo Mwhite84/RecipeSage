@@ -1,3 +1,7 @@
+// =============================================================================
+// Cookbook Generator
+// =============================================================================
+
 .page-wrapper {
   max-width: var(--page-max-width);
   margin: 0 auto;
@@ -6,17 +10,23 @@
 
 info-block {
   display: block;
-  margin: 16px;
+  margin: var(--rs-space-4);
+}
+
+// "Add recipe" / "Add label" sit in the list header at size="small", which
+// resolves to ~27px in Ionic. Hit area only — the label keeps its own size.
+ion-list-header ion-button {
+  min-height: var(--rs-touch-min);
 }
 
 .cookbook-fields {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 8px 16px;
+  gap: var(--rs-space-4);
+  padding: var(--rs-space-2) var(--rs-inset-page);
 }
 
 .too-many-recipes {
-  font-size: 0.875rem;
-  margin: 0 0 8px 0;
+  font-size: var(--rs-text-sm);
+  margin: 0 0 var(--rs-space-2) 0;
 }

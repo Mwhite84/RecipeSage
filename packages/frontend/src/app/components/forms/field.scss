@@ -2,17 +2,34 @@
   :host {
     display: block;
 
-    --rs-field-bg: var(--ion-color-step-50);
-    --rs-field-bg-focus: var(--ion-background-color);
-    --rs-field-border-focus: var(--ion-color-primary);
-    --rs-field-ring: rgba(var(--ion-color-primary-rgb), 0.2);
-    --rs-field-text: var(--ion-text-color);
-    --rs-field-placeholder: var(--ion-color-step-500);
-    --rs-field-label: var(--ion-color-step-650);
-    --rs-field-helper: var(--ion-color-step-500);
-    --rs-field-error: var(--ion-color-danger);
-    --rs-field-error-ring: rgba(var(--ion-color-danger-rgb, 235, 68, 90), 0.2);
-    --rs-field-radius: 8px;
+    // Surfaces — a field is a depressed area that lifts on focus
+    --rs-field-bg: var(--rs-surface-sunken);
+    --rs-field-bg-focus: var(--rs-surface-elevated);
+
+    // Text
+    --rs-field-text: var(--rs-text-primary);
+    --rs-field-placeholder: var(--rs-text-tertiary);
+    --rs-field-label: var(--rs-text-secondary);
+    --rs-field-helper: var(--rs-text-secondary);
+
+    // Focus — accent-text rather than accent: the plain accent measures
+    // 2.44–3.08 against light surfaces and fails WCAG 2.2 SC 1.4.11 (3:1)
+    --rs-field-border-focus: var(--rs-accent-text);
+    --rs-field-ring: color-mix(in oklch, var(--rs-accent) 20%, transparent);
+
+    // Error
+    --rs-field-error: var(--rs-danger);
+    --rs-field-error-ring: color-mix(
+      in oklch,
+      var(--rs-danger) 20%,
+      transparent
+    );
+
+    // Shape & metrics — overridable per page (emulated encapsulation blocks
+    // page SCSS from reaching .rs-field__control directly)
+    --rs-field-radius: var(--rs-radius-sm);
+    --rs-field-padding: 8px 10px;
+    --rs-field-font-size: var(--rs-text-base);
   }
 
   .rs-field__label {
@@ -29,9 +46,9 @@
     width: 100%;
     box-sizing: border-box;
     margin: 0;
-    padding: 8px 10px;
+    padding: var(--rs-field-padding);
     font-family: inherit;
-    font-size: 1rem;
+    font-size: var(--rs-field-font-size);
     line-height: 1.5;
     color: var(--rs-field-text);
     background: var(--rs-field-bg);
@@ -39,9 +56,9 @@
     border-radius: var(--rs-field-radius);
     outline: none;
     transition:
-      background-color 0.15s ease,
-      border-color 0.15s ease,
-      box-shadow 0.15s ease;
+      background-color var(--rs-duration-fast) var(--rs-ease-out),
+      border-color var(--rs-duration-fast) var(--rs-ease-out),
+      box-shadow var(--rs-duration-fast) var(--rs-ease-out);
   }
 
   .rs-field__control::placeholder {

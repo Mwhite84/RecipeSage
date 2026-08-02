@@ -1,7 +1,8 @@
 .search-container {
   display: flex;
   align-items: center;
-  padding: 4px 8px;
+  padding: var(--rs-space-1) var(--rs-space-2);
+  // Layout cap, not a spacing step — no token.
   max-width: 900px;
   margin: 0 auto;
 
@@ -13,11 +14,13 @@
 .rating-line {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8125rem;
-  line-height: 1.25;
-  color: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.7);
+  gap: var(--rs-space-2);
+  font-size: var(--rs-text-xs);
+  line-height: var(--rs-leading-tight);
+  color: var(--rs-text-tertiary);
 
+  // Star glyph geometry, not type — the paired px line-height is what keeps the
+  // row from growing. No token for either.
   rating {
     font-size: 16px;
     line-height: 14px;
@@ -32,7 +35,9 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 16px;
+  gap: var(--rs-space-4);
+  // Kept at 10px: TILE_WIDTH + TILE_PADD (200 + 20) in discover.page.ts is the
+  // column-count divisor, and this padding is the 2x10 half of that budget.
   padding: 10px;
 
   &.single-col .recipe-card {
@@ -41,9 +46,10 @@
 }
 
 .recipe-card {
+  // Kept in sync with TILE_WIDTH in discover.page.ts.
   width: 200px;
   --paragraph-line-height: 1.188rem;
-  --content-padding-leeway: 1.5rem;
+  --content-padding-leeway: var(--rs-space-5);
   --image-height: 190px;
   --title-height: var(--paragraph-line-height);
   --description-height: calc(var(--paragraph-line-height) * 2);
@@ -58,10 +64,18 @@
   min-width: 0;
   height: calc(var(--image-height) + var(--content-height));
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--rs-radius-sm);
   overflow: hidden;
-  background: var(--ion-item-background);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  background: var(--rs-surface-elevated);
+  box-shadow: var(--rs-shadow-sm);
+
+  // Now tabbable (role=button/tabindex=0) — needs a visible focus state.
+  // --rs-accent measures 2.44-3.08 against the light surfaces and fails WCAG
+  // 2.2 SC 1.4.11 (3:1 for focus indicators); --rs-accent-text does not.
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
+  }
 
   img {
     width: 100%;
@@ -71,12 +85,12 @@
   }
 
   .recipe-card-content {
-    padding: 8px 10px 10px;
+    padding: var(--rs-space-2) var(--rs-space-3) var(--rs-space-3);
 
     h2 {
-      margin: 0 0 4px;
+      margin: 0 0 var(--rs-space-1);
       height: var(--title-height);
-      font-size: 1rem;
+      font-size: var(--rs-text-base);
       line-height: var(--paragraph-line-height);
       white-space: nowrap;
       overflow: hidden;
@@ -84,8 +98,8 @@
     }
 
     p {
-      margin: 0 0 4px;
-      font-size: 0.875rem;
+      margin: 0 0 var(--rs-space-1);
+      font-size: var(--rs-text-sm);
       line-height: var(--paragraph-line-height);
       white-space: nowrap;
       overflow: hidden;
@@ -103,7 +117,7 @@
       &.author {
         height: var(--author-height);
         font-style: italic;
-        color: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.75);
+        color: var(--rs-text-secondary);
       }
     }
   }
@@ -116,7 +130,7 @@
 
 .recipe-item {
   --paragraph-line-height: 1.188rem;
-  --content-padding-leeway: 1rem;
+  --content-padding-leeway: var(--rs-space-4);
   --title-height: var(--paragraph-line-height);
   --description-height: calc(var(--paragraph-line-height) * 2);
   --author-height: var(--paragraph-line-height);
@@ -128,29 +142,40 @@
   );
 
   display: block;
-  border-bottom: 1px solid var(--ion-border-color);
+  border-bottom: 1px solid var(--rs-border);
 
   .recipe-item-clickable {
     display: grid;
     grid-template-columns: 80px auto;
-    gap: 12px;
+    gap: var(--rs-space-3);
     align-items: start;
     height: var(--item-height);
     overflow: hidden;
-    padding: 8px 12px;
+    padding: var(--rs-space-2) var(--rs-space-3);
     cursor: pointer;
+
+    // Now tabbable (role=button/tabindex=0). Inset ring so it is not clipped by
+    // the row's own overflow:hidden.
+    &:focus-visible {
+      outline: 2px solid var(--rs-accent-text);
+      outline-offset: -2px;
+    }
   }
 
-  &:hover {
-    background-color: var(--ion-background-tint-color);
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--ion-card-background-hover);
+    }
   }
 
   img {
     width: 80px;
     height: 80px;
     object-fit: cover;
+    // 4px has no token (--rs-radius-sm is 8px) and doubling it is visible at
+    // this thumbnail size.
     border-radius: 4px;
-    box-shadow: 1px 1px 7px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--rs-shadow-sm);
   }
 
   .recipe-item-content {
@@ -159,7 +184,7 @@
     h2 {
       margin: 0 0 2px;
       height: var(--title-height);
-      font-size: 1rem;
+      font-size: var(--rs-text-base);
       line-height: var(--paragraph-line-height);
       white-space: nowrap;
       overflow: hidden;
@@ -168,7 +193,7 @@
 
     p {
       margin: 0 0 2px;
-      font-size: 0.875rem;
+      font-size: var(--rs-text-sm);
       line-height: var(--paragraph-line-height);
       white-space: nowrap;
       overflow: hidden;
@@ -186,7 +211,7 @@
       &.author {
         height: var(--author-height);
         font-style: italic;
-        color: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.75);
+        color: var(--rs-text-secondary);
       }
     }
   }
@@ -194,15 +219,5 @@
   .rating-line {
     height: var(--rating-height);
     overflow: hidden;
-  }
-}
-
-.discover-empty {
-  text-align: center;
-  padding: 48px 16px;
-  color: rgba(var(--ion-text-color-rgb, 0, 0, 0), 0.6);
-
-  .big-icon {
-    font-size: 64px;
   }
 }
