@@ -3,8 +3,13 @@
     display: block;
 
     // Surfaces — a field is a depressed area that lifts on focus
-    --rs-field-bg: var(--rs-surface-sunken);
-    --rs-field-bg-focus: var(--rs-surface-elevated);
+    // NOT --rs-surface-sunken. A field must step away from the card it sits on
+    // toward the text colour, and that direction flips per theme: sunken is
+    // below a white card (correct on light) but below a dark card too (wrong on
+    // dark, invisible on black, whose sunken is pure black). --rs-field-surface
+    // is defined per theme in design-system.scss to step the right way.
+    --rs-field-bg: var(--rs-field-surface);
+    --rs-field-bg-focus: var(--rs-field-surface-focus);
 
     // Text
     --rs-field-text: var(--rs-text-primary);

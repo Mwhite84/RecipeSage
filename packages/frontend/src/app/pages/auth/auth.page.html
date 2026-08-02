@@ -21,60 +21,76 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content>
   <div class="auth-container">
-    <ion-list>
-      <div class="auth-entry">
-        <br />
+    <header class="auth-intro">
+      <logo-icon [noBg]="true"></logo-icon>
 
-        @if (isSelfHost) {
-          <div>{{ "pages.auth.selfhostWarning" | translate }}</div>
-        }
-        @if (!isSelfHost) {
-          <logo-icon [noBg]="true"></logo-icon>
-        }
-        @if (showLogin) {
-          <div class="welcome">
-            <h2>{{ "pages.auth.welcome.login" | translate }}</h2>
-            <span>{{ "pages.auth.welcome.login.sub" | translate }}</span>
-          </div>
-        }
-        @if (!showLogin) {
-          <div class="welcome">
-            <h2>{{ "pages.auth.welcome.register" | translate }}</h2>
-            <span>{{ "pages.auth.welcome.register.sub1" | translate }}</span
-            ><br />
-            <span>{{ "pages.auth.welcome.register.sub2" | translate }}</span>
-          </div>
-        }
+      @if (showLogin) {
+        <h1 class="auth-title">{{ "pages.auth.welcome.login" | translate }}</h1>
+        <p class="auth-subtitle">
+          {{ "pages.auth.welcome.login.sub" | translate }}
+        </p>
+      } @else {
+        <h1 class="auth-title">
+          {{ "pages.auth.welcome.register" | translate }}
+        </h1>
+        <p class="auth-subtitle">
+          {{ "pages.auth.welcome.register.sub1" | translate }}
+        </p>
+        <p class="auth-subtitle">
+          {{ "pages.auth.welcome.register.sub2" | translate }}
+        </p>
+      }
+    </header>
 
-        <br /><br /><br /><br />
-
-        @if (!showLogin) {
-          <div>
-            <text-input
-              label="{{ 'pages.auth.input.name' | translate }}"
-              [(ngModel)]="name"
-              type="text"
-            ></text-input>
-            <br />
-          </div>
-        }
-
+    <div class="auth-form">
+      @if (!showLogin) {
         <text-input
-          label="{{ 'pages.auth.input.email' | translate }}"
-          [(ngModel)]="email"
-          type="email"
+          label="{{ 'pages.auth.input.name' | translate }}"
+          [(ngModel)]="name"
+          type="text"
         ></text-input>
-        <br />
+      }
 
+      <text-input
+        label="{{ 'pages.auth.input.email' | translate }}"
+        [(ngModel)]="email"
+        type="email"
+      ></text-input>
+
+      <text-input
+        label="{{ 'pages.auth.input.password' | translate }}"
+        [(ngModel)]="password"
+        [type]="revealPassword ? 'text' : 'password'"
+        (keyup.enter)="showLogin && auth()"
+      >
+        <ion-button
+          class="auth-reveal"
+          fill="clear"
+          size="small"
+          slot="end"
+          aria-label="Show/hide password"
+          (click)="revealPassword = !revealPassword"
+        >
+          <ion-icon
+            slot="icon-only"
+            [name]="revealPassword ? 'eye-off-outline' : 'eye-outline'"
+            aria-hidden="true"
+            color="medium"
+          ></ion-icon>
+        </ion-button>
+      </text-input>
+
+      @if (!showLogin) {
         <text-input
-          label="{{ 'pages.auth.input.password' | translate }}"
-          [(ngModel)]="password"
+          label="{{ 'pages.auth.input.confirmPassword' | translate }}"
+          [(ngModel)]="confirmPassword"
           [type]="revealPassword ? 'text' : 'password'"
-          (keyup.enter)="showLogin && auth()"
+          (keyup.enter)="auth()"
         >
           <ion-button
+            class="auth-reveal"
             fill="clear"
             size="small"
             slot="end"
@@ -89,91 +105,69 @@
             ></ion-icon>
           </ion-button>
         </text-input>
-        <br />
+      }
+    </div>
 
-        @if (!showLogin) {
-          <div>
-            <text-input
-              label="{{ 'pages.auth.input.confirmPassword' | translate }}"
-              [(ngModel)]="confirmPassword"
-              [type]="revealPassword ? 'text' : 'password'"
-              (keyup.enter)="auth()"
-            >
-              <ion-button
-                fill="clear"
-                size="small"
-                slot="end"
-                aria-label="Show/hide password"
-                (click)="revealPassword = !revealPassword"
-              >
-                <ion-icon
-                  slot="icon-only"
-                  [name]="revealPassword ? 'eye-off-outline' : 'eye-outline'"
-                  aria-hidden="true"
-                  color="medium"
-                ></ion-icon>
-              </ion-button>
-            </text-input>
-            <br /><br />
-          </div>
-        }
-      </div>
-
-      @if (!isSelfHost) {
+    @if (!isSelfHost) {
+      <div class="auth-tos">
         <tos-clickwrap-agreement></tos-clickwrap-agreement>
-      }
-      @if (isSelfHost) {
-        <div>{{ "pages.auth.selfhostWarning2" | translate }}</div>
+      </div>
+    }
+
+    @if (showLogin) {
+      <ion-button
+        class="auth-submit"
+        expand="block"
+        [disabled]="loading"
+        (click)="auth()"
+        >{{ "pages.auth.button.login" | translate }}</ion-button
+      >
+    }
+    @if (!showLogin) {
+      <ion-button
+        class="auth-submit"
+        expand="block"
+        [disabled]="loading"
+        (click)="auth()"
+        >{{ "pages.auth.button.register" | translate }}</ion-button
+      >
+    }
+
+    @if (!isSelfHost) {
+      <div class="divider">
+        <div class="divider-segment"></div>
+        <p class="ion-text-center">{{ "pages.auth.or" | translate }}</p>
+        <div class="divider-segment"></div>
+      </div>
+    }
+    @if (!isSelfHost) {
+      <div class="auth-sso">
+        <sign-in-with-google
+          [allowRegistration]="!showLogin"
+          (accountNotFound)="onGoogleAccountNotFound()"
+          (signInComplete)="signInWithGoogleComplete($event)"
+        ></sign-in-with-google>
+      </div>
+    }
+
+    <div class="auth-links">
+      @if (showLogin) {
+        <button type="button" class="auth-link" (click)="forgotPassword()">
+          {{ "pages.auth.button.forgotPassword" | translate }}
+        </button>
       }
 
-      <div class="ion-padding">
+      <button
+        type="button"
+        class="auth-link auth-link--accent"
+        (click)="toggleLogin()"
+      >
         @if (showLogin) {
-          <ion-button expand="block" [disabled]="loading" (click)="auth()">{{
-            "pages.auth.button.login" | translate
-          }}</ion-button>
+          {{ "pages.auth.button.registerInstead" | translate }}
+        } @else {
+          {{ "pages.auth.button.loginInstead" | translate }}
         }
-        @if (!showLogin) {
-          <ion-button expand="block" [disabled]="loading" (click)="auth()">{{
-            "pages.auth.button.register" | translate
-          }}</ion-button>
-        }
-      </div>
-
-      @if (!isSelfHost) {
-        <div class="divider">
-          <div class="divider-segment"></div>
-          <p class="ion-text-center">{{ "pages.auth.or" | translate }}</p>
-          <div class="divider-segment"></div>
-        </div>
-      }
-      @if (!isSelfHost) {
-        <div class="ion-padding-start ion-padding-end ion-padding-bottom">
-          <sign-in-with-google
-            [allowRegistration]="!showLogin"
-            (accountNotFound)="onGoogleAccountNotFound()"
-            (signInComplete)="signInWithGoogleComplete($event)"
-          ></sign-in-with-google>
-        </div>
-      }
-
-      <div>
-        @if (showLogin) {
-          <ion-button fill="clear" expand="block" (click)="forgotPassword()">{{
-            "pages.auth.button.forgotPassword" | translate
-          }}</ion-button>
-        }
-      </div>
-
-      <div>
-        <ion-button fill="clear" expand="block" (click)="toggleLogin()">
-          @if (showLogin) {
-            <span>{{ "pages.auth.button.registerInstead" | translate }}</span>
-          }
-          @if (!showLogin) {
-            <span>{{ "pages.auth.button.loginInstead" | translate }}</span>
-          }
-        </ion-button>
-      </div>
-    </ion-list>
+      </button>
+    </div>
   </div>
 </ion-content>

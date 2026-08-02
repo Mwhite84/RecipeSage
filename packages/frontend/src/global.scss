@@ -457,14 +457,31 @@ ion-popover .popover-viewport {
   border-radius: var(--rs-radius-sm);
 }
 
-// Ionic elements use :focus internally — let their own focus ring styles handle
-// pointer focus. Scoped to :not(:focus-visible) because :focus-visible is a
-// subset of :focus and this rule is the more specific one: an unqualified
-// :focus here suppresses the keyboard focus ring above app-wide.
+// Ionic elements use :focus internally — suppress the pointer-focus ring and let
+// their own styles handle it.
+//
+// :not(:focus-visible) is NOT sufficient on its own here, and assuming it was is
+// a real trap: these components render their actual <button> inside shadow DOM,
+// so focus is retargeted and the HOST element matches :focus but NEVER
+// :focus-visible. Verified in-browser after tabbing to an ion-button:
+// matchesFocus true, matchesFocusVisible false. That means this rule fires on
+// keyboard focus too and strips the ring app-wide — which is exactly the bug the
+// :focus-visible narrowing above was meant to fix.
 ion-item:focus:not(:focus-visible),
 ion-button:focus:not(:focus-visible),
 ion-fab-button:focus:not(:focus-visible) {
   outline: none;
+}
+
+// So drive the keyboard ring off Ionic's own .ion-focused class, which its focus
+// manager applies for keyboard focus only. The trailing :focus is there purely to
+// outrank the suppression above, which is (0,2,1) against .ion-focused's (0,1,1).
+ion-item.ion-focused:focus,
+ion-button.ion-focused:focus,
+ion-fab-button.ion-focused:focus {
+  outline: 2px solid var(--rs-accent-text);
+  outline-offset: 2px;
+  border-radius: var(--rs-radius-sm);
 }
 
 // =============================================================================

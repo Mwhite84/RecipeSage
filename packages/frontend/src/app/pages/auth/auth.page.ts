@@ -33,7 +33,6 @@ import {
   IonMenuButton,
   IonTitle,
   IonContent,
-  IonList,
 } from "@ionic/angular/standalone";
 import { closeOutline, eyeOutline, eyeOffOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
@@ -57,7 +56,6 @@ import { addIcons } from "ionicons";
     IonMenuButton,
     IonTitle,
     IonContent,
-    IonList,
   ],
 })
 export class AuthPage {

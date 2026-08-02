@@ -99,6 +99,14 @@
   --rs-surface-sunken: oklch(95% 0.007 232); // inputs, code, depressed areas
   --rs-surface-overlay: oklch(92% 0.009 232); // popovers, action sheets
 
+  // Input wells. These step AWAY from the card toward the text colour, so the
+  // direction flips per theme: on light the field sits below the white card, on
+  // dark it sits above it. Binding fields to --rs-surface-sunken in every theme
+  // makes them invisible in dark (sunken is darker than the card it sits on, and
+  // in the black theme it is pure black). Consumed by components/forms/field.scss.
+  --rs-field-surface: var(--rs-surface-sunken); // 95% under a 100% card
+  --rs-field-surface-focus: var(--rs-surface-elevated); // brightens to 100%
+
   // Text
   --rs-text-primary: oklch(
     18% 0.008 232
@@ -208,6 +216,10 @@
   --rs-surface-sunken: oklch(12% 0.006 232);
   --rs-surface-overlay: oklch(22% 0.01 232);
 
+  // Steps UP from the 19% card — see the note in rsLightTokens().
+  --rs-field-surface: oklch(24% 0.011 232);
+  --rs-field-surface-focus: oklch(28% 0.012 232);
+
   // Text
   --rs-text-primary: oklch(95% 0.005 232);
   // Raised 68% -> 74%. Lifting tertiary to 62% for WCAG AA compressed the
@@ -301,6 +313,12 @@
   --rs-surface-elevated: oklch(8% 0.006 232);
   --rs-surface-sunken: oklch(0% 0 0);
   --rs-surface-overlay: oklch(10% 0.007 232);
+
+  // Black theme's sunken is pure black, so a field bound to it vanishes into an
+  // 8% card. Steps UP instead — see the note in rsLightTokens().
+  --rs-field-surface: oklch(13% 0.008 232);
+  --rs-field-surface-focus: oklch(17% 0.009 232);
+
   --rs-border: oklch(20% 0.007 232);
   --rs-divider: oklch(14% 0.005 232);
 
@@ -322,6 +340,11 @@
   --rs-surface-elevated: oklch(21% 0.02 245);
   --rs-surface-sunken: oklch(14% 0.014 245);
   --rs-surface-overlay: oklch(24% 0.022 245);
+
+  // Steps UP from the 21% card — see the note in rsLightTokens().
+  --rs-field-surface: oklch(26% 0.023 245);
+  --rs-field-surface-focus: oklch(30% 0.024 245);
+
   --rs-border: oklch(30% 0.016 245);
   --rs-divider: oklch(24% 0.014 245);
 

@@ -1,70 +1,202 @@
 // =============================================================================
 // Auth Page (Login / Register)
+// -----------------------------------------------------------------------------
+// This page is ALSO presented as an Ionic modal by http-error-handler.service
+// (promptForAuth, on any 401). Nothing here may assume full-viewport height or
+// route-level chrome — the layout is a self-contained, max-width column that
+// centres itself in whatever box it is given.
+//
+// Typography note: --rs-font-display (DM Serif Display) is this app's *content*
+// face — recipe titles, section titles, reel titles, the menu brand. UI chrome
+// is body sans throughout, which global.scss already does explicitly for
+// ion-title. The auth page is chrome, not content, so its heading uses
+// --rs-font-body. Previously it was the only serif word on an all-sans screen.
 // =============================================================================
 
 ion-content {
   --background: var(--rs-surface-base);
   --padding-start: var(--rs-inset-page);
   --padding-end: var(--rs-inset-page);
+  --padding-top: 0;
+  --padding-bottom: var(--rs-space-7);
 }
 
 .auth-container {
   max-width: 420px;
   margin: 0 auto;
   padding-top: var(--rs-space-6);
+  // Left-aligned to match home / recipe. Centred labels over full-width inputs
+  // read as two competing axes.
+  text-align: start;
 }
 
-.auth-entry {
-  text-align: center;
+// -----------------------------------------------------------------------------
+// Intro — logo, heading, sub
+// -----------------------------------------------------------------------------
+.auth-intro {
+  margin-bottom: var(--rs-space-6);
 
   logo-icon {
     display: block;
-    margin-bottom: var(--rs-space-5);
+    margin-bottom: var(--rs-space-4);
   }
 }
 
-.welcome {
+.auth-title {
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-xl);
+  font-weight: var(--rs-weight-semibold);
+  letter-spacing: -0.01em;
+  line-height: var(--rs-leading-tight);
+  color: var(--rs-text-primary);
+  margin: 0 0 var(--rs-space-2);
+  text-wrap: balance;
+}
+
+.auth-subtitle {
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-sm);
+  line-height: var(--rs-leading-normal);
+  color: var(--rs-text-secondary);
+  margin: 0;
+  max-width: 42ch;
+
+  + .auth-subtitle {
+    margin-top: var(--rs-space-1);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Form
+// The old `ion-item { … ion-input { … } }` block here was dead — the template
+// uses <text-input> now. Field surface, radius and metrics are set through the
+// --rs-field-* custom properties that components/forms/field.scss exposes;
+// emulated encapsulation puts .rs-field__control itself out of a page's reach.
+// -----------------------------------------------------------------------------
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-4);
   margin-bottom: var(--rs-space-5);
 
-  h2 {
-    font-family: var(--rs-font-display);
-    font-size: var(--rs-text-xl);
-    font-weight: 400;
-    color: var(--rs-text-primary);
-    margin: 0 0 var(--rs-space-2);
-  }
-
-  span {
-    font-family: var(--rs-font-body);
-    font-size: var(--rs-text-sm);
-    color: var(--rs-text-secondary);
-    line-height: var(--rs-leading-relaxed);
+  text-input {
+    --rs-field-radius: var(--rs-radius-md);
+    // 12 + 12 padding + 24px line-box + 2px border = 50px, clearing
+    // --rs-touch-min (44px) without touching the 16px type that keeps iOS from
+    // zooming the page on focus.
+    --rs-field-padding: var(--rs-space-3);
   }
 }
 
-// Form fields
-ion-item {
-  --background: var(--rs-surface-elevated);
-  --border-color: var(--rs-border);
-  --border-radius: var(--rs-radius-md);
-  --border-width: 1px;
-  --border-style: solid;
-  --padding-start: var(--rs-space-4);
-  --inner-padding-end: var(--rs-space-3);
-  --min-height: 56px;
-  border-radius: var(--rs-radius-md);
-  overflow: hidden;
-  margin-bottom: var(--rs-space-3);
+// Password reveal — projected into the field's end affix. Grow the hit area to
+// --rs-touch-min; the glyph itself stays the size Ionic draws it.
+.auth-reveal {
+  --padding-start: var(--rs-space-2);
+  --padding-end: var(--rs-space-2);
+  min-width: var(--rs-touch-min);
+  height: var(--rs-touch-min);
+  margin: 0;
+}
 
-  ion-input {
-    --color: var(--rs-text-primary);
-    --placeholder-color: var(--rs-text-tertiary);
-    font-family: var(--rs-font-body);
-    font-size: var(--rs-text-base);
+// Keyboard focus on ion-button
+// -----------------------------------------------------------------------------
+// ion-button's real <button> lives in shadow DOM, so focus is retargeted and the
+// HOST never matches :focus-visible — a plain `.auth-submit:focus-visible` rule
+// is dead code. Worse, global.scss's
+//   ion-button:focus:not(:focus-visible) { outline: none }
+// therefore matches on every keyboard focus and strips the ring. `.ion-focused`
+// is the class Ionic adds for keyboard focus only (verified in-browser); the
+// trailing :focus is there purely to outrank that global rule.
+ion-button.auth-submit.ion-focused:focus {
+  outline: 2px solid var(--rs-accent-text);
+  outline-offset: 2px;
+}
+
+ion-button.auth-reveal.ion-focused:focus {
+  outline: 2px solid var(--rs-accent-text);
+  outline-offset: -2px;
+}
+
+// -----------------------------------------------------------------------------
+// Actions — one primary, then two clearly subordinate text links
+// -----------------------------------------------------------------------------
+.auth-tos {
+  margin-bottom: var(--rs-space-4);
+}
+
+.auth-submit {
+  display: block;
+  margin: 0 0 var(--rs-space-5);
+  font-size: var(--rs-text-base);
+  --padding-top: var(--rs-space-3);
+  --padding-bottom: var(--rs-space-3);
+  min-height: var(--rs-touch-min);
+}
+
+.auth-sso {
+  margin-bottom: var(--rs-space-4);
+}
+
+.auth-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--rs-space-1);
+}
+
+.auth-link {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--rs-touch-min);
+  margin: 0;
+  padding: var(--rs-space-2) var(--rs-space-3);
+  border: 0;
+  border-radius: var(--rs-radius-sm);
+  background: transparent;
+  font-family: var(--rs-font-body);
+  font-size: var(--rs-text-sm);
+  font-weight: var(--rs-weight-medium);
+  line-height: var(--rs-leading-normal);
+  color: var(--rs-text-tertiary);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    color var(--rs-duration-fast) var(--rs-ease-out),
+    background var(--rs-duration-fast) var(--rs-ease-out);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--rs-text-primary);
+      background: var(--rs-surface-sunken);
+    }
+  }
+
+  // --rs-accent-text, not --rs-accent: the plain accent measures 2.44–3.08
+  // against the light surfaces and fails WCAG 2.2 SC 1.4.11 (3:1).
+  &:focus-visible {
+    outline: 2px solid var(--rs-accent-text);
+    outline-offset: 2px;
   }
 }
 
-// "Or" divider
+.auth-link--accent {
+  color: var(--rs-accent-text);
+  font-weight: var(--rs-weight-semibold);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--rs-accent-text);
+      background: var(--rs-accent-subtle);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// "Or" divider (hosted build only — sits above Sign in with Google)
+// -----------------------------------------------------------------------------
 .divider {
   display: flex;
   align-items: center;
